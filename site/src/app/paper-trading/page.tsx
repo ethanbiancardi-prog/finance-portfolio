@@ -55,6 +55,16 @@ type PortfolioHistory = {
   equity: (number | null)[];
 };
 
+type PersonaTake = {
+  name: string;
+  take: string;
+};
+
+type Analysis = {
+  personas: PersonaTake[];
+  key_disagreement: string;
+};
+
 const money = (value: string) =>
   Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -76,6 +86,11 @@ export default function PaperTrading() {
   const [qty, setQty] = useState("");
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [message, setMessage] = useState("");
+
+  const [analysisTicker, setAnalysisTicker] = useState("");
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState("");
 
   const [journalDate, setJournalDate] = useState(today());
   const [journalTicker, setJournalTicker] = useState("");
@@ -157,6 +172,28 @@ export default function PaperTrading() {
     setJournalTicker("");
     setJournalThesis("");
     setJournalExit("");
+  }
+
+  async function submitAnalysis(e: React.FormEvent) {
+    e.preventDefault();
+    setAnalysisLoading(true);
+    setAnalysisError("");
+    setAnalysis(null);
+
+    const res = await fetch("/api/paper-trading/analysis", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker: analysisTicker }),
+    });
+
+    if (!res.ok) {
+      setAnalysisError("Analysis failed.");
+      setAnalysisLoading(false);
+      return;
+    }
+
+    setAnalysis(await res.json());
+    setAnalysisLoading(false);
   }
 
   return (
@@ -461,6 +498,60 @@ export default function PaperTrading() {
             </button>
           </form>
           {message && <p className="mt-3 text-sm text-zinc-500">{message}</p>}
+        </section>
+
+        <section className="mt-10">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+            AI Analysis
+          </h2>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            Six takes on a ticker, then the sharpest disagreement between them.
+          </p>
+          <form onSubmit={submitAnalysis} className="mt-4 flex items-end gap-3">
+            <div>
+              <label className="block text-xs text-zinc-500">Ticker</label>
+              <input
+                value={analysisTicker}
+                onChange={(e) => setAnalysisTicker(e.target.value)}
+                placeholder="AAPL"
+                required
+                className="mt-1 w-32 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={analysisLoading}
+              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-black"
+            >
+              {analysisLoading ? "Analyzing..." : "Analyze"}
+            </button>
+          </form>
+
+          {analysisError && <p className="mt-3 text-sm text-red-500">{analysisError}</p>}
+
+          {analysis && (
+            <div className="mt-4 space-y-3">
+              {analysis.personas.map((p) => (
+                <div
+                  key={p.name}
+                  className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <p className="text-sm font-medium text-black dark:text-zinc-50">{p.name}</p>
+                  <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                    {p.take}
+                  </p>
+                </div>
+              ))}
+              <div className="rounded-lg border border-zinc-300 bg-zinc-100 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="text-sm font-medium text-black dark:text-zinc-50">
+                  Key Disagreement
+                </p>
+                <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                  {analysis.key_disagreement}
+                </p>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </div>
