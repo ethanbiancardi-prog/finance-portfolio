@@ -39,6 +39,17 @@ type EquityPoint = {
   equity: number;
 };
 
+type JournalEntry = {
+  id: string;
+  date: string;
+  ticker: string;
+  action: "buy" | "sell";
+  thesis: string;
+  exitCondition: string;
+};
+
+const today = () => new Date().toISOString().slice(0, 10);
+
 type PortfolioHistory = {
   timestamp: number[];
   equity: (number | null)[];
@@ -60,21 +71,30 @@ export default function PaperTrading() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [equityHistory, setEquityHistory] = useState<EquityPoint[]>([]);
+  const [journal, setJournal] = useState<JournalEntry[]>([]);
   const [symbol, setSymbol] = useState("");
   const [qty, setQty] = useState("");
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [message, setMessage] = useState("");
 
+  const [journalDate, setJournalDate] = useState(today());
+  const [journalTicker, setJournalTicker] = useState("");
+  const [journalAction, setJournalAction] = useState<"buy" | "sell">("buy");
+  const [journalThesis, setJournalThesis] = useState("");
+  const [journalExit, setJournalExit] = useState("");
+
   async function loadAll() {
-    const [accountRes, positionsRes, ordersRes, historyRes] = await Promise.all([
+    const [accountRes, positionsRes, ordersRes, historyRes, journalRes] = await Promise.all([
       fetch("/api/paper-trading/account"),
       fetch("/api/paper-trading/positions"),
       fetch("/api/paper-trading/orders"),
       fetch("/api/paper-trading/history"),
+      fetch("/api/paper-trading/journal"),
     ]);
     setAccount(await accountRes.json());
     setPositions(await positionsRes.json());
     setOrders(await ordersRes.json());
+    setJournal(await journalRes.json());
 
     const history: PortfolioHistory = await historyRes.json();
     setEquityHistory(
@@ -115,6 +135,28 @@ export default function PaperTrading() {
     setSymbol("");
     setQty("");
     loadAll();
+  }
+
+  async function submitJournalEntry(e: React.FormEvent) {
+    e.preventDefault();
+
+    const res = await fetch("/api/paper-trading/journal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: journalDate,
+        ticker: journalTicker,
+        action: journalAction,
+        thesis: journalThesis,
+        exitCondition: journalExit,
+      }),
+    });
+
+    const entry = await res.json();
+    setJournal([entry, ...journal]);
+    setJournalTicker("");
+    setJournalThesis("");
+    setJournalExit("");
   }
 
   return (
@@ -234,6 +276,104 @@ export default function PaperTrading() {
               )}
             </tbody>
           </table>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+            Trade Journal
+          </h2>
+          <table className="mt-4 w-full text-left text-sm">
+            <thead>
+              <tr className="text-zinc-500">
+                <th className="py-2 font-medium">Date</th>
+                <th className="py-2 font-medium">Ticker</th>
+                <th className="py-2 font-medium">Action</th>
+                <th className="py-2 font-medium">Thesis</th>
+                <th className="py-2 font-medium">Exit Condition</th>
+              </tr>
+            </thead>
+            <tbody>
+              {journal.map((entry) => (
+                <tr key={entry.id} className="border-t border-zinc-200 dark:border-zinc-800">
+                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{entry.date}</td>
+                  <td className="py-2 text-black dark:text-zinc-50">{entry.ticker}</td>
+                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{entry.action}</td>
+                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{entry.thesis}</td>
+                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{entry.exitCondition}</td>
+                </tr>
+              ))}
+              {journal.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-4 text-zinc-500">
+                    No journal entries yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          <form
+            onSubmit={submitJournalEntry}
+            className="mt-4 flex flex-wrap items-end gap-3"
+          >
+            <div>
+              <label className="block text-xs text-zinc-500">Date</label>
+              <input
+                value={journalDate}
+                onChange={(e) => setJournalDate(e.target.value)}
+                type="date"
+                required
+                className="mt-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500">Ticker</label>
+              <input
+                value={journalTicker}
+                onChange={(e) => setJournalTicker(e.target.value)}
+                placeholder="AAPL"
+                required
+                className="mt-1 w-24 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500">Action</label>
+              <select
+                value={journalAction}
+                onChange={(e) => setJournalAction(e.target.value as "buy" | "sell")}
+                className="mt-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+              >
+                <option value="buy">Buy</option>
+                <option value="sell">Sell</option>
+              </select>
+            </div>
+            <div className="min-w-40 flex-1">
+              <label className="block text-xs text-zinc-500">Thesis (one line)</label>
+              <input
+                value={journalThesis}
+                onChange={(e) => setJournalThesis(e.target.value)}
+                placeholder="Why this trade"
+                required
+                className="mt-1 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </div>
+            <div className="min-w-40 flex-1">
+              <label className="block text-xs text-zinc-500">Exit Condition</label>
+              <input
+                value={journalExit}
+                onChange={(e) => setJournalExit(e.target.value)}
+                placeholder="What makes you sell"
+                required
+                className="mt-1 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </div>
+            <button
+              type="submit"
+              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
+            >
+              Add Entry
+            </button>
+          </form>
         </section>
 
         <section className="mt-10">

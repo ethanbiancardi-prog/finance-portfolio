@@ -1,0 +1,10 @@
+[
+  {
+    "id": "8be58fd3-f4e4-4e6b-9d2a-437c7a6fdf45",
+    "date": "2026-07-19",
+    "ticker": "S&P500",
+    "action": "buy",
+    "thesis": "Test ",
+    "exitCondition": "goes 10% lower than position I bought "
+  }
+]
