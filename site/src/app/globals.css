@@ -8,6 +8,9 @@
   --chart-grid: #e1e0d9;
   --chart-muted: #898781;
   --chart-tooltip-bg: #ffffff;
+  --status-good: #0ca30c;
+  --status-average: #fab219;
+  --status-bad: #d03b3b;
 }
 
 @theme inline {

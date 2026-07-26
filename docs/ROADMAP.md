@@ -30,6 +30,10 @@
 - [x] `projects/paper-trading/STRATEGY.md` — core-satellite strategy doc with quantum-computing and dip-buying satellite templates, SPY benchmark
 - [x] Shared nav bar across all pages
 - [x] Dark mode consistency fix (`color-scheme` so native form controls follow the theme too)
+- [x] 10-K analyzer ratio color-coding (green/yellow/red dot + label per ratio vs. rough thresholds)
+
+## To do
+- [ ] Research candidate stocks for the paper-trading account (using the 10-K analyzer + AI persona panel) — Ethan, not a build task
 
 ## Open blockers
 - Anthropic API key has no credit balance — add credits at console.anthropic.com before the AI Analysis panel returns real results.

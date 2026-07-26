@@ -39,6 +39,56 @@ const percent = (value: number | null) => (value == null ? "N/A" : `${(value * 1
 
 const ratioValue = (value: number | null) => (value == null ? "N/A" : value.toFixed(2));
 
+// Rough, industry-agnostic gut-check thresholds — a capital-intensive company
+// (utilities, manufacturing) will always look "bad" on asset turnover even
+// when healthy for its sector. Useful for a quick scan, not a substitute for
+// comparing against peers in the same industry.
+const RATING_THRESHOLDS: Record<string, { direction: "higher-is-better" | "lower-is-better"; good: number; bad: number }> = {
+  "Current Ratio": { direction: "higher-is-better", good: 1.5, bad: 1.0 },
+  "Debt-to-Equity": { direction: "lower-is-better", good: 1.0, bad: 2.0 },
+  "Net Margin": { direction: "higher-is-better", good: 0.15, bad: 0.05 },
+  "Asset Turnover": { direction: "higher-is-better", good: 1.0, bad: 0.5 },
+};
+
+type Rating = "good" | "average" | "bad";
+
+function rateRatio(label: string, value: number | null): Rating | null {
+  if (value == null) return null;
+  const t = RATING_THRESHOLDS[label];
+  if (!t) return null;
+
+  if (t.direction === "higher-is-better") {
+    if (value >= t.good) return "good";
+    if (value < t.bad) return "bad";
+    return "average";
+  }
+  if (value <= t.good) return "good";
+  if (value > t.bad) return "bad";
+  return "average";
+}
+
+const RATING_LABEL: Record<Rating, string> = { good: "Good", average: "Average", bad: "Bad" };
+
+// Color lives only on the dot, never on the text — a colored number is hard
+// to read at small sizes and unreadable for colorblind users without a label.
+function RatioValue({ label, value }: { label: string; value: number | null }) {
+  const rating = rateRatio(label, value);
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {ratioValue(value)}
+      {rating && (
+        <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ backgroundColor: `var(--status-${rating})` }}
+          />
+          {RATING_LABEL[rating]}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashboard }) {
   return (
     <div className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
@@ -80,8 +130,12 @@ function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashbo
             <tr key={ratio.label} className="border-t border-zinc-200 dark:border-zinc-800">
               <td className="py-2 text-black dark:text-zinc-50">{ratio.label}</td>
               <td className="py-2 text-zinc-600 dark:text-zinc-400">{ratio.group}</td>
-              <td className="py-2 text-zinc-600 dark:text-zinc-400">{ratioValue(ratio.value)}</td>
-              <td className="py-2 text-zinc-600 dark:text-zinc-400">{ratioValue(ratio.prior)}</td>
+              <td className="py-2 text-zinc-600 dark:text-zinc-400">
+                <RatioValue label={ratio.label} value={ratio.value} />
+              </td>
+              <td className="py-2 text-zinc-600 dark:text-zinc-400">
+                <RatioValue label={ratio.label} value={ratio.prior} />
+              </td>
             </tr>
           ))}
         </tbody>
