@@ -4,7 +4,7 @@
 - [x] Create GitHub repo, push this scaffold
 - [x] Write CLAUDE.md at repo root (conventions, stack, goals) so Claude Code has context every session
 - [x] Ship a one-page portfolio site: name, headline ("Finance × AI @ Bentley"), placeholder project cards, contact links
-- [ ] Deploy it (Vercel/Netlify/GitHub Pages — free). A live URL from day one keeps you motivated. Currently only running on local dev server.
+- [x] Deploy it (Vercel) — https://site-theta-drab-22.vercel.app
 
 ## Phase 1 — Quick wins (weeks 2–3)
 - [ ] Client-work case study pages (projects/client-work)
