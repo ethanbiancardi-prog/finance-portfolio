@@ -15,5 +15,5 @@ Next.js + Tailwind + Recharts. Python/FastAPI only for heavy analysis. Deployed 
 - Never commit API keys; use .env.local
 
 ## Current focus
-Building paper-trading Phase 1: account summary, positions, recent orders, and a market
-buy/sell form backed by Alpaca's paper trading API.
+DCF builder v1 just shipped (full FCF build + WACC x terminal growth sensitivity grid).
+Next up: client-work case study pages, or the DCF's "AI assumptions mode."

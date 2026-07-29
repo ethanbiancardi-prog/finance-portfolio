@@ -8,12 +8,15 @@
 
 ## Phase 1 — Quick wins (weeks 2–3)
 - [ ] Client-work case study pages (projects/client-work)
-- [ ] DCF builder v1: manual inputs, live valuation, sensitivity table
+- [x] DCF builder v1: manual inputs, live valuation, sensitivity table (full FCF build —
+      revenue growth, EBIT margin, tax, D&A/capex/NWC as % of revenue — 5yr projection,
+      Gordon growth terminal value, EV/equity/per-share output, WACC x terminal growth
+      sensitivity grid color-coded vs. an optional current price)
 
 ## Phase 2 — AI wow-factor (weeks 4–6)
 - [x] 10-K analyzer: pull from SEC EDGAR, compute ratio dashboard (Search by ticker + Browse by Industry, sorted by public float)
 - [ ] 10-K analyzer: AI-written one-page summary per filing
-- [ ] Add "AI assumptions mode" to the DCF builder (blocked on DCF builder existing)
+- [ ] Add "AI assumptions mode" to the DCF builder (pre-fill assumptions from a filing)
 
 ## Phase 3 — Flagship (weeks 7–12)
 - [x] Paper trading simulator v1: manual trades, real prices, P&L dashboard (Alpaca paper account — equity, positions, recent orders, buy/sell form)

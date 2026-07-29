@@ -19,7 +19,8 @@ const projects: Project[] = [
     name: "Interactive DCF Builder",
     blurb:
       "Input revenue growth, margins, and WACC to get a live valuation with a WACC x terminal growth sensitivity table.",
-    status: "Planned",
+    status: "Live",
+    href: "/dcf-builder",
   },
   {
     name: "10-K Statement Analyzer",
