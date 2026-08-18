@@ -108,8 +108,10 @@ export type RatioDashboard = {
   ratios: Ratio[];
 };
 
+// Shared by computeRatios and getRedFlagNumbers — both need the same
+// "pull an annual XBRL series, with fallback tags" building blocks.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function computeRatios(facts: any): RatioDashboard {
+function buildSeriesHelpers(facts: any) {
   const gaap = facts.facts?.["us-gaap"] ?? {};
 
   function series(tag: string): FactPoint[] {
@@ -131,6 +133,13 @@ export function computeRatios(facts: any): RatioDashboard {
   function val(points: FactPoint[], i: number): number | null {
     return points[i]?.val ?? null;
   }
+
+  return { series, seriesAny, val };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function computeRatios(facts: any): RatioDashboard {
+  const { series, seriesAny, val } = buildSeriesHelpers(facts);
 
   const assets = series("Assets");
   const assetsCurrent = series("AssetsCurrent");
@@ -361,6 +370,130 @@ export function computeRatios(facts: any): RatioDashboard {
       },
     ],
   };
+}
+
+export type RedFlagNumbers = {
+  revenueGrowth: number | null;
+  ocfGrowth: number | null;
+  // Revenue growing while the cash actually coming in from operations
+  // shrinks — a classic sign that reported profit isn't converting to cash
+  // (e.g. revenue recognized before it's collected).
+  revenueUpOcfDown: boolean;
+  liabilitiesGrowth: number | null;
+  interestCoverageNow: number | null;
+  interestCoveragePrior: number | null;
+  // Taking on more debt while the cushion to pay interest on it shrinks —
+  // leverage rising exactly when it's getting harder to service.
+  debtRisingCoverageFalling: boolean;
+  inventoryGrowth: number | null;
+  // Inventory piling up faster than sales can often mean demand is
+  // softening, or goods are becoming obsolete/unsellable.
+  inventoryOutpacingRevenue: boolean;
+};
+
+// The three "does the math cross a line" checks are pure arithmetic on
+// numbers already in the filing — no AI needed, and more reliable computed
+// directly than inferred from a prompt.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getRedFlagNumbers(facts: any): RedFlagNumbers {
+  const { series, seriesAny, val } = buildSeriesHelpers(facts);
+
+  const revenue = seriesAny(["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues"]);
+  const operatingCashFlow = series("NetCashProvidedByUsedInOperatingActivities");
+  const liabilities = series("Liabilities");
+  const operatingIncome = series("OperatingIncomeLoss");
+  const interestExpense = seriesAny(["InterestExpense", "InterestExpenseDebt"]);
+  const inventory = series("InventoryNet");
+
+  const growth = (points: FactPoint[]) => safeDiv(safeSub(val(points, 0), val(points, 1)), val(points, 1));
+
+  const revenueGrowth = growth(revenue);
+  const ocfGrowth = growth(operatingCashFlow);
+  const liabilitiesGrowth = growth(liabilities);
+  const inventoryGrowth = growth(inventory);
+  const interestCoverageNow = safeDivPositiveDenom(val(operatingIncome, 0), val(interestExpense, 0));
+  const interestCoveragePrior = safeDivPositiveDenom(val(operatingIncome, 1), val(interestExpense, 1));
+
+  return {
+    revenueGrowth,
+    ocfGrowth,
+    revenueUpOcfDown: revenueGrowth != null && ocfGrowth != null && revenueGrowth > 0 && ocfGrowth < 0,
+    liabilitiesGrowth,
+    interestCoverageNow,
+    interestCoveragePrior,
+    debtRisingCoverageFalling:
+      liabilitiesGrowth != null &&
+      interestCoverageNow != null &&
+      interestCoveragePrior != null &&
+      liabilitiesGrowth > 0 &&
+      interestCoverageNow < interestCoveragePrior,
+    inventoryGrowth,
+    inventoryOutpacingRevenue:
+      inventoryGrowth != null && revenueGrowth != null && inventoryGrowth > revenueGrowth,
+  };
+}
+
+export type FilingRef = { accessionNumber: string; primaryDocument: string; filingDate: string };
+
+// Submissions API lists every filing a company has made — walk it for the
+// most recent 10-Ks (annual reports), which is where red flags, MD&A, and
+// risk factors live.
+export async function getRecentTenKFilings(cik: number, count: number): Promise<FilingRef[]> {
+  const padded = String(cik).padStart(10, "0");
+  const res = await secFetch(`https://data.sec.gov/submissions/CIK${padded}.json`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = await res.json();
+  const recent = data.filings?.recent;
+  if (!recent) return [];
+
+  const filings: FilingRef[] = [];
+  for (let i = 0; i < recent.form.length && filings.length < count; i++) {
+    if (recent.form[i] === "10-K") {
+      filings.push({
+        accessionNumber: recent.accessionNumber[i],
+        primaryDocument: recent.primaryDocument[i],
+        filingDate: recent.filingDate[i],
+      });
+    }
+  }
+  return filings;
+}
+
+// 10-Ks are filed as HTML — strip tags/scripts down to plain text. Not a
+// full HTML parser, just enough to make the document searchable and
+// readable in an AI prompt.
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&#\d+;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export async function getFilingText(cik: number, filing: FilingRef): Promise<string> {
+  const accessionNoDashes = filing.accessionNumber.replace(/-/g, "");
+  const url = `https://www.sec.gov/Archives/edgar/data/${cik}/${accessionNoDashes}/${filing.primaryDocument}`;
+  const res = await secFetch(url);
+  const html = await res.text();
+  return stripHtml(html);
+}
+
+// Pull short excerpts of text around each match of a pattern, so an AI
+// prompt only sees the relevant sentences instead of the entire filing.
+export function findSnippets(text: string, pattern: RegExp, contextChars: number, maxSnippets: number): string[] {
+  const re = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g");
+  const snippets: string[] = [];
+  let match: RegExpExecArray | null;
+  while (snippets.length < maxSnippets && (match = re.exec(text))) {
+    const start = Math.max(0, match.index - contextChars);
+    const end = Math.min(text.length, match.index + match[0].length + contextChars);
+    snippets.push(text.slice(start, end));
+  }
+  return snippets;
 }
 
 // Friendly industry categories mapped to representative SEC SIC codes. This

@@ -202,6 +202,75 @@ function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashbo
   );
 }
 
+type RedFlag = { pattern: string; why: string };
+
+function RedFlagsPanel({ ticker }: { ticker: string }) {
+  const [flags, setFlags] = useState<RedFlag[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function scan() {
+    setLoading(true);
+    setError("");
+    setFlags(null);
+
+    const res = await fetch("/api/statement-analyzer/red-flags", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker }),
+    });
+
+    if (!res.ok) {
+      setError("Red-flag scan failed.");
+      setLoading(false);
+      return;
+    }
+
+    const data = await res.json();
+    setFlags(data.flags ?? []);
+    setLoading(false);
+  }
+
+  return (
+    <div className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+      <h3 className="font-mono text-xs uppercase tracking-widest text-accent">{"// red flags"}</h3>
+      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+        Checks for revenue up while cash flow is down, rising debt with falling interest coverage,
+        inventory outpacing revenue, heavy reliance on non-GAAP figures, and going-concern language.
+      </p>
+      <button
+        onClick={scan}
+        disabled={loading}
+        className="mt-4 rounded-sm bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-black"
+      >
+        {loading ? "Scanning..." : "Scan for Red Flags"}
+      </button>
+
+      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+
+      {flags && (
+        <div className="mt-4">
+          {flags.length === 0 ? (
+            <p className="text-sm text-zinc-500">No red flags detected against the checks above.</p>
+          ) : (
+            <div className="space-y-3">
+              {flags.map((flag, i) => (
+                <div key={i} className="rounded-sm border border-accent/40 bg-accent/5 p-4">
+                  <p className="text-sm font-medium text-black dark:text-zinc-50">{flag.pattern}</p>
+                  <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{flag.why}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="mt-3 text-xs text-zinc-500">
+            AI-generated — verify against the actual filing before relying on it.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function StatementAnalyzer() {
   const [tab, setTab] = useState<"search" | "browse">("search");
 
@@ -311,7 +380,12 @@ export default function StatementAnalyzer() {
 
             {loading && <p className="mt-4 text-sm text-zinc-500">Loading...</p>}
             {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
-            {dashboard && company && <Dashboard company={company} dashboard={dashboard} />}
+            {dashboard && company && (
+              <>
+                <Dashboard company={company} dashboard={dashboard} />
+                <RedFlagsPanel key={company.ticker} ticker={company.ticker} />
+              </>
+            )}
           </section>
         )}
 
