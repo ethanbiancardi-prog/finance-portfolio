@@ -78,6 +78,14 @@ function safeSub(a: number | null, b: number | null) {
   return a - b;
 }
 
+// Some filers report InterestExpense inconsistently (e.g. net of interest
+// income, landing at zero or negative for a company with more cash than
+// debt) — a ratio over that denominator is meaningless, not just small.
+function safeDivPositiveDenom(numerator: number | null, denominator: number | null) {
+  if (numerator == null || denominator == null || denominator <= 0) return null;
+  return numerator / denominator;
+}
+
 // "x" = plain multiple (1.42), "%" = percentage, "$" = compact currency.
 export type RatioFormat = "x" | "%" | "$";
 
@@ -244,8 +252,8 @@ export function computeRatios(facts: any): RatioDashboard {
           "How many times over operating profit could pay this year's interest bill. Low means debt-service risk.",
         format: "x",
         // Operating income / interest expense (EBIT proxy over interest cost).
-        value: safeDiv(val(operatingIncome, 0), val(interestExpense, 0)),
-        prior: safeDiv(val(operatingIncome, 1), val(interestExpense, 1)),
+        value: safeDivPositiveDenom(val(operatingIncome, 0), val(interestExpense, 0)),
+        prior: safeDivPositiveDenom(val(operatingIncome, 1), val(interestExpense, 1)),
       },
 
       // --- Profitability: how much profit per dollar of revenue/capital? ---

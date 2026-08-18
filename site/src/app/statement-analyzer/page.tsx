@@ -60,12 +60,33 @@ function formatRatio(value: number | null, format: RatioFormat) {
 // Rough, industry-agnostic gut-check thresholds — a capital-intensive company
 // (utilities, manufacturing) will always look "bad" on asset turnover even
 // when healthy for its sector. Useful for a quick scan, not a substitute for
-// comparing against peers in the same industry.
+// comparing against peers in the same industry. A ratio with no entry here
+// (or a null value) shows "N/A" instead of a rating.
 const RATING_THRESHOLDS: Record<string, { direction: "higher-is-better" | "lower-is-better"; good: number; bad: number }> = {
   "Current Ratio": { direction: "higher-is-better", good: 1.5, bad: 1.0 },
+  "Quick Ratio": { direction: "higher-is-better", good: 1.0, bad: 0.5 },
+  "Cash Ratio": { direction: "higher-is-better", good: 0.5, bad: 0.2 },
   "Debt-to-Equity": { direction: "lower-is-better", good: 1.0, bad: 2.0 },
+  "Debt-to-Assets": { direction: "lower-is-better", good: 0.4, bad: 0.6 },
+  // Below 1.5x is the classic lender red flag for debt-service risk.
+  "Interest Coverage": { direction: "higher-is-better", good: 3.0, bad: 1.5 },
+  "Gross Margin": { direction: "higher-is-better", good: 0.4, bad: 0.2 },
+  "Operating Margin": { direction: "higher-is-better", good: 0.15, bad: 0.05 },
   "Net Margin": { direction: "higher-is-better", good: 0.15, bad: 0.05 },
+  // ~15% ROE is the classic long-run "good business" bar.
+  ROE: { direction: "higher-is-better", good: 0.15, bad: 0.05 },
+  ROA: { direction: "higher-is-better", good: 0.05, bad: 0.02 },
+  // ~10% is a common rough stand-in for a company's cost of capital — ROIC
+  // above it means the business is creating value, not just growing.
+  ROIC: { direction: "higher-is-better", good: 0.1, bad: 0.05 },
   "Asset Turnover": { direction: "higher-is-better", good: 1.0, bad: 0.5 },
+  "Inventory Turnover": { direction: "higher-is-better", good: 6.0, bad: 2.0 },
+  "Receivables Turnover": { direction: "higher-is-better", good: 8.0, bad: 4.0 },
+  // Free cash flow's sign matters more than its size (which scales with
+  // company size) — positive means the business generates more cash than it
+  // reinvests, negative means it's burning cash.
+  "Free Cash Flow": { direction: "higher-is-better", good: 0, bad: 0 },
+  "Operating Cash Flow Margin": { direction: "higher-is-better", good: 0.15, bad: 0.05 },
 };
 
 type Rating = "good" | "average" | "bad";
@@ -89,20 +110,26 @@ const RATING_LABEL: Record<Rating, string> = { good: "Good", average: "Average",
 
 // Color lives only on the dot, never on the text — a colored number is hard
 // to read at small sizes and unreadable for colorblind users without a label.
+// Every ratio shows a badge: a rating when one applies, otherwise "N/A"
+// (no threshold defined for this ratio, or the underlying data is missing).
 function RatioValue({ label, value, format }: { label: string; value: number | null; format: RatioFormat }) {
   const rating = rateRatio(label, value);
   return (
     <span className="inline-flex items-center gap-1.5">
       {formatRatio(value, format)}
-      {rating && (
-        <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-          <span
-            className="inline-block h-2 w-2 rounded-full"
-            style={{ backgroundColor: `var(--status-${rating})` }}
-          />
-          {RATING_LABEL[rating]}
-        </span>
-      )}
+      <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+        {rating ? (
+          <>
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ backgroundColor: `var(--status-${rating})` }}
+            />
+            {RATING_LABEL[rating]}
+          </>
+        ) : (
+          "N/A"
+        )}
+      </span>
     </span>
   );
 }
