@@ -108,7 +108,7 @@ function NumberField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         step="any"
-        className="mt-1 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+        className="mt-1 w-full rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
       />
     </label>
   );
@@ -185,17 +185,24 @@ export default function DcfBuilder() {
 
   return (
     <div className="flex flex-col flex-1 bg-zinc-50 font-sans dark:bg-black">
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-20 sm:py-28">
-        <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-          DCF Builder
-        </h1>
-        <p className="mt-3 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          A 5-year unlevered discounted cash flow model. Edit any assumption below — everything
-          recalculates live, including the WACC x terminal growth sensitivity table.
-        </p>
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-14 sm:py-20">
+        <div className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
+          <p className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// dcf builder"}
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
+            DCF Builder
+          </h1>
+          <p className="mt-3 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
+            A 5-year unlevered discounted cash flow model. Edit any assumption below — everything
+            recalculates live, including the WACC x terminal growth sensitivity table.
+          </p>
+        </div>
 
-        <section className="mt-8 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-black dark:text-zinc-50">Assumptions</h2>
+        <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// assumptions"}
+          </h2>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <NumberField label="Revenue" suffix="$M" value={form.revenue} onChange={set("revenue")} />
             <NumberField
@@ -257,8 +264,10 @@ export default function DcfBuilder() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-black dark:text-zinc-50">Valuation</h2>
+        <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// valuation"}
+          </h2>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div>
               <p className="text-xs text-zinc-500">Enterprise Value</p>
@@ -356,9 +365,9 @@ export default function DcfBuilder() {
         </section>
 
         {valueComparisonData && (
-          <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="text-sm font-medium text-black dark:text-zinc-50">
-              Intrinsic Value vs. Current Price
+          <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+            <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+              {"// intrinsic value vs. current price"}
             </h2>
             <div className="mt-4 h-32">
               <ResponsiveContainer width="100%" height="100%">
@@ -409,9 +418,9 @@ export default function DcfBuilder() {
         )}
 
         {evCompositionData && (
-          <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="text-sm font-medium text-black dark:text-zinc-50">
-              Enterprise Value Composition
+          <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+            <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+              {"// enterprise value composition"}
             </h2>
             <p className="mt-1 text-xs text-zinc-500">
               How much of EV comes from the 5-year explicit FCF forecast vs. the terminal value
@@ -459,9 +468,9 @@ export default function DcfBuilder() {
           </section>
         )}
 
-        <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-black dark:text-zinc-50">
-            Sensitivity: value per share
+        <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// sensitivity: value per share"}
           </h2>
           <p className="mt-1 text-xs text-zinc-500">
             Rows are WACC, columns are terminal growth, each in 0.5pt steps around your
@@ -493,7 +502,7 @@ export default function DcfBuilder() {
                         <td
                           key={colIndex}
                           className={`py-2 px-3 text-zinc-600 dark:text-zinc-400 ${
-                            isBase ? "rounded-md ring-1 ring-inset ring-black dark:ring-zinc-50" : ""
+                            isBase ? "rounded-sm ring-1 ring-inset ring-accent" : ""
                           }`}
                         >
                           <span className="inline-flex items-center gap-1.5">

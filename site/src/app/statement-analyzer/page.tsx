@@ -91,7 +91,7 @@ function RatioValue({ label, value }: { label: string; value: number | null }) {
 
 function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashboard }) {
   return (
-    <div className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="font-medium text-black dark:text-zinc-50">
           {company.title} ({company.ticker})
@@ -194,20 +194,25 @@ export default function StatementAnalyzer() {
 
   return (
     <div className="flex flex-col flex-1 bg-zinc-50 font-sans dark:bg-black">
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-20 sm:py-28">
-        <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-          10-K Analyzer
-        </h1>
-        <p className="mt-3 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Liquidity, leverage, profitability, and efficiency ratios pulled straight from SEC EDGAR.
-        </p>
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-14 sm:py-20">
+        <div className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
+          <p className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// 10-k analyzer"}
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
+            10-K Analyzer
+          </h1>
+          <p className="mt-3 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
+            Liquidity, leverage, profitability, and efficiency ratios pulled straight from SEC EDGAR.
+          </p>
+        </div>
 
-        <div className="mt-8 flex gap-2 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="mt-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800">
           <button
             onClick={() => setTab("search")}
-            className={`px-3 py-2 text-sm font-medium ${
+            className={`font-mono text-xs uppercase tracking-wide px-3 py-2 ${
               tab === "search"
-                ? "border-b-2 border-black text-black dark:border-zinc-50 dark:text-zinc-50"
+                ? "border-b-2 border-accent text-accent"
                 : "text-zinc-500"
             }`}
           >
@@ -215,9 +220,9 @@ export default function StatementAnalyzer() {
           </button>
           <button
             onClick={() => setTab("browse")}
-            className={`px-3 py-2 text-sm font-medium ${
+            className={`font-mono text-xs uppercase tracking-wide px-3 py-2 ${
               tab === "browse"
-                ? "border-b-2 border-black text-black dark:border-zinc-50 dark:text-zinc-50"
+                ? "border-b-2 border-accent text-accent"
                 : "text-zinc-500"
             }`}
           >
@@ -235,12 +240,12 @@ export default function StatementAnalyzer() {
                   onChange={(e) => setTicker(e.target.value)}
                   placeholder="AAPL"
                   required
-                  className="mt-1 w-32 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                  className="mt-1 w-32 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
                 />
               </div>
               <button
                 type="submit"
-                className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
+                className="rounded-sm bg-black px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
               >
                 Analyze
               </button>
@@ -259,10 +264,10 @@ export default function StatementAnalyzer() {
                 <button
                   key={c.key}
                   onClick={() => loadCategory(c.key)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                  className={`rounded-sm border px-3 py-1.5 font-mono text-xs uppercase tracking-wide ${
                     category === c.key
-                      ? "bg-black text-white dark:bg-zinc-50 dark:text-black"
-                      : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                      ? "border-accent text-accent"
+                      : "border-zinc-200 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400"
                   }`}
                 >
                   {c.label}
@@ -281,7 +286,7 @@ export default function StatementAnalyzer() {
                     setTicker(c.ticker);
                     lookup(c.ticker);
                   }}
-                  className="rounded-lg border border-zinc-200 bg-white p-4 text-left hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+                  className="rounded-sm border border-zinc-200 bg-white p-4 text-left transition-colors hover:border-accent/50 dark:border-zinc-800 dark:bg-zinc-950"
                 >
                   <p className="font-medium text-black dark:text-zinc-50">{c.ticker}</p>
                   <p className="text-sm text-zinc-600 dark:text-zinc-400">{c.title}</p>

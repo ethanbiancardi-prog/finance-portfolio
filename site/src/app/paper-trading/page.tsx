@@ -198,25 +198,30 @@ export default function PaperTrading() {
 
   return (
     <div className="flex flex-col flex-1 bg-zinc-50 font-sans dark:bg-black">
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-20 sm:py-28">
-        <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-          Paper Trading
-        </h1>
-        <p className="mt-3 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Live fake-money account via Alpaca&apos;s paper trading API.
-        </p>
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-14 sm:py-20">
+        <div className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
+          <p className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// paper trading"}
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
+            Paper Trading
+          </h1>
+          <p className="mt-3 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
+            Live fake-money account via Alpaca&apos;s paper trading API.
+          </p>
+        </div>
 
         {/* Equity is total account value (cash + position value). Buying power is
             how much you can spend right now — it can exceed cash on hand because
             a margin account lets you borrow against your equity. */}
         <section className="mt-10 grid grid-cols-2 gap-4">
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
             <p className="text-sm text-zinc-500">Equity</p>
             <p className="mt-1 text-2xl font-semibold text-black dark:text-zinc-50">
               {account ? money(account.equity) : "..."}
             </p>
           </div>
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
             <p className="text-sm text-zinc-500">Buying Power</p>
             <p className="mt-1 text-2xl font-semibold text-black dark:text-zinc-50">
               {account ? money(account.buying_power) : "..."}
@@ -225,10 +230,10 @@ export default function PaperTrading() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            Equity (Last Month)
+          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// equity (last month)"}
           </h2>
-          <div className="mt-4 h-64 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="mt-4 h-64 rounded-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={equityHistory}>
                 <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
@@ -272,8 +277,8 @@ export default function PaperTrading() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            Open Positions
+          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// open positions"}
           </h2>
           <table className="mt-4 w-full text-left text-sm">
             <thead>
@@ -316,8 +321,8 @@ export default function PaperTrading() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            Trade Journal
+          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// trade journal"}
           </h2>
           <table className="mt-4 w-full text-left text-sm">
             <thead>
@@ -360,7 +365,7 @@ export default function PaperTrading() {
                 onChange={(e) => setJournalDate(e.target.value)}
                 type="date"
                 required
-                className="mt-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                className="mt-1 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
               />
             </div>
             <div>
@@ -370,7 +375,7 @@ export default function PaperTrading() {
                 onChange={(e) => setJournalTicker(e.target.value)}
                 placeholder="AAPL"
                 required
-                className="mt-1 w-24 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                className="mt-1 w-24 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
               />
             </div>
             <div>
@@ -378,7 +383,7 @@ export default function PaperTrading() {
               <select
                 value={journalAction}
                 onChange={(e) => setJournalAction(e.target.value as "buy" | "sell")}
-                className="mt-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                className="mt-1 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
               >
                 <option value="buy">Buy</option>
                 <option value="sell">Sell</option>
@@ -391,7 +396,7 @@ export default function PaperTrading() {
                 onChange={(e) => setJournalThesis(e.target.value)}
                 placeholder="Why this trade"
                 required
-                className="mt-1 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                className="mt-1 w-full rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
               />
             </div>
             <div className="min-w-40 flex-1">
@@ -401,12 +406,12 @@ export default function PaperTrading() {
                 onChange={(e) => setJournalExit(e.target.value)}
                 placeholder="What makes you sell"
                 required
-                className="mt-1 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                className="mt-1 w-full rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
               />
             </div>
             <button
               type="submit"
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
+              className="rounded-sm bg-black px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
             >
               Add Entry
             </button>
@@ -414,8 +419,8 @@ export default function PaperTrading() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            Recent Orders
+          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// recent orders"}
           </h2>
           <table className="mt-4 w-full text-left text-sm">
             <thead>
@@ -451,8 +456,8 @@ export default function PaperTrading() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            Place Order
+          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// place order"}
           </h2>
           {/* Market order = buy/sell immediately at the current price. A limit order
               (not implemented in Phase 1) only fills at a price you set or better. */}
@@ -464,7 +469,7 @@ export default function PaperTrading() {
                 onChange={(e) => setSymbol(e.target.value)}
                 placeholder="AAPL"
                 required
-                className="mt-1 w-24 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                className="mt-1 w-24 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
               />
             </div>
             <div>
@@ -476,7 +481,7 @@ export default function PaperTrading() {
                 type="number"
                 min="1"
                 required
-                className="mt-1 w-20 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                className="mt-1 w-20 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
               />
             </div>
             <div>
@@ -484,7 +489,7 @@ export default function PaperTrading() {
               <select
                 value={side}
                 onChange={(e) => setSide(e.target.value as "buy" | "sell")}
-                className="mt-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                className="mt-1 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
               >
                 <option value="buy">Buy</option>
                 <option value="sell">Sell</option>
@@ -492,7 +497,7 @@ export default function PaperTrading() {
             </div>
             <button
               type="submit"
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
+              className="rounded-sm bg-black px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
             >
               Submit
             </button>
@@ -501,8 +506,8 @@ export default function PaperTrading() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            AI Analysis
+          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
+            {"// ai analysis"}
           </h2>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             Six takes on a ticker, then the sharpest disagreement between them.
@@ -515,13 +520,13 @@ export default function PaperTrading() {
                 onChange={(e) => setAnalysisTicker(e.target.value)}
                 placeholder="AAPL"
                 required
-                className="mt-1 w-32 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                className="mt-1 w-32 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
               />
             </div>
             <button
               type="submit"
               disabled={analysisLoading}
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-black"
+              className="rounded-sm bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-black"
             >
               {analysisLoading ? "Analyzing..." : "Analyze"}
             </button>
@@ -534,7 +539,7 @@ export default function PaperTrading() {
               {analysis.personas.map((p) => (
                 <div
                   key={p.name}
-                  className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                  className="rounded-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
                 >
                   <p className="text-sm font-medium text-black dark:text-zinc-50">{p.name}</p>
                   <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
@@ -542,9 +547,9 @@ export default function PaperTrading() {
                   </p>
                 </div>
               ))}
-              <div className="rounded-lg border border-zinc-300 bg-zinc-100 p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                <p className="text-sm font-medium text-black dark:text-zinc-50">
-                  Key Disagreement
+              <div className="rounded-sm border border-accent/40 bg-accent/5 p-4">
+                <p className="font-mono text-xs uppercase tracking-widest text-accent">
+                  {"// key disagreement"}
                 </p>
                 <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                   {analysis.key_disagreement}
