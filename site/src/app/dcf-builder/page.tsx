@@ -1,6 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { runDcf, sensitivityGrid, stepsAround, type DcfInputs } from "@/lib/dcf";
 
 // Every percent-style field is stored as a whole number ("8" means 8%) since
@@ -142,6 +153,36 @@ export default function DcfBuilder() {
 
   const baseRating = rateVsPrice(result.valuePerShare, currentPrice);
 
+  // Undiscounted FCF next to its present value shows discounting's effect
+  // directly: later years' FCF may be larger, but the bars shrink as PV
+  // pulls them back to today's dollars.
+  const fcfChartData = result.years.map((y) => ({
+    year: `Y${y.year}`,
+    fcf: y.fcf,
+    pvFcf: y.pvFcf,
+  }));
+
+  const valueComparisonData =
+    currentPrice != null && !Number.isNaN(currentPrice) && result.valuePerShare != null
+      ? [
+          { name: "Intrinsic Value", value: result.valuePerShare, rating: baseRating },
+          { name: "Current Price", value: currentPrice, rating: null as Rating | null },
+        ]
+      : null;
+
+  // Terminal value is usually most of EV in a Gordon growth model — worth
+  // making that split visible rather than leaving it buried in two line items.
+  const evCompositionData =
+    result.enterpriseValue != null
+      ? [
+          {
+            name: "Enterprise Value",
+            "PV of Y1-Y5 FCF": result.years.reduce((sum, y) => sum + y.pvFcf, 0),
+            "PV of Terminal Value": result.pvTerminalValue ?? 0,
+          },
+        ]
+      : null;
+
   return (
     <div className="flex flex-col flex-1 bg-zinc-50 font-sans dark:bg-black">
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-20 sm:py-28">
@@ -277,7 +318,146 @@ export default function DcfBuilder() {
               ))}
             </tbody>
           </table>
+
+          <div className="mt-6 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={fcfChartData}>
+                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                <XAxis
+                  dataKey="year"
+                  stroke="var(--chart-muted)"
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="var(--chart-muted)"
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={56}
+                  tickFormatter={(value) => money(Number(value))}
+                />
+                <Tooltip
+                  formatter={(value) => money(Number(value))}
+                  contentStyle={{
+                    background: "var(--chart-tooltip-bg)",
+                    border: "1px solid var(--chart-grid)",
+                    borderRadius: 6,
+                    fontSize: 12,
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="fcf" name="FCF" fill="var(--chart-line)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="pvFcf" name="PV of FCF" fill="var(--chart-line-2)" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </section>
+
+        {valueComparisonData && (
+          <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+            <h2 className="text-sm font-medium text-black dark:text-zinc-50">
+              Intrinsic Value vs. Current Price
+            </h2>
+            <div className="mt-4 h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={valueComparisonData} layout="vertical" margin={{ left: 8 }}>
+                  <CartesianGrid stroke="var(--chart-grid)" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    stroke="var(--chart-muted)"
+                    tick={{ fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => perShare(Number(value))}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    stroke="var(--chart-muted)"
+                    tick={{ fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={100}
+                  />
+                  <Tooltip
+                    formatter={(value) => perShare(Number(value))}
+                    contentStyle={{
+                      background: "var(--chart-tooltip-bg)",
+                      border: "1px solid var(--chart-grid)",
+                      borderRadius: 6,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[0, 3, 3, 0]} barSize={28}>
+                    {valueComparisonData.map((entry, i) => (
+                      <Cell
+                        key={i}
+                        fill={
+                          entry.rating
+                            ? `var(--status-${entry.rating})`
+                            : "var(--chart-muted)"
+                        }
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+        )}
+
+        {evCompositionData && (
+          <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+            <h2 className="text-sm font-medium text-black dark:text-zinc-50">
+              Enterprise Value Composition
+            </h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              How much of EV comes from the 5-year explicit FCF forecast vs. the terminal value
+              (everything after year 5, capitalized with Gordon growth).
+            </p>
+            <div className="mt-4 h-24">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={evCompositionData} layout="vertical" margin={{ left: 8 }}>
+                  <XAxis
+                    type="number"
+                    stroke="var(--chart-muted)"
+                    tick={{ fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => money(Number(value))}
+                  />
+                  <YAxis type="category" dataKey="name" hide />
+                  <Tooltip
+                    formatter={(value) => money(Number(value))}
+                    contentStyle={{
+                      background: "var(--chart-tooltip-bg)",
+                      border: "1px solid var(--chart-grid)",
+                      borderRadius: 6,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar
+                    dataKey="PV of Y1-Y5 FCF"
+                    stackId="ev"
+                    fill="var(--chart-line)"
+                    radius={[3, 0, 0, 3]}
+                    barSize={28}
+                  />
+                  <Bar
+                    dataKey="PV of Terminal Value"
+                    stackId="ev"
+                    fill="var(--chart-line-2)"
+                    radius={[0, 3, 3, 0]}
+                    barSize={28}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+        )}
 
         <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-sm font-medium text-black dark:text-zinc-50">

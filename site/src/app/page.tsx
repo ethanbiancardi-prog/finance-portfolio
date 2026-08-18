@@ -25,8 +25,9 @@ const projects: Project[] = [
   {
     name: "10-K Statement Analyzer",
     blurb:
-      "Upload a filing and get AI-computed liquidity, leverage, and profitability ratios plus a one-page summary.",
-    status: "Planned",
+      "Search by ticker or browse by industry to get liquidity, leverage, and profitability ratios pulled straight from SEC filings.",
+    status: "Live",
+    href: "/statement-analyzer",
   },
   {
     name: "Client Work",

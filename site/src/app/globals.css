@@ -5,6 +5,7 @@
   --background: #ffffff;
   --foreground: #171717;
   --chart-line: #2a78d6;
+  --chart-line-2: #7c5cbf;
   --chart-grid: #e1e0d9;
   --chart-muted: #898781;
   --chart-tooltip-bg: #ffffff;
@@ -26,6 +27,7 @@
     --background: #0a0a0a;
     --foreground: #ededed;
     --chart-line: #3987e5;
+    --chart-line-2: #9b7ee0;
     --chart-grid: #2c2c2a;
     --chart-muted: #898781;
     --chart-tooltip-bg: #09090b;
