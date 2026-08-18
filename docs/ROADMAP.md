@@ -20,7 +20,7 @@
 
 ## Phase 3 — Flagship (weeks 7–12)
 - [x] Paper trading simulator v1: manual trades, real prices, P&L dashboard (Alpaca paper account — equity, positions, recent orders, buy/sell form)
-- [x] v2a: AI analyst commentary — six-persona panel per ticker (Bull, Bear, Accountant, Risk Manager, Historian, Indexer), blocked on Anthropic account credits
+- [x] v2a: AI analyst commentary — six-persona panel per ticker (Bull, Bear, Accountant, Risk Manager, Historian, Indexer)
 - [ ] v2b: weekly full-portfolio review
 - [ ] v3 (stretch): simple strategy backtester
 
@@ -39,7 +39,6 @@
 - [ ] Research candidate stocks for the paper-trading account (using the 10-K analyzer + AI persona panel) — Ethan, not a build task
 
 ## Open blockers
-- Anthropic API key has no credit balance — add credits at console.anthropic.com before the AI Analysis panel returns real results.
 - `STRATEGY.md` still has `TODO(ethan)` placeholders for your actual allocation %, tickers, and thresholds.
 
 ## Definition of "done" for each project
