@@ -4,7 +4,19 @@ import { useState } from "react";
 
 type Company = { cik: number; ticker: string; title: string };
 
-type Ratio = { label: string; group: string; value: number | null; prior: number | null };
+type RatioFormat = "x" | "%" | "$";
+
+type Ratio = {
+  label: string;
+  group: string;
+  description: string;
+  format: RatioFormat;
+  value: number | null;
+  prior: number | null;
+};
+
+// Groups render in this order regardless of the order the API returns them in.
+const GROUP_ORDER = ["Liquidity", "Leverage", "Profitability", "Efficiency", "Cash Flow"];
 
 type Dashboard = {
   periodEnd: string | null;
@@ -39,6 +51,12 @@ const percent = (value: number | null) => (value == null ? "N/A" : `${(value * 1
 
 const ratioValue = (value: number | null) => (value == null ? "N/A" : value.toFixed(2));
 
+function formatRatio(value: number | null, format: RatioFormat) {
+  if (format === "%") return percent(value);
+  if (format === "$") return money(value);
+  return ratioValue(value);
+}
+
 // Rough, industry-agnostic gut-check thresholds — a capital-intensive company
 // (utilities, manufacturing) will always look "bad" on asset turnover even
 // when healthy for its sector. Useful for a quick scan, not a substitute for
@@ -71,11 +89,11 @@ const RATING_LABEL: Record<Rating, string> = { good: "Good", average: "Average",
 
 // Color lives only on the dot, never on the text — a colored number is hard
 // to read at small sizes and unreadable for colorblind users without a label.
-function RatioValue({ label, value }: { label: string; value: number | null }) {
+function RatioValue({ label, value, format }: { label: string; value: number | null; format: RatioFormat }) {
   const rating = rateRatio(label, value);
   return (
     <span className="inline-flex items-center gap-1.5">
-      {ratioValue(value)}
+      {formatRatio(value, format)}
       {rating && (
         <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
           <span
@@ -86,6 +104,36 @@ function RatioValue({ label, value }: { label: string; value: number | null }) {
         </span>
       )}
     </span>
+  );
+}
+
+function RatioGroup({ group, ratios }: { group: string; ratios: Ratio[] }) {
+  if (ratios.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <h4 className="font-mono text-xs uppercase tracking-widest text-accent">
+        {"// " + group.toLowerCase()}
+      </h4>
+      <div className="mt-2">
+        {ratios.map((ratio, i) => (
+          <div
+            key={ratio.label}
+            className={`py-3 ${i === 0 ? "" : "border-t border-zinc-200 dark:border-zinc-800"}`}
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <p className="text-sm font-medium text-black dark:text-zinc-50">{ratio.label}</p>
+              <div className="flex items-baseline gap-3 text-sm">
+                <RatioValue label={ratio.label} value={ratio.value} format={ratio.format} />
+                <span className="text-xs text-zinc-400 dark:text-zinc-600">
+                  prior: {formatRatio(ratio.prior, ratio.format)}
+                </span>
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-zinc-500">{ratio.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -116,30 +164,13 @@ function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashbo
         </div>
       </div>
 
-      <table className="mt-5 w-full text-left text-sm">
-        <thead>
-          <tr className="text-zinc-500">
-            <th className="py-2 font-medium">Ratio</th>
-            <th className="py-2 font-medium">Category</th>
-            <th className="py-2 font-medium">Current</th>
-            <th className="py-2 font-medium">Prior Year</th>
-          </tr>
-        </thead>
-        <tbody>
-          {dashboard.ratios.map((ratio) => (
-            <tr key={ratio.label} className="border-t border-zinc-200 dark:border-zinc-800">
-              <td className="py-2 text-black dark:text-zinc-50">{ratio.label}</td>
-              <td className="py-2 text-zinc-600 dark:text-zinc-400">{ratio.group}</td>
-              <td className="py-2 text-zinc-600 dark:text-zinc-400">
-                <RatioValue label={ratio.label} value={ratio.value} />
-              </td>
-              <td className="py-2 text-zinc-600 dark:text-zinc-400">
-                <RatioValue label={ratio.label} value={ratio.prior} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {GROUP_ORDER.map((group) => (
+        <RatioGroup
+          key={group}
+          group={group}
+          ratios={dashboard.ratios.filter((r) => r.group === group)}
+        />
+      ))}
     </div>
   );
 }
