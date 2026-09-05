@@ -22,7 +22,11 @@
 - [x] Paper trading simulator v1: manual trades, real prices, P&L dashboard (Alpaca paper account — equity, positions, recent orders, buy/sell form)
 - [x] v2a: AI analyst commentary — six-persona panel per ticker (Bull, Bear, Accountant, Risk Manager, Historian, Indexer)
 - [ ] v2b: weekly full-portfolio review
-- [ ] v3 (stretch): simple strategy backtester
+- [x] v3: sector rotation strategy — automated monthly rebalance across tech/biotech/consumer
+      by risk-adjusted momentum, position-size-capped at 20%, executed via a scheduled job
+      on the Alpaca paper account (code shipped; needs Upstash Redis + CRON_SECRET provisioned
+      before it can actually run — see Open blockers)
+- [ ] simple strategy backtester (stretch)
 
 ## Ongoing
 - [ ] One short blog post / LinkedIn post per shipped feature
@@ -40,6 +44,9 @@
 
 ## Open blockers
 - `STRATEGY.md` still has `TODO(ethan)` placeholders for your actual allocation %, tickers, and thresholds.
+- Sector rotation strategy needs Upstash Redis provisioned (Vercel Marketplace) and a
+  `CRON_SECRET` env var set before its scheduled job can run — see
+  `projects/paper-trading/STRATEGY.md` Satellite 3 and `site/src/lib/rotationStore.ts`.
 
 ## Definition of "done" for each project
 1. Works on mobile

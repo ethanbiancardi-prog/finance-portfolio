@@ -6,7 +6,7 @@
   TODO(ethan): list core tickers and target weights.
 - **Satellites: 30-40%** — higher-conviction, actively managed bets. Split across
   the satellites below.
-  TODO(ethan): set the split between Satellite 1 and Satellite 2.
+  TODO(ethan): set the split between Satellite 1, Satellite 2, and Satellite 3.
 
 ## Satellite 1: Quantum computing thesis
 
@@ -28,6 +28,37 @@
   TODO(ethan): set the second and third buy-in triggers (e.g. additional % down).
 - **Reasoning per buy:** one sentence logged in the trade journal for every buy
   (see the paper-trading page's Trade Journal).
+
+## Satellite 3: Sector rotation
+
+- **The bet:** momentum persists over a multi-month horizon within a sector more
+  reliably than across the whole market — the stocks leading tech, biotech, or
+  consumer over the last quarter are more likely than not to keep leading into
+  the next one, so rotating into the current leaders each month should beat
+  buying-and-holding a static basket.
+- **Mechanics:** every month, rank the ~15 largest (by public float) stocks in
+  each of tech, biotech, and consumer by risk-adjusted momentum (trailing
+  3-month return ÷ volatility over that window), take the top 2 per sector (6
+  positions total), equal-weight them, and cap any single position at 20% of
+  the sleeve. Runs automatically via a scheduled job against the paper account
+  — see `site/src/lib/rotation.ts` for the exact formula and thresholds.
+- **Evidence that proves me right:** the rotation sleeve's return beats a
+  buy-and-hold basket of the same 45-stock universe over a full year.
+- **Evidence that proves me wrong:** high monthly turnover erodes the return
+  advantage (this is a paper account so there's no commission drag to model,
+  but real turnover would matter if this were ever run with real money);
+  or picks cluster in a single sub-theme that craters together (momentum
+  chasing a bubble rather than a durable trend).
+- **Time horizon:** re-evaluate after 6-12 months of monthly rebalances.
+- **Max allocation:** TODO(ethan)% of account equity (defaults to 10% in code
+  — `DEFAULT_ROTATION_SLEEVE_PCT` in `site/src/lib/rotation.ts` — computed
+  dynamically off current equity each run, not a fixed dollar amount, so it
+  scales with the account).
+- **Known limitation:** the strategy shares one Alpaca paper account with
+  Satellites 1 and 2. If it and another satellite ever pick the exact same
+  ticker, Alpaca reports one combined position and per-strategy share
+  attribution isn't possible without a real ledger — acceptable for a
+  single-account paper demo, not solved.
 
 ## Benchmark
 

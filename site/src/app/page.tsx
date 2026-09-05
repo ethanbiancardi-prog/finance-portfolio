@@ -16,6 +16,13 @@ const projects: Project[] = [
     href: "/paper-trading",
   },
   {
+    name: "Sector Rotation Strategy",
+    blurb:
+      "Automated monthly rebalance across tech, biotech, and consumer stocks by risk-adjusted momentum, with position-size caps and scheduled execution.",
+    status: "In progress",
+    href: "/rotation",
+  },
+  {
     name: "Interactive DCF Builder",
     blurb:
       "Input revenue growth, margins, and WACC to get a live valuation with a WACC x terminal growth sensitivity table.",
