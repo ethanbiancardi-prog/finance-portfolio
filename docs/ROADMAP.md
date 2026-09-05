@@ -24,9 +24,19 @@
 - [ ] v2b: weekly full-portfolio review
 - [x] v3: sector rotation strategy — automated monthly rebalance across tech/biotech/consumer
       by risk-adjusted momentum, position-size-capped at 20%, executed via a scheduled job
-      on the Alpaca paper account (code shipped; needs Upstash Redis + CRON_SECRET provisioned
-      before it can actually run — see Open blockers)
+      on the Alpaca paper account (fully live — Upstash Redis + CRON_SECRET provisioned,
+      runs monthly on the 1st)
 - [ ] simple strategy backtester (stretch)
+
+## Phase 4 — Quant toolkit
+- [x] Risk/performance metrics on the paper-trading page: Sharpe ratio, annualized volatility,
+      max drawdown, beta vs. SPY
+- [x] Portfolio optimizer: samples the efficient frontier across user-entered tickers
+      (max-Sharpe and min-variance highlighted), risk slider shows weights at any point
+- [x] Monte Carlo simulator: 10,000 simulated paths blending real SPY/AGG history,
+      10th/50th/90th percentile fan chart, probability of hitting a savings goal
+- [x] Quant Notes write-up page: plain-language explanation of the math behind the above,
+      each section linking to the live page that demonstrates it
 
 ## Ongoing
 - [ ] One short blog post / LinkedIn post per shipped feature
@@ -44,9 +54,6 @@
 
 ## Open blockers
 - `STRATEGY.md` still has `TODO(ethan)` placeholders for your actual allocation %, tickers, and thresholds.
-- Sector rotation strategy needs Upstash Redis provisioned (Vercel Marketplace) and a
-  `CRON_SECRET` env var set before its scheduled job can run — see
-  `projects/paper-trading/STRATEGY.md` Satellite 3 and `site/src/lib/rotationStore.ts`.
 
 ## Definition of "done" for each project
 1. Works on mobile

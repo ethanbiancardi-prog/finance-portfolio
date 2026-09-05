@@ -51,6 +51,13 @@ const projects: Project[] = [
     href: "/statement-analyzer",
   },
   {
+    name: "Quant Notes",
+    blurb:
+      "Plain-language notes on the quant concepts behind these tools — momentum, Sharpe, beta, diversification, mean-variance optimization, Monte Carlo — each linking to the live page that demonstrates it.",
+    status: "Live",
+    href: "/quant-notes",
+  },
+  {
     name: "Client Work",
     blurb:
       "Case studies from small-business sites I've built: the problem, what shipped, and the result.",

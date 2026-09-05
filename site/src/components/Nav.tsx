@@ -11,6 +11,7 @@ const links = [
   { href: "/optimizer", label: "Optimizer" },
   { href: "/dcf-builder", label: "DCF Builder" },
   { href: "/statement-analyzer", label: "10-K Analyzer" },
+  { href: "/quant-notes", label: "Quant Notes" },
 ];
 
 export default function Nav() {
