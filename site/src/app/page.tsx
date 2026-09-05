@@ -19,8 +19,15 @@ const projects: Project[] = [
     name: "Sector Rotation Strategy",
     blurb:
       "Automated monthly rebalance across tech, biotech, and consumer stocks by risk-adjusted momentum, with position-size caps and scheduled execution.",
-    status: "In progress",
+    status: "Live",
     href: "/rotation",
+  },
+  {
+    name: "Monte Carlo Simulator",
+    blurb:
+      "Simulates 10,000 portfolio paths from real SPY/AGG history to project a range of outcomes and your odds of hitting a savings goal.",
+    status: "Live",
+    href: "/monte-carlo",
   },
   {
     name: "Interactive DCF Builder",

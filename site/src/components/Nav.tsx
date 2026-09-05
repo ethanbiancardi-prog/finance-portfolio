@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/paper-trading", label: "Paper Trading" },
   { href: "/rotation", label: "Sector Rotation" },
+  { href: "/monte-carlo", label: "Monte Carlo" },
   { href: "/dcf-builder", label: "DCF Builder" },
   { href: "/statement-analyzer", label: "10-K Analyzer" },
 ];
