@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 const links = [
   { href: "/", label: "Home" },
@@ -37,6 +38,7 @@ export default function Nav() {
             </Link>
           );
         })}
+        <ThemeSwitcher />
       </div>
     </nav>
   );
