@@ -10,6 +10,27 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatCurrency, formatCurrencyCompact, formatPercent } from "@/lib/format";
+import {
+  Button,
+  Callout,
+  Card,
+  Field,
+  PageShell,
+  SectionHeader,
+  SelectField,
+  StatCard,
+  chartAxisProps,
+  chartGridProps,
+  chartTooltipStyle,
+  tableCellClass,
+  tableCellStrongClass,
+  tableHeadCellClass,
+  tableHeadRowClass,
+  tableRowClass,
+  EmptyRow,
+  type Rating,
+} from "@/components/ui";
 
 type Account = {
   equity: string;
@@ -64,17 +85,6 @@ type Analysis = {
   personas: PersonaTake[];
   key_disagreement: string;
 };
-
-const money = (value: string) =>
-  Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" });
-
-const compactMoney = (value: number) =>
-  value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  });
 
 export default function PaperTrading() {
   const [account, setAccount] = useState<Account | null>(null);
@@ -197,368 +207,257 @@ export default function PaperTrading() {
   }
 
   return (
-    <div className="flex flex-col flex-1 bg-zinc-50 font-sans dark:bg-black">
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-14 sm:py-20">
-        <div className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
-          <p className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// paper trading"}
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-            Paper Trading
-          </h1>
-          <p className="mt-3 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-            Live fake-money account via Alpaca&apos;s paper trading API.
-          </p>
-        </div>
+    <PageShell
+      eyebrow="paper trading"
+      title="Paper Trading"
+      description="Live fake-money account via Alpaca's paper trading API."
+    >
+      {/* Equity is total account value (cash + position value). Buying power is
+          how much you can spend right now — it can exceed cash on hand because
+          a margin account lets you borrow against your equity. */}
+      <section className="mt-8 grid grid-cols-2 gap-4">
+        <StatCard card size="lg" label="Equity" value={account ? formatCurrency(account.equity) : "..."} />
+        <StatCard
+          card
+          size="lg"
+          label="Buying Power"
+          value={account ? formatCurrency(account.buying_power) : "..."}
+        />
+      </section>
 
-        {/* Equity is total account value (cash + position value). Buying power is
-            how much you can spend right now — it can exceed cash on hand because
-            a margin account lets you borrow against your equity. */}
-        <section className="mt-10 grid grid-cols-2 gap-4">
-          <div className="rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <p className="text-sm text-zinc-500">Equity</p>
-            <p className="mt-1 text-2xl font-semibold text-black dark:text-zinc-50">
-              {account ? money(account.equity) : "..."}
-            </p>
-          </div>
-          <div className="rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <p className="text-sm text-zinc-500">Buying Power</p>
-            <p className="mt-1 text-2xl font-semibold text-black dark:text-zinc-50">
-              {account ? money(account.buying_power) : "..."}
-            </p>
-          </div>
-        </section>
+      <section className="mt-8">
+        <SectionHeader label="equity (last month)" />
+        <Card className="mt-4 h-64" padding="sm">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={equityHistory}>
+              <CartesianGrid {...chartGridProps} vertical={false} />
+              <XAxis dataKey="date" {...chartAxisProps} minTickGap={30} />
+              <YAxis
+                {...chartAxisProps}
+                width={56}
+                domain={["auto", "auto"]}
+                tickFormatter={(value) => formatCurrencyCompact(value)}
+              />
+              <Tooltip formatter={(value) => formatCurrency(String(value))} contentStyle={chartTooltipStyle} />
+              <Line
+                type="monotone"
+                dataKey="equity"
+                stroke="var(--chart-line)"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+      </section>
 
-        <section className="mt-10">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// equity (last month)"}
-          </h2>
-          <div className="mt-4 h-64 rounded-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={equityHistory}>
-                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  stroke="var(--chart-muted)"
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={30}
-                />
-                <YAxis
-                  stroke="var(--chart-muted)"
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={56}
-                  domain={["auto", "auto"]}
-                  tickFormatter={(value) => compactMoney(value)}
-                />
-                <Tooltip
-                  formatter={(value) => money(String(value))}
-                  contentStyle={{
-                    background: "var(--chart-tooltip-bg)",
-                    border: "1px solid var(--chart-grid)",
-                    borderRadius: 6,
-                    fontSize: 12,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="equity"
-                  stroke="var(--chart-line)"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
+      <section className="mt-8">
+        <SectionHeader label="open positions" />
+        <table className="mt-4 w-full text-left text-sm">
+          <thead>
+            <tr className={tableHeadRowClass}>
+              <th className={tableHeadCellClass}>Symbol</th>
+              <th className={tableHeadCellClass}>Qty</th>
+              <th className={tableHeadCellClass}>Avg Entry</th>
+              <th className={tableHeadCellClass}>Current</th>
+              <th className={tableHeadCellClass}>P&L</th>
+            </tr>
+          </thead>
+          <tbody>
+            {positions.map((p) => {
+              const pl = Number(p.unrealized_pl);
+              const plRating: Rating = pl >= 0 ? "good" : "bad";
+              return (
+                <tr key={p.symbol} className={tableRowClass}>
+                  <td className={tableCellStrongClass}>{p.symbol}</td>
+                  <td className={tableCellClass}>{p.qty}</td>
+                  <td className={tableCellClass}>{formatCurrency(p.avg_entry_price)}</td>
+                  <td className={tableCellClass}>{formatCurrency(p.current_price)}</td>
+                  <td
+                    className="py-2 tabular-nums"
+                    style={{ color: `var(--status-${plRating})` }}
+                  >
+                    {formatCurrency(p.unrealized_pl)} (
+                    {formatPercent(Number(p.unrealized_plpc), { decimals: 2 })})
+                  </td>
+                </tr>
+              );
+            })}
+            {positions.length === 0 && <EmptyRow colSpan={5}>No open positions.</EmptyRow>}
+          </tbody>
+        </table>
+      </section>
 
-        <section className="mt-10">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// open positions"}
-          </h2>
-          <table className="mt-4 w-full text-left text-sm">
-            <thead>
-              <tr className="text-zinc-500">
-                <th className="py-2 font-medium">Symbol</th>
-                <th className="py-2 font-medium">Qty</th>
-                <th className="py-2 font-medium">Avg Entry</th>
-                <th className="py-2 font-medium">Current</th>
-                <th className="py-2 font-medium">P&L</th>
+      <section className="mt-8">
+        <SectionHeader label="trade journal" />
+        <table className="mt-4 w-full text-left text-sm">
+          <thead>
+            <tr className={tableHeadRowClass}>
+              <th className={tableHeadCellClass}>Date</th>
+              <th className={tableHeadCellClass}>Ticker</th>
+              <th className={tableHeadCellClass}>Action</th>
+              <th className={tableHeadCellClass}>Thesis</th>
+              <th className={tableHeadCellClass}>Exit Condition</th>
+            </tr>
+          </thead>
+          <tbody>
+            {journal.map((entry) => (
+              <tr key={entry.id} className={tableRowClass}>
+                <td className={tableCellClass}>{entry.date}</td>
+                <td className={tableCellStrongClass}>{entry.ticker}</td>
+                <td className={tableCellClass}>{entry.action}</td>
+                <td className={tableCellClass}>{entry.thesis}</td>
+                <td className={tableCellClass}>{entry.exitCondition}</td>
               </tr>
-            </thead>
-            <tbody>
-              {positions.map((p) => {
-                const pl = Number(p.unrealized_pl);
-                return (
-                  <tr key={p.symbol} className="border-t border-zinc-200 dark:border-zinc-800">
-                    <td className="py-2 text-black dark:text-zinc-50">{p.symbol}</td>
-                    <td className="py-2 text-zinc-600 dark:text-zinc-400">{p.qty}</td>
-                    <td className="py-2 text-zinc-600 dark:text-zinc-400">
-                      {money(p.avg_entry_price)}
-                    </td>
-                    <td className="py-2 text-zinc-600 dark:text-zinc-400">
-                      {money(p.current_price)}
-                    </td>
-                    <td className={pl >= 0 ? "py-2 text-emerald-600" : "py-2 text-red-500"}>
-                      {money(p.unrealized_pl)} ({(Number(p.unrealized_plpc) * 100).toFixed(2)}%)
-                    </td>
-                  </tr>
-                );
-              })}
-              {positions.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-4 text-zinc-500">
-                    No open positions.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </section>
+            ))}
+            {journal.length === 0 && <EmptyRow colSpan={5}>No journal entries yet.</EmptyRow>}
+          </tbody>
+        </table>
 
-        <section className="mt-10">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// trade journal"}
-          </h2>
-          <table className="mt-4 w-full text-left text-sm">
-            <thead>
-              <tr className="text-zinc-500">
-                <th className="py-2 font-medium">Date</th>
-                <th className="py-2 font-medium">Ticker</th>
-                <th className="py-2 font-medium">Action</th>
-                <th className="py-2 font-medium">Thesis</th>
-                <th className="py-2 font-medium">Exit Condition</th>
+        <form onSubmit={submitJournalEntry} className="mt-4 flex flex-wrap items-end gap-3">
+          <Field
+            label="Date"
+            type="date"
+            value={journalDate}
+            onChange={(e) => setJournalDate(e.target.value)}
+            required
+            className="w-auto"
+          />
+          <Field
+            label="Ticker"
+            placeholder="AAPL"
+            value={journalTicker}
+            onChange={(e) => setJournalTicker(e.target.value)}
+            required
+            className="w-24"
+          />
+          <SelectField
+            label="Action"
+            value={journalAction}
+            onChange={(e) => setJournalAction(e.target.value as "buy" | "sell")}
+            options={[
+              { value: "buy", label: "Buy" },
+              { value: "sell", label: "Sell" },
+            ]}
+          />
+          <Field
+            label="Thesis (one line)"
+            placeholder="Why this trade"
+            value={journalThesis}
+            onChange={(e) => setJournalThesis(e.target.value)}
+            required
+            wrapperClassName="min-w-40 flex-1"
+          />
+          <Field
+            label="Exit Condition"
+            placeholder="What makes you sell"
+            value={journalExit}
+            onChange={(e) => setJournalExit(e.target.value)}
+            required
+            wrapperClassName="min-w-40 flex-1"
+          />
+          <Button type="submit">Add Entry</Button>
+        </form>
+      </section>
+
+      <section className="mt-8">
+        <SectionHeader label="recent orders" />
+        <table className="mt-4 w-full text-left text-sm">
+          <thead>
+            <tr className={tableHeadRowClass}>
+              <th className={tableHeadCellClass}>Symbol</th>
+              <th className={tableHeadCellClass}>Side</th>
+              <th className={tableHeadCellClass}>Qty</th>
+              <th className={tableHeadCellClass}>Status</th>
+              <th className={tableHeadCellClass}>Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((o) => (
+              <tr key={o.id} className={tableRowClass}>
+                <td className={tableCellStrongClass}>{o.symbol}</td>
+                <td className={tableCellClass}>{o.side}</td>
+                <td className={tableCellClass}>{o.qty}</td>
+                <td className={tableCellClass}>{o.status}</td>
+                <td className={tableCellClass}>{new Date(o.submitted_at).toLocaleString()}</td>
               </tr>
-            </thead>
-            <tbody>
-              {journal.map((entry) => (
-                <tr key={entry.id} className="border-t border-zinc-200 dark:border-zinc-800">
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{entry.date}</td>
-                  <td className="py-2 text-black dark:text-zinc-50">{entry.ticker}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{entry.action}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{entry.thesis}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{entry.exitCondition}</td>
-                </tr>
-              ))}
-              {journal.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-4 text-zinc-500">
-                    No journal entries yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            ))}
+            {orders.length === 0 && <EmptyRow colSpan={5}>No orders yet.</EmptyRow>}
+          </tbody>
+        </table>
+      </section>
 
-          <form
-            onSubmit={submitJournalEntry}
-            className="mt-4 flex flex-wrap items-end gap-3"
-          >
-            <div>
-              <label className="block text-xs text-zinc-500">Date</label>
-              <input
-                value={journalDate}
-                onChange={(e) => setJournalDate(e.target.value)}
-                type="date"
-                required
-                className="mt-1 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500">Ticker</label>
-              <input
-                value={journalTicker}
-                onChange={(e) => setJournalTicker(e.target.value)}
-                placeholder="AAPL"
-                required
-                className="mt-1 w-24 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500">Action</label>
-              <select
-                value={journalAction}
-                onChange={(e) => setJournalAction(e.target.value as "buy" | "sell")}
-                className="mt-1 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              >
-                <option value="buy">Buy</option>
-                <option value="sell">Sell</option>
-              </select>
-            </div>
-            <div className="min-w-40 flex-1">
-              <label className="block text-xs text-zinc-500">Thesis (one line)</label>
-              <input
-                value={journalThesis}
-                onChange={(e) => setJournalThesis(e.target.value)}
-                placeholder="Why this trade"
-                required
-                className="mt-1 w-full rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </div>
-            <div className="min-w-40 flex-1">
-              <label className="block text-xs text-zinc-500">Exit Condition</label>
-              <input
-                value={journalExit}
-                onChange={(e) => setJournalExit(e.target.value)}
-                placeholder="What makes you sell"
-                required
-                className="mt-1 w-full rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </div>
-            <button
-              type="submit"
-              className="rounded-sm bg-black px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
-            >
-              Add Entry
-            </button>
-          </form>
-        </section>
+      <section className="mt-8">
+        <SectionHeader label="place order" />
+        {/* Market order = buy/sell immediately at the current price. A limit order
+            (not implemented in Phase 1) only fills at a price you set or better. */}
+        <form onSubmit={submitOrder} className="mt-4 flex flex-wrap items-end gap-3">
+          <Field
+            label="Ticker"
+            placeholder="AAPL"
+            value={symbol}
+            onChange={(e) => setSymbol(e.target.value)}
+            required
+            className="w-24"
+          />
+          <Field
+            label="Qty"
+            placeholder="1"
+            type="number"
+            min="1"
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            required
+            className="w-20"
+          />
+          <SelectField
+            label="Side"
+            value={side}
+            onChange={(e) => setSide(e.target.value as "buy" | "sell")}
+            options={[
+              { value: "buy", label: "Buy" },
+              { value: "sell", label: "Sell" },
+            ]}
+          />
+          <Button type="submit">Submit</Button>
+        </form>
+        {message && <p className="mt-3 text-sm text-zinc-500">{message}</p>}
+      </section>
 
-        <section className="mt-10">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// recent orders"}
-          </h2>
-          <table className="mt-4 w-full text-left text-sm">
-            <thead>
-              <tr className="text-zinc-500">
-                <th className="py-2 font-medium">Symbol</th>
-                <th className="py-2 font-medium">Side</th>
-                <th className="py-2 font-medium">Qty</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium">Submitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => (
-                <tr key={o.id} className="border-t border-zinc-200 dark:border-zinc-800">
-                  <td className="py-2 text-black dark:text-zinc-50">{o.symbol}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{o.side}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{o.qty}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{o.status}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">
-                    {new Date(o.submitted_at).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              {orders.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-4 text-zinc-500">
-                    No orders yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </section>
+      <section className="mt-8">
+        <SectionHeader label="ai analysis" />
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          Six takes on a ticker, then the sharpest disagreement between them.
+        </p>
+        <form onSubmit={submitAnalysis} className="mt-4 flex items-end gap-3">
+          <Field
+            label="Ticker"
+            placeholder="AAPL"
+            value={analysisTicker}
+            onChange={(e) => setAnalysisTicker(e.target.value)}
+            required
+            className="w-32"
+          />
+          <Button type="submit" loading={analysisLoading} loadingLabel="Analyzing...">
+            Analyze
+          </Button>
+        </form>
 
-        <section className="mt-10">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// place order"}
-          </h2>
-          {/* Market order = buy/sell immediately at the current price. A limit order
-              (not implemented in Phase 1) only fills at a price you set or better. */}
-          <form onSubmit={submitOrder} className="mt-4 flex flex-wrap items-end gap-3">
-            <div>
-              <label className="block text-xs text-zinc-500">Ticker</label>
-              <input
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-                placeholder="AAPL"
-                required
-                className="mt-1 w-24 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500">Qty</label>
-              <input
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-                placeholder="1"
-                type="number"
-                min="1"
-                required
-                className="mt-1 w-20 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500">Side</label>
-              <select
-                value={side}
-                onChange={(e) => setSide(e.target.value as "buy" | "sell")}
-                className="mt-1 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              >
-                <option value="buy">Buy</option>
-                <option value="sell">Sell</option>
-              </select>
-            </div>
-            <button
-              type="submit"
-              className="rounded-sm bg-black px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-black"
-            >
-              Submit
-            </button>
-          </form>
-          {message && <p className="mt-3 text-sm text-zinc-500">{message}</p>}
-        </section>
+        {analysisError && <p className="mt-3 text-sm text-red-500">{analysisError}</p>}
 
-        <section className="mt-10">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// ai analysis"}
-          </h2>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Six takes on a ticker, then the sharpest disagreement between them.
-          </p>
-          <form onSubmit={submitAnalysis} className="mt-4 flex items-end gap-3">
-            <div>
-              <label className="block text-xs text-zinc-500">Ticker</label>
-              <input
-                value={analysisTicker}
-                onChange={(e) => setAnalysisTicker(e.target.value)}
-                placeholder="AAPL"
-                required
-                className="mt-1 w-32 rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={analysisLoading}
-              className="rounded-sm bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-black"
-            >
-              {analysisLoading ? "Analyzing..." : "Analyze"}
-            </button>
-          </form>
-
-          {analysisError && <p className="mt-3 text-sm text-red-500">{analysisError}</p>}
-
-          {analysis && (
-            <div className="mt-4 space-y-3">
-              {analysis.personas.map((p) => (
-                <div
-                  key={p.name}
-                  className="rounded-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                  <p className="text-sm font-medium text-black dark:text-zinc-50">{p.name}</p>
-                  <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                    {p.take}
-                  </p>
-                </div>
-              ))}
-              <div className="rounded-sm border border-accent/40 bg-accent/5 p-4">
-                <p className="font-mono text-xs uppercase tracking-widest text-accent">
-                  {"// key disagreement"}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                  {analysis.key_disagreement}
-                </p>
-              </div>
-            </div>
-          )}
-        </section>
-      </main>
-    </div>
+        {analysis && (
+          <div className="mt-4 space-y-3">
+            {analysis.personas.map((p) => (
+              <Card key={p.name} padding="sm">
+                <p className="text-sm font-medium text-black dark:text-zinc-50">{p.name}</p>
+                <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{p.take}</p>
+              </Card>
+            ))}
+            <Callout label="key disagreement">{analysis.key_disagreement}</Callout>
+          </div>
+        )}
+      </section>
+    </PageShell>
   );
 }

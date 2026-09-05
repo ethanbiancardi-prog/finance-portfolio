@@ -13,6 +13,25 @@ import {
   YAxis,
 } from "recharts";
 import { runDcf, sensitivityGrid, stepsAround, type DcfInputs } from "@/lib/dcf";
+import { formatCurrency, formatMoneyMillions, formatPercent } from "@/lib/format";
+import {
+  Card,
+  Field,
+  PageShell,
+  SectionHeader,
+  StatusBadge,
+  StatusDot,
+  StatCard,
+  chartAxisProps,
+  chartGridProps,
+  chartTooltipStyle,
+  tableCellClass,
+  tableCellStrongClass,
+  tableHeadCellClass,
+  tableHeadRowClass,
+  tableRowClass,
+  type Rating,
+} from "@/components/ui";
 
 // Every percent-style field is stored as a whole number ("8" means 8%) since
 // that's what people actually type into a form; convert to a decimal only
@@ -49,20 +68,6 @@ const DEFAULTS: FormState = {
   currentPrice: "22",
 };
 
-const money = (value: number | null) =>
-  value == null || Number.isNaN(value)
-    ? "N/A"
-    : `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}M`;
-
-const perShare = (value: number | null) =>
-  value == null || Number.isNaN(value)
-    ? "N/A"
-    : value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
-
-const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
-
-type Rating = "good" | "average" | "bad";
-
 // Same good/average/bad vs. current-price thresholds used for the base-case
 // upside callout and every sensitivity-grid cell, so the whole page reads
 // consistently: >10% upside to the DCF value is "good", >10% downside is "bad".
@@ -72,46 +77,6 @@ function rateVsPrice(value: number | null, price: number | null): Rating | null 
   if (diff > 0.1) return "good";
   if (diff < -0.1) return "bad";
   return "average";
-}
-
-// Color lives only on the dot, never on the text — matches the 10-K
-// analyzer's ratio dots (readable at small sizes, works for colorblind users).
-function RatingDot({ rating }: { rating: Rating | null }) {
-  if (!rating) return null;
-  return (
-    <span
-      className="inline-block h-2 w-2 rounded-full"
-      style={{ backgroundColor: `var(--status-${rating})` }}
-    />
-  );
-}
-
-function NumberField({
-  label,
-  suffix,
-  value,
-  onChange,
-}: {
-  label: string;
-  suffix?: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-xs text-zinc-500">
-        {label}
-        {suffix ? ` (${suffix})` : ""}
-      </span>
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        step="any"
-        className="mt-1 w-full rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-      />
-    </label>
-  );
 }
 
 export default function DcfBuilder() {
@@ -152,6 +117,10 @@ export default function DcfBuilder() {
   );
 
   const baseRating = rateVsPrice(result.valuePerShare, currentPrice);
+  const baseRatingLabel =
+    currentPrice != null && result.valuePerShare != null
+      ? `${(((result.valuePerShare - currentPrice) / currentPrice) * 100).toFixed(0)}% vs price`
+      : undefined;
 
   // Undiscounted FCF next to its present value shows discounting's effect
   // directly: later years' FCF may be larger, but the bars shrink as PV
@@ -184,341 +153,280 @@ export default function DcfBuilder() {
       : null;
 
   return (
-    <div className="flex flex-col flex-1 bg-zinc-50 font-sans dark:bg-black">
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-14 sm:py-20">
-        <div className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
-          <p className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// dcf builder"}
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-            DCF Builder
-          </h1>
-          <p className="mt-3 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-            A 5-year unlevered discounted cash flow model. Edit any assumption below — everything
-            recalculates live, including the WACC x terminal growth sensitivity table.
-          </p>
+    <PageShell
+      eyebrow="dcf builder"
+      title="DCF Builder"
+      description="A 5-year unlevered discounted cash flow model. Edit any assumption below — everything recalculates live, including the WACC x terminal growth sensitivity table."
+    >
+      <Card as="section" className="mt-8">
+        <SectionHeader label="assumptions" />
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <Field label="Revenue" suffix="$M" type="number" step="any" value={form.revenue} onChange={(e) => set("revenue")(e.target.value)} />
+          <Field
+            label="Revenue growth"
+            suffix="%/yr"
+            type="number"
+            step="any"
+            value={form.growthRate}
+            onChange={(e) => set("growthRate")(e.target.value)}
+          />
+          <Field
+            label="EBIT margin"
+            suffix="%"
+            type="number"
+            step="any"
+            value={form.ebitMargin}
+            onChange={(e) => set("ebitMargin")(e.target.value)}
+          />
+          <Field label="Tax rate" suffix="%" type="number" step="any" value={form.taxRate} onChange={(e) => set("taxRate")(e.target.value)} />
+          <Field
+            label="D&A"
+            suffix="% of rev"
+            type="number"
+            step="any"
+            value={form.daPct}
+            onChange={(e) => set("daPct")(e.target.value)}
+          />
+          <Field
+            label="Capex"
+            suffix="% of rev"
+            type="number"
+            step="any"
+            value={form.capexPct}
+            onChange={(e) => set("capexPct")(e.target.value)}
+          />
+          <Field
+            label="Net working capital"
+            suffix="% of rev"
+            type="number"
+            step="any"
+            value={form.nwcPct}
+            onChange={(e) => set("nwcPct")(e.target.value)}
+          />
+          <Field label="WACC" suffix="%" type="number" step="any" value={form.wacc} onChange={(e) => set("wacc")(e.target.value)} />
+          <Field
+            label="Terminal growth"
+            suffix="%"
+            type="number"
+            step="any"
+            value={form.terminalGrowth}
+            onChange={(e) => set("terminalGrowth")(e.target.value)}
+          />
+          <Field
+            label="Shares outstanding"
+            suffix="M"
+            type="number"
+            step="any"
+            value={form.sharesOutstanding}
+            onChange={(e) => set("sharesOutstanding")(e.target.value)}
+          />
+          <Field
+            label="Net debt"
+            suffix="$M, neg = net cash"
+            type="number"
+            step="any"
+            value={form.netDebt}
+            onChange={(e) => set("netDebt")(e.target.value)}
+          />
+          <Field
+            label="Current share price"
+            suffix="$, optional"
+            type="number"
+            step="any"
+            value={form.currentPrice}
+            onChange={(e) => set("currentPrice")(e.target.value)}
+          />
+        </div>
+      </Card>
+
+      <Card as="section" className="mt-8">
+        <SectionHeader label="valuation" />
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <StatCard label="Enterprise Value" value={formatMoneyMillions(result.enterpriseValue)} />
+          <StatCard label="Equity Value" value={formatMoneyMillions(result.equityValue)} />
+          <StatCard
+            label="Value per Share"
+            value={formatCurrency(result.valuePerShare)}
+            hint={
+              baseRating && (
+                <StatusBadge rating={baseRating} label={baseRatingLabel} fallback={null} />
+              )
+            }
+          />
         </div>
 
-        <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// assumptions"}
-          </h2>
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <NumberField label="Revenue" suffix="$M" value={form.revenue} onChange={set("revenue")} />
-            <NumberField
-              label="Revenue growth"
-              suffix="%/yr"
-              value={form.growthRate}
-              onChange={set("growthRate")}
-            />
-            <NumberField
-              label="EBIT margin"
-              suffix="%"
-              value={form.ebitMargin}
-              onChange={set("ebitMargin")}
-            />
-            <NumberField label="Tax rate" suffix="%" value={form.taxRate} onChange={set("taxRate")} />
-            <NumberField
-              label="D&A"
-              suffix="% of rev"
-              value={form.daPct}
-              onChange={set("daPct")}
-            />
-            <NumberField
-              label="Capex"
-              suffix="% of rev"
-              value={form.capexPct}
-              onChange={set("capexPct")}
-            />
-            <NumberField
-              label="Net working capital"
-              suffix="% of rev"
-              value={form.nwcPct}
-              onChange={set("nwcPct")}
-            />
-            <NumberField label="WACC" suffix="%" value={form.wacc} onChange={set("wacc")} />
-            <NumberField
-              label="Terminal growth"
-              suffix="%"
-              value={form.terminalGrowth}
-              onChange={set("terminalGrowth")}
-            />
-            <NumberField
-              label="Shares outstanding"
-              suffix="M"
-              value={form.sharesOutstanding}
-              onChange={set("sharesOutstanding")}
-            />
-            <NumberField
-              label="Net debt"
-              suffix="$M, neg = net cash"
-              value={form.netDebt}
-              onChange={set("netDebt")}
-            />
-            <NumberField
-              label="Current share price"
-              suffix="$, optional"
-              value={form.currentPrice}
-              onChange={set("currentPrice")}
-            />
+        {result.terminalValue == null && (
+          <p className="mt-4 text-sm text-red-500">
+            WACC must be greater than terminal growth for the terminal value to be defined.
+          </p>
+        )}
+
+        <table className="mt-5 w-full text-left text-sm">
+          <thead>
+            <tr className={tableHeadRowClass}>
+              <th className={tableHeadCellClass}>Year</th>
+              <th className={tableHeadCellClass}>Revenue</th>
+              <th className={tableHeadCellClass}>EBIT</th>
+              <th className={tableHeadCellClass}>NOPAT</th>
+              <th className={tableHeadCellClass}>FCF</th>
+              <th className={tableHeadCellClass}>PV of FCF</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.years.map((y) => (
+              <tr key={y.year} className={tableRowClass}>
+                <td className={tableCellStrongClass}>Y{y.year}</td>
+                <td className={tableCellClass}>{formatMoneyMillions(y.revenue)}</td>
+                <td className={tableCellClass}>{formatMoneyMillions(y.ebit)}</td>
+                <td className={tableCellClass}>{formatMoneyMillions(y.nopat)}</td>
+                <td className={tableCellClass}>{formatMoneyMillions(y.fcf)}</td>
+                <td className={tableCellClass}>{formatMoneyMillions(y.pvFcf)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="mt-6 h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={fcfChartData}>
+              <CartesianGrid {...chartGridProps} vertical={false} />
+              <XAxis dataKey="year" {...chartAxisProps} />
+              <YAxis
+                {...chartAxisProps}
+                width={56}
+                tickFormatter={(value) => formatMoneyMillions(Number(value))}
+              />
+              <Tooltip
+                formatter={(value) => formatMoneyMillions(Number(value))}
+                contentStyle={chartTooltipStyle}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="fcf" name="FCF" fill="var(--chart-line)" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="pvFcf" name="PV of FCF" fill="var(--chart-line-2)" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      {valueComparisonData && (
+        <Card as="section" className="mt-8">
+          <SectionHeader label="intrinsic value vs. current price" />
+          <div className="mt-4 h-32">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={valueComparisonData} layout="vertical" margin={{ left: 8 }}>
+                <CartesianGrid {...chartGridProps} horizontal={false} />
+                <XAxis
+                  type="number"
+                  {...chartAxisProps}
+                  tickFormatter={(value) => formatCurrency(Number(value))}
+                />
+                <YAxis type="category" dataKey="name" {...chartAxisProps} width={100} />
+                <Tooltip
+                  formatter={(value) => formatCurrency(Number(value))}
+                  contentStyle={chartTooltipStyle}
+                />
+                <Bar dataKey="value" radius={[0, 3, 3, 0]} barSize={28}>
+                  {valueComparisonData.map((entry, i) => (
+                    <Cell
+                      key={i}
+                      fill={entry.rating ? `var(--status-${entry.rating})` : "var(--chart-muted)"}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        </section>
+        </Card>
+      )}
 
-        <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// valuation"}
-          </h2>
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <div>
-              <p className="text-xs text-zinc-500">Enterprise Value</p>
-              <p className="mt-1 font-medium text-black dark:text-zinc-50">
-                {money(result.enterpriseValue)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500">Equity Value</p>
-              <p className="mt-1 font-medium text-black dark:text-zinc-50">
-                {money(result.equityValue)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500">Value per Share</p>
-              <p className="mt-1 inline-flex items-center gap-1.5 font-medium text-black dark:text-zinc-50">
-                {perShare(result.valuePerShare)}
-                {baseRating && (
-                  <span className="inline-flex items-center gap-1 text-xs font-normal text-zinc-500">
-                    <RatingDot rating={baseRating} />
-                    {currentPrice != null &&
-                      result.valuePerShare != null &&
-                      `${(((result.valuePerShare - currentPrice) / currentPrice) * 100).toFixed(0)}% vs price`}
-                  </span>
-                )}
-              </p>
-            </div>
+      {evCompositionData && (
+        <Card as="section" className="mt-8">
+          <SectionHeader
+            label="enterprise value composition"
+            description="How much of EV comes from the 5-year explicit FCF forecast vs. the terminal value (everything after year 5, capitalized with Gordon growth)."
+          />
+          <div className="mt-4 h-24">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={evCompositionData} layout="vertical" margin={{ left: 8 }}>
+                <XAxis
+                  type="number"
+                  {...chartAxisProps}
+                  tickFormatter={(value) => formatMoneyMillions(Number(value))}
+                />
+                <YAxis type="category" dataKey="name" hide />
+                <Tooltip
+                  formatter={(value) => formatMoneyMillions(Number(value))}
+                  contentStyle={chartTooltipStyle}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar
+                  dataKey="PV of Y1-Y5 FCF"
+                  stackId="ev"
+                  fill="var(--chart-line)"
+                  radius={[3, 0, 0, 3]}
+                  barSize={28}
+                />
+                <Bar
+                  dataKey="PV of Terminal Value"
+                  stackId="ev"
+                  fill="var(--chart-line-2)"
+                  radius={[0, 3, 3, 0]}
+                  barSize={28}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
+        </Card>
+      )}
 
-          {result.terminalValue == null && (
-            <p className="mt-4 text-sm text-red-500">
-              WACC must be greater than terminal growth for the terminal value to be defined.
-            </p>
-          )}
-
-          <table className="mt-5 w-full text-left text-sm">
+      <Card as="section" className="mt-8">
+        <SectionHeader
+          label="sensitivity: value per share"
+          description={`Rows are WACC, columns are terminal growth, each in 0.5pt steps around your assumptions. The boxed cell is your base case.${
+            currentPrice != null ? " Dots compare each cell to your current share price." : ""
+          }`}
+        />
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[520px] text-left text-sm">
             <thead>
-              <tr className="text-zinc-500">
-                <th className="py-2 font-medium">Year</th>
-                <th className="py-2 font-medium">Revenue</th>
-                <th className="py-2 font-medium">EBIT</th>
-                <th className="py-2 font-medium">NOPAT</th>
-                <th className="py-2 font-medium">FCF</th>
-                <th className="py-2 font-medium">PV of FCF</th>
+              <tr className={tableHeadRowClass}>
+                <th className="py-2 pr-3 font-medium">WACC \ g</th>
+                {terminalSteps.map((g, i) => (
+                  <th key={i} className="px-3 py-2 font-medium tabular-nums">
+                    {formatPercent(g)}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {result.years.map((y) => (
-                <tr key={y.year} className="border-t border-zinc-200 dark:border-zinc-800">
-                  <td className="py-2 text-black dark:text-zinc-50">Y{y.year}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{money(y.revenue)}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{money(y.ebit)}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{money(y.nopat)}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{money(y.fcf)}</td>
-                  <td className="py-2 text-zinc-600 dark:text-zinc-400">{money(y.pvFcf)}</td>
+              {waccSteps.map((wacc, rowIndex) => (
+                <tr key={rowIndex} className={tableRowClass}>
+                  <td className="py-2 pr-3 font-medium tabular-nums text-black dark:text-zinc-50">
+                    {formatPercent(wacc)}
+                  </td>
+                  {grid[rowIndex].map((value, colIndex) => {
+                    const isBase = rowIndex === 2 && colIndex === 2;
+                    const rating = currentPrice != null ? rateVsPrice(value, currentPrice) : null;
+                    return (
+                      <td
+                        key={colIndex}
+                        className={`px-3 py-2 tabular-nums text-zinc-600 dark:text-zinc-400 ${
+                          isBase ? "rounded-md ring-1 ring-inset ring-accent" : ""
+                        }`}
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          {formatCurrency(value)}
+                          <StatusDot rating={rating} />
+                        </span>
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
           </table>
-
-          <div className="mt-6 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={fcfChartData}>
-                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-                <XAxis
-                  dataKey="year"
-                  stroke="var(--chart-muted)"
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="var(--chart-muted)"
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={56}
-                  tickFormatter={(value) => money(Number(value))}
-                />
-                <Tooltip
-                  formatter={(value) => money(Number(value))}
-                  contentStyle={{
-                    background: "var(--chart-tooltip-bg)",
-                    border: "1px solid var(--chart-grid)",
-                    borderRadius: 6,
-                    fontSize: 12,
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="fcf" name="FCF" fill="var(--chart-line)" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="pvFcf" name="PV of FCF" fill="var(--chart-line-2)" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-
-        {valueComparisonData && (
-          <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-              {"// intrinsic value vs. current price"}
-            </h2>
-            <div className="mt-4 h-32">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={valueComparisonData} layout="vertical" margin={{ left: 8 }}>
-                  <CartesianGrid stroke="var(--chart-grid)" horizontal={false} />
-                  <XAxis
-                    type="number"
-                    stroke="var(--chart-muted)"
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => perShare(Number(value))}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    stroke="var(--chart-muted)"
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={100}
-                  />
-                  <Tooltip
-                    formatter={(value) => perShare(Number(value))}
-                    contentStyle={{
-                      background: "var(--chart-tooltip-bg)",
-                      border: "1px solid var(--chart-grid)",
-                      borderRadius: 6,
-                      fontSize: 12,
-                    }}
-                  />
-                  <Bar dataKey="value" radius={[0, 3, 3, 0]} barSize={28}>
-                    {valueComparisonData.map((entry, i) => (
-                      <Cell
-                        key={i}
-                        fill={
-                          entry.rating
-                            ? `var(--status-${entry.rating})`
-                            : "var(--chart-muted)"
-                        }
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-        )}
-
-        {evCompositionData && (
-          <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-              {"// enterprise value composition"}
-            </h2>
-            <p className="mt-1 text-xs text-zinc-500">
-              How much of EV comes from the 5-year explicit FCF forecast vs. the terminal value
-              (everything after year 5, capitalized with Gordon growth).
-            </p>
-            <div className="mt-4 h-24">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={evCompositionData} layout="vertical" margin={{ left: 8 }}>
-                  <XAxis
-                    type="number"
-                    stroke="var(--chart-muted)"
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => money(Number(value))}
-                  />
-                  <YAxis type="category" dataKey="name" hide />
-                  <Tooltip
-                    formatter={(value) => money(Number(value))}
-                    contentStyle={{
-                      background: "var(--chart-tooltip-bg)",
-                      border: "1px solid var(--chart-grid)",
-                      borderRadius: 6,
-                      fontSize: 12,
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar
-                    dataKey="PV of Y1-Y5 FCF"
-                    stackId="ev"
-                    fill="var(--chart-line)"
-                    radius={[3, 0, 0, 3]}
-                    barSize={28}
-                  />
-                  <Bar
-                    dataKey="PV of Terminal Value"
-                    stackId="ev"
-                    fill="var(--chart-line-2)"
-                    radius={[0, 3, 3, 0]}
-                    barSize={28}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-        )}
-
-        <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-accent">
-            {"// sensitivity: value per share"}
-          </h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            Rows are WACC, columns are terminal growth, each in 0.5pt steps around your
-            assumptions. The boxed cell is your base case.
-            {currentPrice != null && " Dots compare each cell to your current share price."}
-          </p>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[520px] text-left text-sm">
-              <thead>
-                <tr className="text-zinc-500">
-                  <th className="py-2 pr-3 font-medium">WACC \ g</th>
-                  {terminalSteps.map((g, i) => (
-                    <th key={i} className="py-2 px-3 font-medium">
-                      {pct(g)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {waccSteps.map((wacc, rowIndex) => (
-                  <tr key={rowIndex} className="border-t border-zinc-200 dark:border-zinc-800">
-                    <td className="py-2 pr-3 font-medium text-black dark:text-zinc-50">
-                      {pct(wacc)}
-                    </td>
-                    {grid[rowIndex].map((value, colIndex) => {
-                      const isBase = rowIndex === 2 && colIndex === 2;
-                      const rating = currentPrice != null ? rateVsPrice(value, currentPrice) : null;
-                      return (
-                        <td
-                          key={colIndex}
-                          className={`py-2 px-3 text-zinc-600 dark:text-zinc-400 ${
-                            isBase ? "rounded-sm ring-1 ring-inset ring-accent" : ""
-                          }`}
-                        >
-                          <span className="inline-flex items-center gap-1.5">
-                            {perShare(value)}
-                            <RatingDot rating={rating} />
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-    </div>
+        </div>
+      </Card>
+    </PageShell>
   );
 }
