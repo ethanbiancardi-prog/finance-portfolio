@@ -48,3 +48,59 @@ body {
   box-shadow: 0 0 0 2px var(--background), 0 0 0 4px color-mix(in srgb, var(--accent) 50%, transparent);
   border-radius: 4px;
 }
+
+/* Only applied once JS confirms a fine pointer + hover-capable device (see
+   CustomCursor.tsx) — never a static rule, so there's never a frame with no
+   cursor at all while the check runs. */
+html.cursor-none-active,
+html.cursor-none-active * {
+  cursor: none;
+}
+
+.cursor-reticle {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate3d(var(--cursor-x, -100px), var(--cursor-y, -100px), 0);
+}
+
+.cursor-reticle-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  border-radius: 2px;
+  transform: translate(-50%, -50%) scale(1);
+  transition:
+    transform 150ms ease-out,
+    border-color 150ms ease-out,
+    background-color 150ms ease-out;
+}
+
+.cursor-reticle.is-hovering .cursor-reticle-ring {
+  transform: translate(-50%, -50%) scale(1.6);
+  border-color: var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.cursor-reticle-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+  transition: opacity 150ms ease-out;
+}
+
+.cursor-reticle.is-hovering .cursor-reticle-dot {
+  opacity: 0;
+}

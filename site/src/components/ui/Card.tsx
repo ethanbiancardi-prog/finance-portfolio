@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
+import { useRef } from "react";
+import type { ButtonHTMLAttributes, HTMLAttributes, MouseEvent, ReactNode } from "react";
 
 type CardOwnProps = {
   as?: "div" | "section" | "button";
@@ -12,6 +15,25 @@ type CardOwnProps = {
 
 type CardProps = CardOwnProps & HTMLAttributes<HTMLElement> & ButtonHTMLAttributes<HTMLButtonElement>;
 
+// Mouse-tracked "spotlight" glow for interactive cards — an accent-tinted
+// radial gradient that follows the cursor. Purely additive to the existing
+// lift/shadow/border hover treatment below; never touches `transform`, so
+// there's no risk of two transform sources clobbering each other.
+function Spotlight() {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0"
+      style={{
+        background:
+          "radial-gradient(240px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%)",
+        opacity: "var(--spot-opacity, 0)",
+        transition: "opacity 200ms ease-out",
+      }}
+    />
+  );
+}
+
 export function Card({
   as = "div",
   href,
@@ -21,44 +43,80 @@ export function Card({
   children,
   ...rest
 }: CardProps) {
+  const rectRef = useRef<DOMRect | null>(null);
+
   const classes = [
     "rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950",
     padding === "sm" ? "p-4" : "p-5",
     interactive
-      ? "block w-full text-left transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-sm hover:border-accent/50 dark:hover:shadow-none"
+      ? "relative overflow-hidden block w-full text-left transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-sm hover:border-accent/50 dark:hover:shadow-none"
       : "",
     className ?? "",
   ]
     .filter(Boolean)
     .join(" ");
 
+  function handleMouseEnter(e: MouseEvent<HTMLElement>) {
+    rectRef.current = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--spot-opacity", "1");
+  }
+
+  function handleMouseMove(e: MouseEvent<HTMLElement>) {
+    const rect = rectRef.current;
+    if (!rect) return;
+    e.currentTarget.style.setProperty("--spot-x", `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty("--spot-y", `${e.clientY - rect.top}px`);
+  }
+
+  function handleMouseLeave(e: MouseEvent<HTMLElement>) {
+    e.currentTarget.style.setProperty("--spot-opacity", "0");
+  }
+
+  const interactiveProps = interactive
+    ? {
+        "data-cursor-interactive": "",
+        onMouseEnter: handleMouseEnter,
+        onMouseMove: handleMouseMove,
+        onMouseLeave: handleMouseLeave,
+      }
+    : {};
+
+  const content = interactive ? (
+    <>
+      <Spotlight />
+      {children}
+    </>
+  ) : (
+    children
+  );
+
   if (href) {
     return (
-      <Link href={href} className={classes}>
-        {children}
+      <Link href={href} className={classes} {...interactiveProps}>
+        {content}
       </Link>
     );
   }
 
   if (as === "button") {
     return (
-      <button type="button" className={classes} {...rest}>
-        {children}
+      <button type="button" className={classes} {...interactiveProps} {...rest}>
+        {content}
       </button>
     );
   }
 
   if (as === "section") {
     return (
-      <section className={classes} {...rest}>
-        {children}
+      <section className={classes} {...interactiveProps} {...rest}>
+        {content}
       </section>
     );
   }
 
   return (
-    <div className={classes} {...rest}>
-      {children}
+    <div className={classes} {...interactiveProps} {...rest}>
+      {content}
     </div>
   );
 }
