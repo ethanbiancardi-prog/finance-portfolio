@@ -30,6 +30,13 @@ const projects: Project[] = [
     href: "/monte-carlo",
   },
   {
+    name: "Portfolio Optimizer",
+    blurb:
+      "Samples thousands of random portfolio weightings across your tickers to approximate the efficient frontier, with max-Sharpe and min-variance picks.",
+    status: "Live",
+    href: "/optimizer",
+  },
+  {
     name: "Interactive DCF Builder",
     blurb:
       "Input revenue growth, margins, and WACC to get a live valuation with a WACC x terminal growth sensitivity table.",
