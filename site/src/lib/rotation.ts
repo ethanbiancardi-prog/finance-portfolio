@@ -1,30 +1,44 @@
-import { INDUSTRY_CATEGORIES, getCompaniesBySic } from "@/lib/edgar";
+import { INDUSTRY_CATEGORIES, getCompaniesBySic, resolveTickerNames } from "@/lib/edgar";
 import { getDailyBars, type DailyBar } from "@/lib/marketdata";
 
 // Every constant here is a deliberate, tunable choice — see the comment on
 // each — not a magic number. Tune them in one place if the strategy changes.
-export const ROTATION_SECTOR_KEYS = ["tech", "biotech", "consumer"] as const;
+export const ROTATION_SECTOR_KEYS = [
+  "tech",
+  "biotech",
+  "consumer",
+  "financial",
+  "healthcare",
+  "energy",
+  "indexes",
+] as const;
 export type SectorKey = (typeof ROTATION_SECTOR_KEYS)[number];
 
+// A fixed list, not an EDGAR SIC lookup — index ETFs are investment trusts,
+// not SIC-classified operating companies, so they don't show up in the
+// company-browse categories the way individual stocks do.
+export const INDEX_TICKERS = ["SPY", "QQQ", "DIA", "IWM"];
+
 // Top N of EDGAR's ~40-per-sector (sorted by public float) we bother scoring.
-// Keeps the monthly momentum lookup to ~45 tickers instead of ~120.
+// Keeps the monthly momentum lookup from ballooning across 7 sectors.
 export const UNIVERSE_SIZE_PER_SECTOR = 15;
 // ~3 months of trading days — long enough to filter out single-week noise,
 // short enough that the "rotation" actually rotates month to month.
 export const LOOKBACK_TRADING_DAYS = 63;
-// Picks per sector. 2 x 3 sectors = 6 total positions.
+// Picks per sector. 2 x 7 sectors = 14 total positions.
 export const TOP_N_PER_SECTOR = 2;
 // No single stock may exceed this share of the rotation sleeve. At
-// TOP_N_PER_SECTOR=2 the natural equal weight (~16.7%) already respects
-// this — the cap exists as a safety ceiling for when a sector returns fewer
-// usable candidates than TOP_N_PER_SECTOR (thin/missing price data).
+// TOP_N_PER_SECTOR=2 the natural equal weight (~7.1% across 14 positions)
+// already respects this — the cap exists as a safety ceiling for when a
+// sector returns fewer usable candidates than TOP_N_PER_SECTOR (thin/missing
+// price data).
 export const POSITION_CAP_PCT = 0.2;
 // % of current account equity dedicated to this strategy. See
 // projects/paper-trading/STRATEGY.md "Satellite 3" for the TODO(ethan) on
 // tuning this against the other satellites.
 export const DEFAULT_ROTATION_SLEEVE_PCT = 0.1;
 
-export type Candidate = { symbol: string; sector: SectorKey };
+export type Candidate = { symbol: string; sector: SectorKey; name: string };
 export type ScoredCandidate = Candidate & {
   trailingReturn: number;
   volatility: number;
@@ -35,6 +49,7 @@ export type Pick = ScoredCandidate & { weight: number; capped: boolean };
 export type TargetPosition = {
   symbol: string;
   sector: SectorKey;
+  name: string;
   targetWeight: number;
   targetQty: number;
 };
@@ -42,11 +57,29 @@ export type TargetPosition = {
 export async function buildUniverse(): Promise<Candidate[]> {
   const bySector = await Promise.all(
     ROTATION_SECTOR_KEYS.map(async (sector) => {
+      if (sector === "indexes") {
+        const names = await resolveTickerNames(INDEX_TICKERS);
+        return INDEX_TICKERS.map((symbol) => ({
+          symbol,
+          sector,
+          name: names.get(symbol) ?? symbol,
+        }));
+      }
       const companies = await getCompaniesBySic(INDUSTRY_CATEGORIES[sector].sic);
-      return companies.slice(0, UNIVERSE_SIZE_PER_SECTOR).map((c) => ({
-        symbol: c.ticker,
-        sector,
-      }));
+      return companies
+        // SEC's ticker file includes preferred shares/warrants with
+        // exchange-specific separators (e.g. "BML-PJ") that Alpaca's symbol
+        // format rejects outright — and since bars are fetched in one
+        // batched multi-symbol request, a single bad ticker fails the
+        // entire sector's lookup. Plain common-stock tickers are what the
+        // strategy actually wants to rank anyway.
+        .filter((c) => /^[A-Z]{1,5}$/.test(c.ticker))
+        .slice(0, UNIVERSE_SIZE_PER_SECTOR)
+        .map((c) => ({
+          symbol: c.ticker,
+          sector,
+          name: c.title,
+        }));
     }),
   );
   return bySector.flat();
@@ -155,6 +188,7 @@ export function buildTargetPositions(picks: Pick[], sleeveDollars: number): Targ
   return picks.map((p) => ({
     symbol: p.symbol,
     sector: p.sector,
+    name: p.name,
     targetWeight: p.weight,
     targetQty: Math.floor((p.weight * sleeveDollars) / p.lastPrice),
   }));

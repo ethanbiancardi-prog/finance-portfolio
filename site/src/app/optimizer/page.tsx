@@ -35,6 +35,7 @@ type FrontierResponse = {
   samples: SampledPortfolio[];
   maxSharpe: SampledPortfolio;
   minVariance: SampledPortfolio;
+  names: Record<string, string>;
 };
 
 // Nearest match by volatility against the sample cloud — a tiny lookup, not
@@ -215,7 +216,12 @@ export default function Optimizer() {
                 <tbody>
                   {result.symbols.map((symbol, i) => (
                     <tr key={symbol} className={tableRowClass}>
-                      <td className={tableCellStrongClass}>{symbol}</td>
+                      <td className="py-2">
+                        <span className="tabular-nums text-black dark:text-zinc-50">{symbol}</span>
+                        {result.names[symbol] && (
+                          <span className="block text-xs text-zinc-500">{result.names[symbol]}</span>
+                        )}
+                      </td>
                       <td className={tableCellClass}>{formatPercent(selectedPortfolio.weights[i])}</td>
                     </tr>
                   ))}

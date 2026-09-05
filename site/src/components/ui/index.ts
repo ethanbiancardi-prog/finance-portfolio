@@ -10,3 +10,4 @@ export { Tabs } from "./Tabs";
 export { Chip } from "./Chip";
 export { tableHeadRowClass, tableHeadCellClass, tableRowClass, tableCellClass, tableCellStrongClass, EmptyRow } from "./table";
 export { chartAxisProps, chartGridProps, chartTooltipStyle } from "./charts";
+export { Icon, type IconName } from "./icons";

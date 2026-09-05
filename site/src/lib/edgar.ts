@@ -47,6 +47,18 @@ export async function resolveTicker(ticker: string): Promise<TickerEntry | null>
   return byTicker.get(ticker.toUpperCase()) ?? null;
 }
 
+// Batch name lookup — cheap even for many tickers, since getTickerMaps()
+// caches the whole SEC ticker file in memory after the first call.
+export async function resolveTickerNames(tickers: string[]): Promise<Map<string, string>> {
+  const { byTicker } = await getTickerMaps();
+  const names = new Map<string, string>();
+  for (const ticker of tickers) {
+    const entry = byTicker.get(ticker.toUpperCase());
+    if (entry) names.set(ticker.toUpperCase(), entry.title);
+  }
+  return names;
+}
+
 export async function getCompanyFacts(cik: number) {
   const padded = String(cik).padStart(10, "0");
   const res = await secFetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${padded}.json`);
@@ -505,6 +517,7 @@ export const INDUSTRY_CATEGORIES: Record<string, { label: string; sic: number[] 
   healthcare: { label: "Healthcare", sic: [2834, 8000] },
   consumer: { label: "Consumer", sic: [5812, 5311] },
   energy: { label: "Energy", sic: [1311, 2911] },
+  financial: { label: "Financial", sic: [6021, 6311] },
   sustainability: { label: "Sustainability", sic: [4911] },
 };
 

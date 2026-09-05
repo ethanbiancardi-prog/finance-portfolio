@@ -5,23 +5,25 @@ import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
   Card,
+  Icon,
   PageShell,
   SectionHeader,
   StatCard,
   StatusBadge,
   tableCellClass,
-  tableCellStrongClass,
   tableHeadCellClass,
   tableHeadRowClass,
   tableRowClass,
   EmptyRow,
+  type IconName,
 } from "@/components/ui";
 
-type SectorKey = "tech" | "biotech" | "consumer";
+type SectorKey = "tech" | "biotech" | "consumer" | "financial" | "healthcare" | "energy" | "indexes";
 
 type Pick = {
   symbol: string;
   sector: SectorKey;
+  name: string;
   trailingReturn: number;
   volatility: number;
   momentumScore: number;
@@ -33,7 +35,7 @@ type Pick = {
 type RebalanceRecord = {
   month: string;
   ranAt: string;
-  positions: { symbol: string; sector: SectorKey; qty: number; weight: number }[];
+  positions: { symbol: string; sector: SectorKey; name?: string; qty: number; weight: number }[];
   sleeveDollars: number;
 };
 
@@ -47,6 +49,7 @@ type Status = {
 type Order = {
   id: string;
   symbol: string;
+  name?: string;
   qty: string;
   side: string;
   status: string;
@@ -54,10 +57,34 @@ type Order = {
   client_order_id?: string;
 };
 
+const SECTOR_ORDER: SectorKey[] = [
+  "tech",
+  "biotech",
+  "consumer",
+  "financial",
+  "healthcare",
+  "energy",
+  "indexes",
+];
+
 const SECTOR_LABEL: Record<SectorKey, string> = {
   tech: "Tech",
   biotech: "Biotech",
   consumer: "Consumer",
+  financial: "Financial",
+  healthcare: "Healthcare",
+  energy: "Energy",
+  indexes: "Indexes",
+};
+
+const SECTOR_ICON: Record<SectorKey, IconName> = {
+  tech: "tech",
+  biotech: "biotech",
+  consumer: "consumer",
+  financial: "financial",
+  healthcare: "healthcare",
+  energy: "energy",
+  indexes: "indexes",
 };
 
 export default function SectorRotation() {
@@ -110,7 +137,7 @@ export default function SectorRotation() {
     <PageShell
       eyebrow="sector rotation"
       title="Sector Rotation"
-      description="Every month, ranks stocks in tech, biotech, and consumer by risk-adjusted price momentum, picks the top 2 per sector, caps any single position at 20% of the sleeve, and rebalances automatically via a scheduled job on the Alpaca paper account."
+      description="Every month, ranks stocks and index ETFs across tech, biotech, consumer, financial, healthcare, energy, and broad-market indexes by risk-adjusted price momentum, picks the top 2 per sector, caps any single position at 20% of the sleeve, and rebalances automatically via a scheduled job on the Alpaca paper account."
     >
       {loading && <p className="mt-8 text-sm text-zinc-500">Loading...</p>}
       {error && <p className="mt-8 text-sm text-red-500">{error}</p>}
@@ -140,18 +167,19 @@ export default function SectorRotation() {
               description="Momentum score = trailing return ÷ volatility over the lookback window — a risk-adjusted rank, not a raw return."
             />
             <div className="mt-4 space-y-4">
-              {(["tech", "biotech", "consumer"] as SectorKey[]).map((sector) => {
+              {SECTOR_ORDER.map((sector) => {
                 const picks = status.picks.filter((p) => p.sector === sector);
                 if (picks.length === 0) return null;
                 return (
                   <Card key={sector} padding="sm">
-                    <p className="text-sm font-medium text-black dark:text-zinc-50">
+                    <p className="flex items-center gap-2 text-sm font-medium text-black dark:text-zinc-50">
+                      <Icon name={SECTOR_ICON[sector]} className="text-accent" />
                       {SECTOR_LABEL[sector]}
                     </p>
                     <table className="mt-3 w-full text-left text-sm">
                       <thead>
                         <tr className={tableHeadRowClass}>
-                          <th className={tableHeadCellClass}>Symbol</th>
+                          <th className={tableHeadCellClass}>Ticker</th>
                           <th className={tableHeadCellClass}>Trailing Return</th>
                           <th className={tableHeadCellClass}>Volatility</th>
                           <th className={tableHeadCellClass}>Momentum Score</th>
@@ -161,7 +189,10 @@ export default function SectorRotation() {
                       <tbody>
                         {picks.map((p) => (
                           <tr key={p.symbol} className={tableRowClass}>
-                            <td className={tableCellStrongClass}>{p.symbol}</td>
+                            <td className="py-2">
+                              <span className="tabular-nums text-black dark:text-zinc-50">{p.symbol}</span>
+                              <span className="block text-xs text-zinc-500">{p.name}</span>
+                            </td>
                             <td className={tableCellClass}>{formatPercent(p.trailingReturn)}</td>
                             <td className={tableCellClass}>{formatPercent(p.volatility)}</td>
                             <td className={tableCellClass}>{formatRatio(p.momentumScore)}</td>
@@ -189,7 +220,7 @@ export default function SectorRotation() {
             <table className="mt-4 w-full text-left text-sm">
               <thead>
                 <tr className={tableHeadRowClass}>
-                  <th className={tableHeadCellClass}>Symbol</th>
+                  <th className={tableHeadCellClass}>Ticker</th>
                   <th className={tableHeadCellClass}>Side</th>
                   <th className={tableHeadCellClass}>Qty</th>
                   <th className={tableHeadCellClass}>Status</th>
@@ -199,7 +230,10 @@ export default function SectorRotation() {
               <tbody>
                 {rotationOrders.map((o) => (
                   <tr key={o.id} className={tableRowClass}>
-                    <td className={tableCellStrongClass}>{o.symbol}</td>
+                    <td className="py-2">
+                      <span className="tabular-nums text-black dark:text-zinc-50">{o.symbol}</span>
+                      {o.name && <span className="block text-xs text-zinc-500">{o.name}</span>}
+                    </td>
                     <td className={tableCellClass}>{o.side}</td>
                     <td className={tableCellClass}>{o.qty}</td>
                     <td className={tableCellClass}>{o.status}</td>

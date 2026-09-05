@@ -37,13 +37,19 @@
   the next one, so rotating into the current leaders each month should beat
   buying-and-holding a static basket.
 - **Mechanics:** every month, rank the ~15 largest (by public float) stocks in
-  each of tech, biotech, and consumer by risk-adjusted momentum (trailing
-  3-month return ÷ volatility over that window), take the top 2 per sector (6
-  positions total), equal-weight them, and cap any single position at 20% of
-  the sleeve. Runs automatically via a scheduled job against the paper account
-  — see `site/src/lib/rotation.ts` for the exact formula and thresholds.
+  each of tech, biotech, consumer, financial, healthcare, and energy, plus a
+  fixed list of 4 broad-market index ETFs (SPY/QQQ/DIA/IWM, since ETFs aren't
+  SIC-classified companies the same lookup can browse), by risk-adjusted
+  momentum (trailing 3-month return ÷ volatility over that window). Takes the
+  top 2 per sector (14 positions total across 7 sectors), equal-weights them,
+  and caps any single position at 20% of the sleeve. Runs automatically via a
+  scheduled job against the paper account — see `site/src/lib/rotation.ts` for
+  the exact formula and thresholds. Note: the "indexes" sector can end up
+  holding SPY itself as a position even though SPY is also the strategy's
+  external benchmark below — that's expected, not a bug.
 - **Evidence that proves me right:** the rotation sleeve's return beats a
-  buy-and-hold basket of the same 45-stock universe over a full year.
+  buy-and-hold basket of the same universe (~94 candidates: 6 sectors × 15
+  stocks + 4 index ETFs) over a full year.
 - **Evidence that proves me wrong:** high monthly turnover erodes the return
   advantage (this is a paper account so there's no commission drag to model,
   but real turnover would matter if this were ever run with real money);

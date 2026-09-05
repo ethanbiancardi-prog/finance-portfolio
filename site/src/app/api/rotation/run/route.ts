@@ -30,6 +30,7 @@ async function runRebalance() {
 
   const placedOrders: unknown[] = [];
   const failedOrders: { symbol: string; side: string; qty: number; error: string }[] = [];
+  const skippedOrders: { symbol: string; side: string; qty: number; reason: string }[] = [];
   // Tracks what actually executed, starting from the prior known state — if
   // an order fails (e.g. insufficient buying power), we must persist reality,
   // not the full intended target, or next month's diff would be wrong.
@@ -61,13 +62,31 @@ async function runRebalance() {
         );
         continue;
       }
+      // Alpaca blocks an opposite-side order while an existing order for the
+      // same symbol is still open (a "wash trade" safety check) — this
+      // happens when this month's earlier buy hasn't filled yet (e.g. it was
+      // placed after-hours) and a rebalance tries to trim it before that
+      // fill lands. Not a failure: the position just stays at its prior size
+      // for now, and resolves naturally once the pending order fills and a
+      // future run re-diffs against the real quantity.
+      if (message.includes("potential wash trade")) {
+        skippedOrders.push({
+          symbol: intent.symbol,
+          side: intent.side,
+          qty: intent.qty,
+          reason: "an existing open order for this symbol hasn't filled yet",
+        });
+        continue;
+      }
       failedOrders.push({ symbol: intent.symbol, side: intent.side, qty: intent.qty, error: message });
     }
   }
 
   const sectorBySymbol = new Map<string, SectorKey>(plan.targets.map((t) => [t.symbol, t.sector]));
+  const nameBySymbol = new Map<string, string>(plan.targets.map((t) => [t.symbol, t.name]));
   for (const p of lastState?.positions ?? []) {
     if (!sectorBySymbol.has(p.symbol)) sectorBySymbol.set(p.symbol, p.sector);
+    if (!nameBySymbol.has(p.symbol)) nameBySymbol.set(p.symbol, p.name ?? p.symbol);
   }
   const weightBySymbol = new Map(plan.targets.map((t) => [t.symbol, t.targetWeight]));
 
@@ -76,6 +95,7 @@ async function runRebalance() {
     .map(([symbol, qty]) => ({
       symbol,
       sector: sectorBySymbol.get(symbol)!,
+      name: nameBySymbol.get(symbol) ?? symbol,
       qty,
       weight: weightBySymbol.get(symbol) ?? 0,
     }));
@@ -87,7 +107,7 @@ async function runRebalance() {
     sleeveDollars: plan.sleeveDollars,
   });
 
-  return { month, picks: plan.picks, orders: orderIntents, placedOrders, failedOrders };
+  return { month, picks: plan.picks, orders: orderIntents, placedOrders, failedOrders, skippedOrders };
 }
 
 // Vercel Cron always sends GET requests. This is the one route on the site

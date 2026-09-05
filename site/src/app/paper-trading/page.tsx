@@ -40,6 +40,7 @@ type Account = {
 
 type Position = {
   symbol: string;
+  name?: string;
   qty: string;
   avg_entry_price: string;
   current_price: string;
@@ -50,6 +51,7 @@ type Position = {
 type Order = {
   id: string;
   symbol: string;
+  name?: string;
   qty: string;
   side: string;
   status: string;
@@ -317,7 +319,10 @@ export default function PaperTrading() {
               const plRating: Rating = pl >= 0 ? "good" : "bad";
               return (
                 <tr key={p.symbol} className={tableRowClass}>
-                  <td className={tableCellStrongClass}>{p.symbol}</td>
+                  <td className="py-2">
+                    <span className="tabular-nums text-black dark:text-zinc-50">{p.symbol}</span>
+                    {p.name && <span className="block text-xs text-zinc-500">{p.name}</span>}
+                  </td>
                   <td className={tableCellClass}>{p.qty}</td>
                   <td className={tableCellClass}>{formatCurrency(p.avg_entry_price)}</td>
                   <td className={tableCellClass}>{formatCurrency(p.current_price)}</td>
@@ -423,7 +428,10 @@ export default function PaperTrading() {
           <tbody>
             {orders.map((o) => (
               <tr key={o.id} className={tableRowClass}>
-                <td className={tableCellStrongClass}>{o.symbol}</td>
+                <td className="py-2">
+                  <span className="tabular-nums text-black dark:text-zinc-50">{o.symbol}</span>
+                  {o.name && <span className="block text-xs text-zinc-500">{o.name}</span>}
+                </td>
                 <td className={tableCellClass}>{o.side}</td>
                 <td className={tableCellClass}>{o.qty}</td>
                 <td className={tableCellClass}>{o.status}</td>
