@@ -3,25 +3,21 @@ import { alpaca, placeMarketOrder } from "@/lib/alpaca";
 import { computeRotationPlan, diffRebalance, type SectorKey } from "@/lib/rotation";
 import { getLastRebalance, saveRebalance } from "@/lib/rotationStore";
 
-type AlpacaPosition = { symbol: string; qty: string };
-
 async function runRebalance() {
   const account = await alpaca("/account");
   const plan = await computeRotationPlan(Number(account.equity));
 
   const lastState = await getLastRebalance();
-  const accountPositions: AlpacaPosition[] = await alpaca("/positions");
-  const liveQtyBySymbol = new Map(
-    accountPositions.map((p) => [p.symbol, Math.max(0, Math.floor(Number(p.qty)))]),
-  );
 
-  // Only diff against symbols this strategy remembers owning — the same
-  // paper account also holds the other two satellites' positions (see
-  // projects/paper-trading/STRATEGY.md), and a blind read of every open
-  // position would risk selling shares this strategy doesn't own.
-  const currentQtyBySymbol = new Map(
-    (lastState?.positions ?? []).map((p) => [p.symbol, liveQtyBySymbol.get(p.symbol) ?? 0]),
-  );
+  // Trust our own persisted record for "what do we currently hold," rather
+  // than cross-referencing live Alpaca positions: a "day" market order we
+  // just placed may not be filled yet (after-hours, weekend, or simple fill
+  // lag), which would make a just-bought position look like zero shares and
+  // trigger a duplicate buy attempt. The same paper account also holds the
+  // other two satellites' positions (see projects/paper-trading/STRATEGY.md)
+  // — that's the actual reason we diff against our own remembered symbol
+  // list instead of the account's full position list, not live drift.
+  const currentQtyBySymbol = new Map((lastState?.positions ?? []).map((p) => [p.symbol, p.qty]));
 
   const orderIntents = diffRebalance(currentQtyBySymbol, plan.targets);
   const month = new Date().toISOString().slice(0, 7);
@@ -50,12 +46,22 @@ async function runRebalance() {
         intent.side === "buy" ? prevQty + intent.qty : prevQty - intent.qty,
       );
     } catch (err) {
-      failedOrders.push({
-        symbol: intent.symbol,
-        side: intent.side,
-        qty: intent.qty,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      const message = err instanceof Error ? err.message : String(err);
+      // Alpaca rejects a repeat client_order_id — this specific rejection
+      // means an earlier run (or an earlier order in this same run, if
+      // retried) already placed this exact order. Treat it as already
+      // applied rather than failed, so a retried/duplicate cron invocation
+      // converges on the correct state instead of persisting a false
+      // "nothing happened" record over a real prior success.
+      if (message.includes("client_order_id must be unique")) {
+        const prevQty = appliedQtyBySymbol.get(intent.symbol) ?? 0;
+        appliedQtyBySymbol.set(
+          intent.symbol,
+          intent.side === "buy" ? prevQty + intent.qty : prevQty - intent.qty,
+        );
+        continue;
+      }
+      failedOrders.push({ symbol: intent.symbol, side: intent.side, qty: intent.qty, error: message });
     }
   }
 
