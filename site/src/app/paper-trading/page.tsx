@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatCurrency, formatCurrencyCompact, formatPercent } from "@/lib/format";
+import { formatCurrency, formatCurrencyCompact, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
   Callout,
@@ -20,6 +20,7 @@ import {
   SectionHeader,
   SelectField,
   StatCard,
+  StatusBadge,
   chartAxisProps,
   chartGridProps,
   chartTooltipStyle,
@@ -86,12 +87,21 @@ type Analysis = {
   key_disagreement: string;
 };
 
+type RiskMetrics = {
+  sharpe: number;
+  annualizedVolatility: number;
+  maxDrawdown: number;
+  beta: number;
+  periodDays: number;
+};
+
 export default function PaperTrading() {
   const [account, setAccount] = useState<Account | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [equityHistory, setEquityHistory] = useState<EquityPoint[]>([]);
   const [journal, setJournal] = useState<JournalEntry[]>([]);
+  const [riskMetrics, setRiskMetrics] = useState<RiskMetrics | null>(null);
   const [symbol, setSymbol] = useState("");
   const [qty, setQty] = useState("");
   const [side, setSide] = useState<"buy" | "sell">("buy");
@@ -109,17 +119,20 @@ export default function PaperTrading() {
   const [journalExit, setJournalExit] = useState("");
 
   async function loadAll() {
-    const [accountRes, positionsRes, ordersRes, historyRes, journalRes] = await Promise.all([
-      fetch("/api/paper-trading/account"),
-      fetch("/api/paper-trading/positions"),
-      fetch("/api/paper-trading/orders"),
-      fetch("/api/paper-trading/history"),
-      fetch("/api/paper-trading/journal"),
-    ]);
+    const [accountRes, positionsRes, ordersRes, historyRes, journalRes, riskMetricsRes] =
+      await Promise.all([
+        fetch("/api/paper-trading/account"),
+        fetch("/api/paper-trading/positions"),
+        fetch("/api/paper-trading/orders"),
+        fetch("/api/paper-trading/history"),
+        fetch("/api/paper-trading/journal"),
+        fetch("/api/paper-trading/risk-metrics"),
+      ]);
     setAccount(await accountRes.json());
     setPositions(await positionsRes.json());
     setOrders(await ordersRes.json());
     setJournal(await journalRes.json());
+    setRiskMetrics(await riskMetricsRes.json());
 
     const history: PortfolioHistory = await historyRes.json();
     setEquityHistory(
@@ -250,6 +263,40 @@ export default function PaperTrading() {
             </LineChart>
           </ResponsiveContainer>
         </Card>
+      </section>
+
+      <section className="mt-8">
+        <SectionHeader
+          label="risk metrics"
+          description={
+            riskMetrics
+              ? `Based on ~${riskMetrics.periodDays} trading days — Sharpe/beta on this short a window are noisy, treat as directional, not precise.`
+              : undefined
+          }
+        />
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatCard
+            label="Sharpe Ratio"
+            value={riskMetrics ? formatRatio(riskMetrics.sharpe) : "..."}
+            hint={
+              riskMetrics && (
+                <StatusBadge
+                  rating={riskMetrics.sharpe >= 0 ? "good" : "bad"}
+                  label={riskMetrics.sharpe >= 0 ? "Positive" : "Negative"}
+                />
+              )
+            }
+          />
+          <StatCard
+            label="Volatility (ann.)"
+            value={riskMetrics ? formatPercent(riskMetrics.annualizedVolatility) : "..."}
+          />
+          <StatCard
+            label="Max Drawdown"
+            value={riskMetrics ? formatPercent(riskMetrics.maxDrawdown) : "..."}
+          />
+          <StatCard label="Beta vs SPY" value={riskMetrics ? formatRatio(riskMetrics.beta) : "..."} />
+        </div>
       </section>
 
       <section className="mt-8">
