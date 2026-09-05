@@ -14,6 +14,20 @@ Next.js + Tailwind + Recharts. Python/FastAPI only for heavy analysis. Deployed 
 - Mobile-friendly is required
 - Never commit API keys; use .env.local
 
-## Current focus
-DCF builder v1 just shipped (full FCF build + WACC x terminal growth sensitivity grid).
-Next up: client-work case study pages, or the DCF's "AI assumptions mode."
+## Current Status
+
+**Built & working:**
+- Homepage — project cards, contact links (deployed: https://site-theta-drab-22.vercel.app)
+- DCF builder — full FCF build, 5yr projection, Gordon growth terminal value, WACC x terminal growth sensitivity grid vs. current price
+- Statement analyzer (10-K) — SEC EDGAR lookup by ticker or browse-by-industry, ratio dashboard with color-coded flags
+- Paper trading — Alpaca paper account (equity, positions, orders, buy/sell), trade journal (thesis/exit condition per trade), six-persona AI commentary panel (Bull/Bear/Accountant/Risk Manager/Historian/Indexer)
+- `projects/paper-trading/STRATEGY.md` — core-satellite strategy doc (still has TODO placeholders for actual tickers/allocations — that's on Ethan, not a build task)
+
+**In progress / next up:**
+- Client-work case study pages (`projects/client-work` is still a placeholder)
+- 10-K analyzer: AI-written one-page filing summary
+- DCF "AI assumptions mode" (pre-fill from a filing)
+
+**Planned later:** weekly full-portfolio review (paper trading v2b), strategy backtester (v3, stretch)
+
+See `docs/ROADMAP.md` for full detail and phase breakdown.
