@@ -136,12 +136,12 @@ export default function About() {
 
       <section className="mt-8">
         <SectionHeader label="resume" />
-        {/* TODO(ethan): drop the actual file at site/public/resume.pdf */}
         <a
-          href="/resume.pdf"
+          href="/resume.docx"
+          download
           className="mt-3 inline-block font-mono text-sm font-medium text-black underline underline-offset-4 transition-colors duration-150 ease-out hover:text-accent dark:text-zinc-50"
         >
-          Download Resume →
+          Download Resume (.docx) →
         </a>
       </section>
     </PageShell>
