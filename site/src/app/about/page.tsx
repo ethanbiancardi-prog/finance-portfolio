@@ -14,6 +14,21 @@ function Tag({ children }: { children: string }) {
 
 const FINANCE_SKILLS = ["Valuation", "Financial Modeling", "Portfolio Theory"];
 const TECHNICAL_SKILLS = ["Python", "TypeScript", "React / Next.js", "APIs"];
+const TARGET_ROLES = [
+  "Investment Banking",
+  "Equity Research",
+  "Asset Management",
+  "Wealth Management",
+  "Consulting",
+  "Quantitative Research / Trading",
+  "FinTech",
+];
+const COURSEWORK = [
+  "Intro to Financial Reporting",
+  "Coding with Python",
+  "Intro to Machine Learning",
+  "Accounting",
+];
 
 export default function About() {
   return (
@@ -21,7 +36,7 @@ export default function About() {
       eyebrow="about"
       title="Ethan Biancardi"
       subtitle="Bentley University — Finance & Artificial Intelligence"
-      description="Double major, expected graduation TODO(ethan)."
+      description="Double major, expected graduation Spring 2029."
     >
       <section className="mt-8">
         <SectionHeader label="why I built this" />
@@ -32,8 +47,12 @@ export default function About() {
       </section>
 
       <section className="mt-8">
-        <SectionHeader label="what I'm looking for" />
-        <Todo>Target roles/internships.</Todo>
+        <SectionHeader label="what I'm looking for" description="Summer finance internships." />
+        <div className="mt-3 flex flex-wrap gap-2">
+          {TARGET_ROLES.map((role) => (
+            <Tag key={role}>{role}</Tag>
+          ))}
+        </div>
       </section>
 
       <section className="mt-8">
@@ -61,7 +80,12 @@ export default function About() {
 
       <section className="mt-8">
         <SectionHeader label="coursework & experience" />
-        <Todo>Relevant coursework or experience.</Todo>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {COURSEWORK.map((course) => (
+            <Tag key={course}>{course}</Tag>
+          ))}
+        </div>
+        <Todo>Add relevant work/internship experience, if any.</Todo>
       </section>
 
       <section className="mt-8">
@@ -69,7 +93,21 @@ export default function About() {
         <div className="mt-3 space-y-2 font-mono text-sm">
           <p>
             <span className="text-zinc-500">Email — </span>
-            <span className="text-zinc-400 dark:text-zinc-600">TODO(ethan)</span>
+            <a
+              href="mailto:ethanbiancardi@gmail.com"
+              className="font-medium text-black underline underline-offset-4 transition-colors duration-150 ease-out hover:text-accent dark:text-zinc-50"
+            >
+              ethanbiancardi@gmail.com
+            </a>
+          </p>
+          <p>
+            <span className="text-zinc-500">School Email — </span>
+            <a
+              href="mailto:ebiancardi@falcon.bentley.edu"
+              className="font-medium text-black underline underline-offset-4 transition-colors duration-150 ease-out hover:text-accent dark:text-zinc-50"
+            >
+              ebiancardi@falcon.bentley.edu
+            </a>
           </p>
           <p>
             <span className="text-zinc-500">GitHub — </span>
@@ -84,7 +122,14 @@ export default function About() {
           </p>
           <p>
             <span className="text-zinc-500">LinkedIn — </span>
-            <span className="text-zinc-400 dark:text-zinc-600">TODO(ethan)</span>
+            <a
+              href="https://www.linkedin.com/in/ethan-biancardi"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-black underline underline-offset-4 transition-colors duration-150 ease-out hover:text-accent dark:text-zinc-50"
+            >
+              linkedin.com/in/ethan-biancardi
+            </a>
           </p>
         </div>
       </section>
