@@ -25,7 +25,10 @@ export default function About() {
     >
       <section className="mt-8">
         <SectionHeader label="why I built this" />
-        <Todo>3-4 sentences, in your own voice, on why this site exists.</Todo>
+        <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+          I built this finance portfolio because I wanted to learn more about coding with AI while
+          also learning essential financial hard skills like building DCF models.
+        </p>
       </section>
 
       <section className="mt-8">
