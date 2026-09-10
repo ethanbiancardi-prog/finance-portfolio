@@ -1,20 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatCurrency, formatCurrencyCompact, formatPercent } from "@/lib/format";
-import {
-  Button,
-  Callout,
-  Card,
-  Field,
-  PageShell,
-  SectionHeader,
-  StatCard,
-  chartAxisProps,
-  chartGridProps,
-  chartTooltipStyle,
-} from "@/components/ui";
+import dynamic from "next/dynamic";
+import { formatCurrency, formatPercent } from "@/lib/format";
+import { Button, Callout, Card, Field, PageShell, SectionHeader, StatCard } from "@/components/ui";
+
+const Chart = dynamic(() => import("./Chart"), {
+  ssr: false,
+  loading: () => <div className="mt-4 h-72 animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-800" />,
+});
 
 type YearlyBand = { year: number; p10: number; p50: number; p90: number };
 
@@ -149,49 +143,7 @@ export default function MonteCarlo() {
               label="projected balance"
               description="10th / 50th / 90th percentile across all simulated paths each year."
             />
-            <Card className="mt-4 h-72" padding="sm">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={result.bands}>
-                  <CartesianGrid {...chartGridProps} vertical={false} />
-                  <XAxis dataKey="year" {...chartAxisProps} />
-                  <YAxis
-                    {...chartAxisProps}
-                    width={64}
-                    tickFormatter={(value) => formatCurrencyCompact(value)}
-                  />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(Number(value))}
-                    contentStyle={chartTooltipStyle}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="p90"
-                    stroke="var(--chart-muted)"
-                    strokeDasharray="4 4"
-                    strokeWidth={1.5}
-                    dot={false}
-                    name="90th percentile"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="p50"
-                    stroke="var(--chart-line)"
-                    strokeWidth={2}
-                    dot={false}
-                    name="Median"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="p10"
-                    stroke="var(--chart-muted)"
-                    strokeDasharray="4 4"
-                    strokeWidth={1.5}
-                    dot={false}
-                    name="10th percentile"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </Card>
+            <Chart bands={result.bands} />
           </section>
 
           <Callout label="assumptions" className="mt-8">

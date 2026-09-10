@@ -1,15 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  CartesianGrid,
-  ResponsiveContainer,
-  Scatter,
-  ScatterChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
@@ -18,15 +10,17 @@ import {
   PageShell,
   SectionHeader,
   StatCard,
-  chartAxisProps,
-  chartGridProps,
-  chartTooltipStyle,
   tableCellClass,
   tableCellStrongClass,
   tableHeadCellClass,
   tableHeadRowClass,
   tableRowClass,
 } from "@/components/ui";
+
+const Chart = dynamic(() => import("./Chart"), {
+  ssr: false,
+  loading: () => <div className="mt-4 h-80 animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-800" />,
+});
 
 type SampledPortfolio = { weights: number[]; return: number; volatility: number; sharpe: number };
 type FrontierResponse = {
@@ -158,36 +152,11 @@ export default function Optimizer() {
               label="sampled frontier"
               description="Each dot is one randomly-weighted portfolio. Purple = max Sharpe, blue = min variance."
             />
-            <Card className="mt-4 h-80" padding="sm">
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                  <CartesianGrid {...chartGridProps} />
-                  <XAxis
-                    dataKey="volatility"
-                    type="number"
-                    name="Volatility"
-                    {...chartAxisProps}
-                    tickFormatter={(v) => formatPercent(v)}
-                  />
-                  <YAxis
-                    dataKey="return"
-                    type="number"
-                    name="Return"
-                    {...chartAxisProps}
-                    width={56}
-                    tickFormatter={(v) => formatPercent(v)}
-                  />
-                  <Tooltip
-                    cursor={{ strokeDasharray: "3 3" }}
-                    formatter={(value) => formatPercent(Number(value))}
-                    contentStyle={chartTooltipStyle}
-                  />
-                  <Scatter data={result.samples} fill="var(--chart-muted)" opacity={0.35} />
-                  <Scatter data={minVarianceSeries} fill="var(--chart-line)" />
-                  <Scatter data={maxSharpeSeries} fill="var(--chart-line-2)" />
-                </ScatterChart>
-              </ResponsiveContainer>
-            </Card>
+            <Chart
+              samples={result.samples}
+              minVarianceSeries={minVarianceSeries}
+              maxSharpeSeries={maxSharpeSeries}
+            />
           </section>
 
           <section className="mt-8">

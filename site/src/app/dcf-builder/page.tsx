@@ -1,17 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { runDcf, sensitivityGrid, stepsAround, type DcfInputs } from "@/lib/dcf";
 import { formatCurrency, formatMoneyMillions, formatPercent } from "@/lib/format";
 import {
@@ -22,9 +12,6 @@ import {
   StatusBadge,
   StatusDot,
   StatCard,
-  chartAxisProps,
-  chartGridProps,
-  chartTooltipStyle,
   tableCellClass,
   tableCellStrongClass,
   tableHeadCellClass,
@@ -32,6 +19,22 @@ import {
   tableRowClass,
   type Rating,
 } from "@/components/ui";
+
+const chartLoading = (heightClass: string) => (
+  <div className={`mt-4 ${heightClass} animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-800`} />
+);
+const FcfChart = dynamic(() => import("./Charts").then((m) => m.FcfChart), {
+  ssr: false,
+  loading: () => chartLoading("h-64"),
+});
+const ValueComparisonChart = dynamic(() => import("./Charts").then((m) => m.ValueComparisonChart), {
+  ssr: false,
+  loading: () => chartLoading("h-32"),
+});
+const EvCompositionChart = dynamic(() => import("./Charts").then((m) => m.EvCompositionChart), {
+  ssr: false,
+  loading: () => chartLoading("h-24"),
+});
 
 // Every percent-style field is stored as a whole number ("8" means 8%) since
 // that's what people actually type into a form; convert to a decimal only
@@ -286,56 +289,13 @@ export default function DcfBuilder() {
           </tbody>
         </table>
 
-        <div className="mt-6 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={fcfChartData}>
-              <CartesianGrid {...chartGridProps} vertical={false} />
-              <XAxis dataKey="year" {...chartAxisProps} />
-              <YAxis
-                {...chartAxisProps}
-                width={56}
-                tickFormatter={(value) => formatMoneyMillions(Number(value))}
-              />
-              <Tooltip
-                formatter={(value) => formatMoneyMillions(Number(value))}
-                contentStyle={chartTooltipStyle}
-              />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="fcf" name="FCF" fill="var(--chart-line)" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="pvFcf" name="PV of FCF" fill="var(--chart-line-2)" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <FcfChart data={fcfChartData} />
       </Card>
 
       {valueComparisonData && (
         <Card as="section" className="mt-8">
           <SectionHeader label="intrinsic value vs. current price" />
-          <div className="mt-4 h-32">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={valueComparisonData} layout="vertical" margin={{ left: 8 }}>
-                <CartesianGrid {...chartGridProps} horizontal={false} />
-                <XAxis
-                  type="number"
-                  {...chartAxisProps}
-                  tickFormatter={(value) => formatCurrency(Number(value))}
-                />
-                <YAxis type="category" dataKey="name" {...chartAxisProps} width={100} />
-                <Tooltip
-                  formatter={(value) => formatCurrency(Number(value))}
-                  contentStyle={chartTooltipStyle}
-                />
-                <Bar dataKey="value" radius={[0, 3, 3, 0]} barSize={28}>
-                  {valueComparisonData.map((entry, i) => (
-                    <Cell
-                      key={i}
-                      fill={entry.rating ? `var(--status-${entry.rating})` : "var(--chart-muted)"}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <ValueComparisonChart data={valueComparisonData} />
         </Card>
       )}
 
@@ -345,37 +305,7 @@ export default function DcfBuilder() {
             label="enterprise value composition"
             description="How much of EV comes from the 5-year explicit FCF forecast vs. the terminal value (everything after year 5, capitalized with Gordon growth)."
           />
-          <div className="mt-4 h-24">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={evCompositionData} layout="vertical" margin={{ left: 8 }}>
-                <XAxis
-                  type="number"
-                  {...chartAxisProps}
-                  tickFormatter={(value) => formatMoneyMillions(Number(value))}
-                />
-                <YAxis type="category" dataKey="name" hide />
-                <Tooltip
-                  formatter={(value) => formatMoneyMillions(Number(value))}
-                  contentStyle={chartTooltipStyle}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar
-                  dataKey="PV of Y1-Y5 FCF"
-                  stackId="ev"
-                  fill="var(--chart-line)"
-                  radius={[3, 0, 0, 3]}
-                  barSize={28}
-                />
-                <Bar
-                  dataKey="PV of Terminal Value"
-                  stackId="ev"
-                  fill="var(--chart-line-2)"
-                  radius={[0, 3, 3, 0]}
-                  barSize={28}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <EvCompositionChart data={evCompositionData} />
         </Card>
       )}
 

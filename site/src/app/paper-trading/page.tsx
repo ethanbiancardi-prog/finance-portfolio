@@ -1,16 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { formatCurrency, formatCurrencyCompact, formatPercent, formatRatio } from "@/lib/format";
+import dynamic from "next/dynamic";
+import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
   Callout,
@@ -21,9 +13,6 @@ import {
   SelectField,
   StatCard,
   StatusBadge,
-  chartAxisProps,
-  chartGridProps,
-  chartTooltipStyle,
   tableCellClass,
   tableCellStrongClass,
   tableHeadCellClass,
@@ -32,6 +21,11 @@ import {
   EmptyRow,
   type Rating,
 } from "@/components/ui";
+
+const Chart = dynamic(() => import("./Chart"), {
+  ssr: false,
+  loading: () => <div className="mt-4 h-64 animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-800" />,
+});
 
 type Account = {
   equity: string;
@@ -242,29 +236,7 @@ export default function PaperTrading() {
 
       <section className="mt-8">
         <SectionHeader label="equity (last month)" />
-        <Card className="mt-4 h-64" padding="sm">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={equityHistory}>
-              <CartesianGrid {...chartGridProps} vertical={false} />
-              <XAxis dataKey="date" {...chartAxisProps} minTickGap={30} />
-              <YAxis
-                {...chartAxisProps}
-                width={56}
-                domain={["auto", "auto"]}
-                tickFormatter={(value) => formatCurrencyCompact(value)}
-              />
-              <Tooltip formatter={(value) => formatCurrency(String(value))} contentStyle={chartTooltipStyle} />
-              <Line
-                type="monotone"
-                dataKey="equity"
-                stroke="var(--chart-line)"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
+        <Chart equityHistory={equityHistory} />
       </section>
 
       <section className="mt-8">

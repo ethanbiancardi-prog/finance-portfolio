@@ -1,4 +1,5 @@
 export { PageShell } from "./PageShell";
+export { PageLoading } from "./PageLoading";
 export { SectionHeader } from "./SectionHeader";
 export { Card } from "./Card";
 export { Callout } from "./Callout";
