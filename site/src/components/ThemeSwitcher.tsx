@@ -22,7 +22,8 @@ const ACCENTS: { key: Accent; label: string; swatch: string }[] = [
 
 export default function ThemeSwitcher() {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<Mode>("system");
+  // Dark is the default when nothing is stored (see layout.tsx init script).
+  const [mode, setMode] = useState<Mode>("dark");
   const [accent, setAccent] = useState<Accent>("amber");
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -30,7 +31,7 @@ export default function ThemeSwitcher() {
     const storedMode = localStorage.getItem("theme-mode");
     const storedAccent = localStorage.getItem("theme-accent");
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read from localStorage on mount, to sync the panel's UI with what layout.tsx's inline script already applied to <html>
-    if (storedMode === "light" || storedMode === "dark") setMode(storedMode);
+    if (storedMode === "light" || storedMode === "dark" || storedMode === "system") setMode(storedMode);
     if (storedAccent === "teal" || storedAccent === "green" || storedAccent === "violet") {
       setAccent(storedAccent);
     }
@@ -61,11 +62,8 @@ export default function ThemeSwitcher() {
 
   function applyMode(next: Mode) {
     setMode(next);
-    if (next === "system") {
-      localStorage.removeItem("theme-mode");
-    } else {
-      localStorage.setItem("theme-mode", next);
-    }
+    // "system" is stored explicitly: an absent key means the dark default.
+    localStorage.setItem("theme-mode", next);
     const isDark =
       next === "dark" ||
       (next === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -91,24 +89,24 @@ export default function ThemeSwitcher() {
         onClick={() => setOpen((o) => !o)}
         aria-label="Theme settings"
         aria-expanded={open}
-        className="font-mono text-xs uppercase tracking-wide text-zinc-500 transition-colors duration-150 ease-out hover:text-accent dark:text-zinc-400 sm:tracking-widest"
+        className="font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 transition-colors duration-150 ease-out hover:text-foreground"
       >
         Theme
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-20 mt-2 w-52 rounded-md border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">Mode</p>
+        <div className="absolute right-0 top-full z-20 mt-1 w-52 border border-border bg-panel p-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">Mode</p>
           <div className="mt-2 flex gap-1.5">
             {MODES.map((m) => (
               <button
                 key={m.key}
                 type="button"
                 onClick={() => applyMode(m.key)}
-                className={`rounded-md border px-2 py-1 font-mono text-[11px] uppercase tracking-wide transition-colors duration-150 ease-out ${
+                className={`border px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors duration-150 ease-out ${
                   mode === m.key
-                    ? "border-accent text-accent"
-                    : "border-zinc-200 text-zinc-600 hover:border-accent/50 dark:border-zinc-800 dark:text-zinc-400"
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-zinc-500 hover:text-foreground"
                 }`}
               >
                 {m.label}
@@ -116,7 +114,7 @@ export default function ThemeSwitcher() {
             ))}
           </div>
 
-          <p className="mt-3 font-mono text-[11px] uppercase tracking-widest text-zinc-500">Accent</p>
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">Accent</p>
           <div className="mt-2 flex gap-2">
             {ACCENTS.map((a) => (
               <button
@@ -125,10 +123,8 @@ export default function ThemeSwitcher() {
                 onClick={() => applyAccent(a.key)}
                 aria-label={a.label}
                 aria-pressed={accent === a.key}
-                className={`h-6 w-6 rounded-full border-2 transition-transform duration-150 ease-out ${
-                  accent === a.key
-                    ? "scale-110 border-black dark:border-white"
-                    : "border-transparent hover:scale-110"
+                className={`h-4 w-4 border transition-colors duration-150 ease-out ${
+                  accent === a.key ? "border-foreground" : "border-transparent hover:border-zinc-500"
                 }`}
                 style={{ backgroundColor: a.swatch }}
               />

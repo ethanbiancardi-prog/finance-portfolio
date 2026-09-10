@@ -20,19 +20,20 @@ export default function Nav() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-black">
-      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3 sm:gap-x-6">
-        <span className="font-mono text-sm text-accent">●</span>
+    <nav className="sticky top-0 z-40 border-b border-border bg-background font-mono">
+      {/* Tab bar: the active route is inverse-video, like a tmux window list. */}
+      <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-1 gap-y-1 px-4 py-1.5 sm:px-6">
+        <span className="mr-2 text-[10px] text-accent">■</span>
         {links.map((link) => {
           const active = pathname === link.href;
           return (
             <Link
               key={link.href}
               href={link.href}
-              className={`font-mono text-xs uppercase tracking-wide transition-colors duration-150 ease-out sm:tracking-widest ${
+              className={`px-1.5 py-0.5 text-[11px] uppercase tracking-[0.1em] transition-colors duration-100 ${
                 active
-                  ? "text-accent"
-                  : "text-zinc-500 hover:text-accent dark:text-zinc-400"
+                  ? "bg-accent text-background"
+                  : "text-zinc-500 hover:bg-border/60 hover:text-foreground"
               }`}
             >
               {link.label}
@@ -40,6 +41,15 @@ export default function Nav() {
           );
         })}
         <ThemeSwitcher />
+      </div>
+      {/* Status line. */}
+      <div className="border-t border-border/60 bg-panel">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:px-6">
+          <span className="truncate">
+            <span className="text-accent">ethan@portfolio</span>:~{pathname === "/" ? "" : pathname}
+          </span>
+          <span className="hidden shrink-0 sm:inline">alpaca · sec edgar · anthropic</span>
+        </div>
       </div>
     </nav>
   );

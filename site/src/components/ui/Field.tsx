@@ -6,15 +6,19 @@ type FieldProps = {
   wrapperClassName?: string;
 } & InputHTMLAttributes<HTMLInputElement>;
 
+const labelClasses = "block text-[10px] uppercase tracking-[0.14em] text-zinc-500";
+
+// Underline-only inputs: no box, just a baseline that lights up on focus —
+// the field reads like a prompt rather than a form control.
 const inputClasses =
-  "mt-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black transition-colors dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50";
+  "mt-0.5 border-0 border-b border-border bg-transparent px-0 py-1 text-sm tabular-nums text-foreground transition-colors placeholder:text-zinc-600 hover:border-zinc-500 focus:border-accent focus:shadow-none";
 
 export function Field({ label, suffix, wrapperClassName, className, ...rest }: FieldProps) {
   return (
     <label className={`block ${wrapperClassName ?? ""}`}>
-      <span className="block text-xs text-zinc-500">
+      <span className={labelClasses}>
         {label}
-        {suffix ? ` (${suffix})` : ""}
+        {suffix && <span className="normal-case tracking-normal text-zinc-600"> {suffix}</span>}
       </span>
       <input className={`${inputClasses} ${className ?? "w-full"}`} {...rest} />
     </label>
@@ -36,7 +40,7 @@ export function SelectField({
 }: SelectFieldProps) {
   return (
     <label className={`block ${wrapperClassName ?? ""}`}>
-      <span className="block text-xs text-zinc-500">{label}</span>
+      <span className={labelClasses}>{label}</span>
       <select className={`${inputClasses} ${className ?? ""}`} {...rest}>
         {options.map((o) => (
           <option key={o.value} value={o.value}>

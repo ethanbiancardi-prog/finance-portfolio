@@ -13,15 +13,20 @@
 :root {
   color-scheme: light;
   --background: #ffffff;
+  --panel: #fafaf9;
+  --border: #dcdbd6;
   --foreground: #171717;
   --accent: #b45309;
-  --chart-line: #2a78d6;
-  --chart-line-2: #7c5cbf;
+  /* Chart series are neutral by default (foreground) with the accent
+     reserved for a single "highlighted" second series — color is never
+     decorative, only --status-good/bad below carry meaning. */
+  --chart-line: #171717;
+  --chart-line-2: var(--accent);
   --chart-grid: #e1e0d9;
   --chart-muted: #898781;
   --chart-tooltip-bg: #ffffff;
   --status-good: #0ca30c;
-  --status-average: #fab219;
+  --status-average: #b8860b;
   --status-bad: #d03b3b;
 }
 
@@ -41,8 +46,13 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
+  --color-good: var(--status-good);
+  --color-average: var(--status-average);
+  --color-bad: var(--status-bad);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -53,14 +63,19 @@
    init script and ThemeSwitcher.tsx). */
 :root[data-mode="dark"] {
   color-scheme: dark;
-  --background: #050506;
-  --foreground: #ededed;
+  --background: #000000;
+  --panel: #050505;
+  --border: #262626;
+  --foreground: #e6e6e3;
   --accent: #ffb020;
-  --chart-line: #3987e5;
-  --chart-line-2: #9b7ee0;
-  --chart-grid: #2c2c2a;
-  --chart-muted: #898781;
-  --chart-tooltip-bg: #09090b;
+  --chart-line: #e8e8e6;
+  --chart-line-2: var(--accent);
+  --chart-grid: #1c1c1f;
+  --chart-muted: #6f6f6b;
+  --chart-tooltip-bg: #0c0c0e;
+  --status-good: #22c55e;
+  --status-average: #eab308;
+  --status-bad: #ef4444;
 }
 :root[data-mode="dark"][data-accent="teal"] {
   --accent: #2dd4bf;
@@ -72,16 +87,69 @@
   --accent: #a78bfa;
 }
 
+/* Everything is monospace — the whole site reads as one terminal surface.
+   Geist Sans stays loaded only as a fallback chain. */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--background);
 }
 
 *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px color-mix(in srgb, var(--accent) 50%, transparent);
-  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--accent);
+  border-radius: 0;
+}
+
+/* Thin, flat scrollbars so overflow containers (tables, code) match the chrome. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Blinking block cursor used after page titles (PageShell). */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1.1s steps(1) infinite;
+}
+
+/* Section header rule: `// LABEL ───────` — the line fills the remaining width. */
+.rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Number inputs: the browser's spinner buttons break the flat terminal look. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Only applied once JS confirms a fine pointer + hover-capable device (see

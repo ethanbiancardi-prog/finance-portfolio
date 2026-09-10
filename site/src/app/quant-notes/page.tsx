@@ -75,14 +75,14 @@ export default function QuantNotes() {
       title="Quant Notes"
       description="Plain-language notes on the quantitative concepts behind the tools on this site — what each formula means, why it's used this way, and where to see it running on real data."
     >
-      <section className="mt-8 space-y-4">
+      <section className="mt-4 space-y-2">
         {CONCEPTS.map((concept) => (
           <Card key={concept.label} href={concept.href} interactive>
             <SectionHeader label={concept.label} />
-            <h3 className="mt-2 font-medium text-black dark:text-zinc-50">{concept.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{concept.body}</p>
-            <p className="mt-3 font-mono text-xs text-zinc-500">{concept.formula}</p>
-            <p className="mt-3 text-sm font-medium text-accent">{concept.cta}</p>
+            <h3 className="mt-2 text-sm uppercase tracking-[0.04em] text-foreground">{concept.title}</h3>
+            <p className="mt-2 max-w-2xl text-xs leading-5 text-zinc-400">{concept.body}</p>
+            <p className="mt-3 inline-block border border-border bg-background px-2 py-1 text-[11px] text-zinc-300">{concept.formula}</p>
+            <p className="mt-3 text-[11px] uppercase tracking-[0.1em] text-accent">{concept.cta}</p>
           </Card>
         ))}
       </section>

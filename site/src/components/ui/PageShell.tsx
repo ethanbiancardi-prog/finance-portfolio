@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { SectionHeader } from "./SectionHeader";
 
 export function PageShell({
   eyebrow,
@@ -15,18 +14,19 @@ export function PageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col flex-1 bg-zinc-50 font-sans dark:bg-black">
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-14 sm:py-20">
-        <div className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
-          <SectionHeader label={eyebrow} />
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-black dark:text-zinc-50 sm:text-4xl">
+    <div className="flex flex-1 flex-col bg-background font-mono">
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
+        <div className="border-b border-border pb-4">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+            <span className="text-accent">$</span> ~/{eyebrow.replace(/\s+/g, "-")}
+          </p>
+          <h1 className="mt-1.5 text-lg font-semibold uppercase tracking-[0.06em] text-foreground sm:text-xl">
             {title}
+            <span className="cursor-blink ml-1 inline-block h-[0.9em] w-[0.5em] translate-y-[0.12em] bg-accent" />
           </h1>
-          {subtitle && (
-            <p className="mt-2 font-mono text-sm text-zinc-500 dark:text-zinc-500">{subtitle}</p>
-          )}
+          {subtitle && <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>}
           {description && (
-            <p className="mt-3 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
+            <p className="mt-2 max-w-2xl text-xs leading-5 text-zinc-500 dark:text-zinc-400">
               {description}
             </p>
           )}

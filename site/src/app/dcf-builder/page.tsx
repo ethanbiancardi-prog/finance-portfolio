@@ -10,7 +10,6 @@ import {
   PageShell,
   SectionHeader,
   StatusBadge,
-  StatusDot,
   StatCard,
   tableCellClass,
   tableCellStrongClass,
@@ -21,7 +20,7 @@ import {
 } from "@/components/ui";
 
 const chartLoading = (heightClass: string) => (
-  <div className={`mt-4 ${heightClass} animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-800`} />
+  <div className={`mt-4 ${heightClass} animate-pulse bg-border`} />
 );
 const FcfChart = dynamic(() => import("./Charts").then((m) => m.FcfChart), {
   ssr: false,
@@ -80,6 +79,18 @@ function rateVsPrice(value: number | null, price: number | null): Rating | null 
   if (diff > 0.1) return "good";
   if (diff < -0.1) return "bad";
   return "average";
+}
+
+// Presentation only: sensitivity cells are shaded like a heatmap, with color
+// intensity proportional to how far the cell sits from the reference value
+// (current price when given, otherwise the base case). ±30% saturates.
+function heatStyle(value: number | null, reference: number | null) {
+  if (value == null || reference == null || Number.isNaN(reference) || reference <= 0) return undefined;
+  const diff = (value - reference) / reference;
+  const intensity = Math.min(Math.abs(diff) / 0.3, 1);
+  if (intensity < 0.02) return undefined;
+  const color = diff > 0 ? "var(--status-good)" : "var(--status-bad)";
+  return { backgroundColor: `color-mix(in srgb, ${color} ${Math.round(intensity * 38)}%, transparent)` };
 }
 
 export default function DcfBuilder() {
@@ -161,9 +172,9 @@ export default function DcfBuilder() {
       title="DCF Builder"
       description="A 5-year unlevered discounted cash flow model. Edit any assumption below — everything recalculates live, including the WACC x terminal growth sensitivity table."
     >
-      <Card as="section" className="mt-8">
+      <Card as="section" className="mt-4">
         <SectionHeader label="assumptions" />
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
           <Field label="Revenue" suffix="$M" type="number" step="any" value={form.revenue} onChange={(e) => set("revenue")(e.target.value)} />
           <Field
             label="Revenue growth"
@@ -242,48 +253,48 @@ export default function DcfBuilder() {
         </div>
       </Card>
 
-      <Card as="section" className="mt-8">
-        <SectionHeader label="valuation" />
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <StatCard label="Enterprise Value" value={formatMoneyMillions(result.enterpriseValue)} />
-          <StatCard label="Equity Value" value={formatMoneyMillions(result.equityValue)} />
-          <StatCard
-            label="Value per Share"
-            value={formatCurrency(result.valuePerShare)}
-            hint={
-              baseRating && (
-                <StatusBadge rating={baseRating} label={baseRatingLabel} fallback={null} />
-              )
-            }
-          />
-        </div>
+      <section className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard card size="lg" label="Enterprise Value" value={formatMoneyMillions(result.enterpriseValue)} />
+        <StatCard card size="lg" label="Equity Value" value={formatMoneyMillions(result.equityValue)} />
+        <StatCard
+          card
+          size="lg"
+          label="Value per Share"
+          value={formatCurrency(result.valuePerShare)}
+          hint={
+            baseRating && <StatusBadge rating={baseRating} label={baseRatingLabel} fallback={null} />
+          }
+        />
+      </section>
 
-        {result.terminalValue == null && (
-          <p className="mt-4 text-sm text-red-500">
-            WACC must be greater than terminal growth for the terminal value to be defined.
-          </p>
-        )}
+      {result.terminalValue == null && (
+        <p className="mt-3 font-mono text-xs text-bad">
+          WACC must be greater than terminal growth for the terminal value to be defined.
+        </p>
+      )}
 
-        <table className="mt-5 w-full text-left text-sm">
+      <Card as="section" className="mt-4">
+        <SectionHeader label="5-year projection" description="$M. PV of FCF discounts each year back at WACC." />
+        <table className="mt-3 w-full text-left">
           <thead>
             <tr className={tableHeadRowClass}>
               <th className={tableHeadCellClass}>Year</th>
-              <th className={tableHeadCellClass}>Revenue</th>
-              <th className={tableHeadCellClass}>EBIT</th>
-              <th className={tableHeadCellClass}>NOPAT</th>
-              <th className={tableHeadCellClass}>FCF</th>
-              <th className={tableHeadCellClass}>PV of FCF</th>
+              <th className={`${tableHeadCellClass} text-right`}>Revenue</th>
+              <th className={`${tableHeadCellClass} text-right`}>EBIT</th>
+              <th className={`${tableHeadCellClass} text-right`}>NOPAT</th>
+              <th className={`${tableHeadCellClass} text-right`}>FCF</th>
+              <th className={`${tableHeadCellClass} text-right`}>PV of FCF</th>
             </tr>
           </thead>
           <tbody>
             {result.years.map((y) => (
               <tr key={y.year} className={tableRowClass}>
                 <td className={tableCellStrongClass}>Y{y.year}</td>
-                <td className={tableCellClass}>{formatMoneyMillions(y.revenue)}</td>
-                <td className={tableCellClass}>{formatMoneyMillions(y.ebit)}</td>
-                <td className={tableCellClass}>{formatMoneyMillions(y.nopat)}</td>
-                <td className={tableCellClass}>{formatMoneyMillions(y.fcf)}</td>
-                <td className={tableCellClass}>{formatMoneyMillions(y.pvFcf)}</td>
+                <td className={`${tableCellClass} text-right`}>{formatMoneyMillions(y.revenue)}</td>
+                <td className={`${tableCellClass} text-right`}>{formatMoneyMillions(y.ebit)}</td>
+                <td className={`${tableCellClass} text-right`}>{formatMoneyMillions(y.nopat)}</td>
+                <td className={`${tableCellClass} text-right`}>{formatMoneyMillions(y.fcf)}</td>
+                <td className={`${tableCellStrongClass} text-right`}>{formatMoneyMillions(y.pvFcf)}</td>
               </tr>
             ))}
           </tbody>
@@ -292,37 +303,39 @@ export default function DcfBuilder() {
         <FcfChart data={fcfChartData} />
       </Card>
 
-      {valueComparisonData && (
-        <Card as="section" className="mt-8">
-          <SectionHeader label="intrinsic value vs. current price" />
-          <ValueComparisonChart data={valueComparisonData} />
-        </Card>
-      )}
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {valueComparisonData && (
+          <Card as="section">
+            <SectionHeader label="intrinsic value vs. price" />
+            <ValueComparisonChart data={valueComparisonData} />
+          </Card>
+        )}
 
-      {evCompositionData && (
-        <Card as="section" className="mt-8">
-          <SectionHeader
-            label="enterprise value composition"
-            description="How much of EV comes from the 5-year explicit FCF forecast vs. the terminal value (everything after year 5, capitalized with Gordon growth)."
-          />
-          <EvCompositionChart data={evCompositionData} />
-        </Card>
-      )}
+        {evCompositionData && (
+          <Card as="section">
+            <SectionHeader
+              label="ev composition"
+              description="Explicit 5-year FCF vs. terminal value (everything after year 5, capitalized with Gordon growth)."
+            />
+            <EvCompositionChart data={evCompositionData} />
+          </Card>
+        )}
+      </div>
 
-      <Card as="section" className="mt-8">
+      <Card as="section" className="mt-4">
         <SectionHeader
           label="sensitivity: value per share"
-          description={`Rows are WACC, columns are terminal growth, each in 0.5pt steps around your assumptions. The boxed cell is your base case.${
-            currentPrice != null ? " Dots compare each cell to your current share price." : ""
-          }`}
+          description={`Rows are WACC, columns are terminal growth, 0.5pt steps around your assumptions. Outlined cell is the base case; shading scales with ${
+            currentPrice != null ? "upside (green) or downside (red) vs. your current share price" : "distance from the base case"
+          }.`}
         />
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[520px] text-left text-sm">
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[520px] border-separate border-spacing-0 text-left">
             <thead>
               <tr className={tableHeadRowClass}>
-                <th className="py-2 pr-3 font-medium">WACC \ g</th>
+                <th className={`${tableHeadCellClass} pr-3`}>WACC \ g</th>
                 {terminalSteps.map((g, i) => (
-                  <th key={i} className="px-3 py-2 font-medium tabular-nums">
+                  <th key={i} className={`${tableHeadCellClass} px-2 text-right tabular-nums`}>
                     {formatPercent(g)}
                   </th>
                 ))}
@@ -330,24 +343,20 @@ export default function DcfBuilder() {
             </thead>
             <tbody>
               {waccSteps.map((wacc, rowIndex) => (
-                <tr key={rowIndex} className={tableRowClass}>
-                  <td className="py-2 pr-3 font-medium tabular-nums text-black dark:text-zinc-50">
-                    {formatPercent(wacc)}
-                  </td>
+                <tr key={rowIndex}>
+                  <td className={`${tableCellStrongClass} pr-3`}>{formatPercent(wacc)}</td>
                   {grid[rowIndex].map((value, colIndex) => {
                     const isBase = rowIndex === 2 && colIndex === 2;
-                    const rating = currentPrice != null ? rateVsPrice(value, currentPrice) : null;
+                    const reference = currentPrice ?? grid[2][2];
                     return (
                       <td
                         key={colIndex}
-                        className={`px-3 py-2 tabular-nums text-zinc-600 dark:text-zinc-400 ${
-                          isBase ? "rounded-md ring-1 ring-inset ring-accent" : ""
+                        style={heatStyle(value, reference)}
+                        className={`border border-background px-2 py-1.5 text-right text-xs tabular-nums text-foreground ${
+                          isBase ? "ring-1 ring-inset ring-accent" : ""
                         }`}
                       >
-                        <span className="inline-flex items-center gap-1.5">
-                          {formatCurrency(value)}
-                          <StatusDot rating={rating} />
-                        </span>
+                        {formatCurrency(value)}
                       </td>
                     );
                   })}

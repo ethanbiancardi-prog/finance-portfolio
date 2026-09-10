@@ -10,5 +10,5 @@ export { StatCard } from "./StatCard";
 export { Tabs } from "./Tabs";
 export { Chip } from "./Chip";
 export { tableHeadRowClass, tableHeadCellClass, tableRowClass, tableCellClass, tableCellStrongClass, EmptyRow } from "./table";
-export { chartAxisProps, chartGridProps, chartTooltipStyle } from "./charts";
+export { chartAxisProps, chartGridProps, chartTooltipStyle, chartLegendStyle } from "./charts";
 export { Icon, type IconName } from "./icons";

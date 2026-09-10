@@ -19,7 +19,7 @@ import {
 
 const Chart = dynamic(() => import("./Chart"), {
   ssr: false,
-  loading: () => <div className="mt-4 h-80 animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-800" />,
+  loading: () => <div className="mt-4 h-80 animate-pulse bg-border" />,
 });
 
 type SampledPortfolio = { weights: number[]; return: number; volatility: number; sharpe: number };
@@ -97,12 +97,12 @@ export default function Optimizer() {
       title="Portfolio Optimizer"
       description="Samples thousands of random portfolio weightings across your tickers and plots return vs. volatility — the top-left edge of the cloud approximates the efficient frontier."
     >
-      <Card as="section" className="mt-8">
+      <Card as="section" className="mt-4">
         <SectionHeader
           label="tickers"
           description="2-10 comma-separated tickers, ~1 year of daily price history each."
         />
-        <form onSubmit={buildFrontier} className="mt-4 flex flex-wrap items-end gap-3">
+        <form onSubmit={buildFrontier} className="mt-3 flex flex-wrap items-end gap-3">
           <Field
             label="Tickers"
             placeholder="AAPL, MSFT, XOM, JNJ"
@@ -117,18 +117,18 @@ export default function Optimizer() {
         </form>
       </Card>
 
-      {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-4 text-xs text-bad">{error}</p>}
 
       {result && (
         <>
-          <section className="mt-8 grid grid-cols-2 gap-4">
+          <section className="mt-4 grid grid-cols-2 gap-3">
             <StatCard
               card
               size="lg"
               label="Max Sharpe"
               value={formatRatio(result.maxSharpe.sharpe)}
               hint={
-                <span className="text-xs text-zinc-500">
+                <span className="text-[11px] text-zinc-500">
                   {formatPercent(result.maxSharpe.return)} return,{" "}
                   {formatPercent(result.maxSharpe.volatility)} volatility
                 </span>
@@ -140,17 +140,17 @@ export default function Optimizer() {
               label="Min Variance"
               value={formatPercent(result.minVariance.volatility)}
               hint={
-                <span className="text-xs text-zinc-500">
+                <span className="text-[11px] text-zinc-500">
                   {formatPercent(result.minVariance.return)} return, lowest volatility sampled
                 </span>
               }
             />
           </section>
 
-          <section className="mt-8">
+          <section className="mt-4">
             <SectionHeader
               label="sampled frontier"
-              description="Each dot is one randomly-weighted portfolio. Purple = max Sharpe, blue = min variance."
+              description="Each square is one randomly-weighted portfolio. Accent = max Sharpe, white = min variance."
             />
             <Chart
               samples={result.samples}
@@ -159,7 +159,7 @@ export default function Optimizer() {
             />
           </section>
 
-          <section className="mt-8">
+          <section className="mt-4">
             <SectionHeader
               label="pick a risk level"
               description="Drag to see the sampled portfolio closest to that volatility."
@@ -171,32 +171,32 @@ export default function Optimizer() {
               step={(volatilityBounds.max - volatilityBounds.min) / 200}
               value={targetVolatility ?? volatilityBounds.min}
               onChange={(e) => setTargetVolatility(Number(e.target.value))}
-              className="mt-4 w-full accent-accent"
+              className="mt-3 w-full accent-accent"
             />
 
             {selectedPortfolio && (
-              <table className="mt-4 w-full text-left text-sm">
+              <table className="mt-3 w-full text-left">
                 <thead>
                   <tr className={tableHeadRowClass}>
                     <th className={tableHeadCellClass}>Ticker</th>
-                    <th className={tableHeadCellClass}>Weight</th>
+                    <th className={`${tableHeadCellClass} text-right`}>Weight</th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.symbols.map((symbol, i) => (
                     <tr key={symbol} className={tableRowClass}>
-                      <td className="py-2">
-                        <span className="tabular-nums text-black dark:text-zinc-50">{symbol}</span>
+                      <td className="py-1">
+                        <span className="text-xs text-foreground">{symbol}</span>
                         {result.names[symbol] && (
-                          <span className="block text-xs text-zinc-500">{result.names[symbol]}</span>
+                          <span className="block text-[10px] text-zinc-600">{result.names[symbol]}</span>
                         )}
                       </td>
-                      <td className={tableCellClass}>{formatPercent(selectedPortfolio.weights[i])}</td>
+                      <td className={`${tableCellStrongClass} text-right`}>{formatPercent(selectedPortfolio.weights[i])}</td>
                     </tr>
                   ))}
-                  <tr className={tableRowClass}>
-                    <td className={tableCellStrongClass}>Expected Return / Volatility / Sharpe</td>
-                    <td className={tableCellClass}>
+                  <tr className="border-t border-border">
+                    <td className={`${tableCellClass} text-[10px] uppercase tracking-[0.1em]`}>Return / Vol / Sharpe</td>
+                    <td className={`${tableCellStrongClass} text-right`}>
                       {formatPercent(selectedPortfolio.return)} / {formatPercent(selectedPortfolio.volatility)} /{" "}
                       {formatRatio(selectedPortfolio.sharpe)}
                     </td>

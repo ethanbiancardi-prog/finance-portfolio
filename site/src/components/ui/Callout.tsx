@@ -13,14 +13,10 @@ export function Callout({
   className?: string;
 }) {
   return (
-    <div className={`rounded-md border border-accent/40 bg-accent/5 p-4 ${className ?? ""}`}>
+    <div className={`border border-border border-l-2 border-l-accent bg-panel p-3 ${className ?? ""}`}>
       {label && <SectionHeader label={label} />}
-      {title && <p className="text-sm font-medium text-black dark:text-zinc-50">{title}</p>}
-      <div
-        className={`text-sm leading-6 text-zinc-600 dark:text-zinc-400 ${
-          label || title ? "mt-1" : ""
-        }`}
-      >
+      {title && <p className="text-sm font-medium text-foreground">{title}</p>}
+      <div className={`text-xs leading-5 text-zinc-500 dark:text-zinc-400 ${label || title ? "mt-1" : ""}`}>
         {children}
       </div>
     </div>

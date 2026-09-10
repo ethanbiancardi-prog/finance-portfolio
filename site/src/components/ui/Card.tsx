@@ -26,7 +26,7 @@ function Spotlight() {
       className="pointer-events-none absolute inset-0"
       style={{
         background:
-          "radial-gradient(240px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%)",
+          "radial-gradient(200px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%)",
         opacity: "var(--spot-opacity, 0)",
         transition: "opacity 200ms ease-out",
       }}
@@ -46,10 +46,10 @@ export function Card({
   const rectRef = useRef<DOMRect | null>(null);
 
   const classes = [
-    "rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950",
-    padding === "sm" ? "p-4" : "p-5",
+    "border border-border bg-panel",
+    padding === "sm" ? "p-3" : "p-3.5",
     interactive
-      ? "relative overflow-hidden block w-full text-left transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-sm hover:border-accent/50 dark:hover:shadow-none"
+      ? "relative overflow-hidden block w-full text-left transition-colors duration-150 ease-out hover:border-accent/60"
       : "",
     className ?? "",
   ]

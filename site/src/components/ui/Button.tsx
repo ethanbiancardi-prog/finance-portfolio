@@ -7,6 +7,8 @@ type ButtonProps = {
   children: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
+// Rendered as `[ LABEL ]`. Solid = inverse-video accent block for the
+// primary action; outline = plain bracketed text that lights up on hover.
 export function Button({
   variant = "solid",
   loading = false,
@@ -18,18 +20,20 @@ export function Button({
 }: ButtonProps) {
   const variantClass =
     variant === "solid"
-      ? "bg-black text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-black dark:hover:bg-zinc-200"
-      : "border border-zinc-200 text-black hover:border-accent/50 dark:border-zinc-800 dark:text-zinc-50";
+      ? "bg-accent text-background hover:bg-accent/85"
+      : "text-zinc-400 hover:text-accent";
 
   return (
     <button
-      className={`rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150 ease-out disabled:opacity-50 ${variantClass} ${
+      className={`px-2 py-1 text-xs uppercase tracking-[0.12em] transition-colors duration-100 disabled:cursor-not-allowed disabled:opacity-40 ${variantClass} ${
         className ?? ""
       }`}
       disabled={disabled || loading}
       {...rest}
     >
+      <span className="opacity-60">[ </span>
       {loading ? loadingLabel : children}
+      <span className="opacity-60"> ]</span>
     </button>
   );
 }

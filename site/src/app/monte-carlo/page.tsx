@@ -7,7 +7,7 @@ import { Button, Callout, Card, Field, PageShell, SectionHeader, StatCard } from
 
 const Chart = dynamic(() => import("./Chart"), {
   ssr: false,
-  loading: () => <div className="mt-4 h-72 animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-800" />,
+  loading: () => <div className="mt-4 h-72 animate-pulse bg-border" />,
 });
 
 type YearlyBand = { year: number; p10: number; p50: number; p90: number };
@@ -62,9 +62,9 @@ export default function MonteCarlo() {
       title="Monte Carlo Simulator"
       description="Runs 10,000 simulated portfolio paths from your inputs, using real historical SPY/AGG returns to estimate a stock/bond blend's expected return and volatility."
     >
-      <Card as="section" className="mt-8">
+      <Card as="section" className="mt-4">
         <SectionHeader label="inputs" />
-        <form onSubmit={runSimulation} className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <form onSubmit={runSimulation} className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
           <Field
             label="Starting Balance"
             suffix="$"
@@ -98,9 +98,9 @@ export default function MonteCarlo() {
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
           />
-          <label className="col-span-2 block sm:col-span-2">
-            <span className="block text-xs text-zinc-500">
-              Allocation ({stockAllocationPct}% stocks / {100 - stockAllocationPct}% bonds)
+          <label className="col-span-2 block sm:col-span-3">
+            <span className="block text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+              Allocation <span className="text-foreground">{stockAllocationPct}% stocks</span> / {100 - stockAllocationPct}% bonds
             </span>
             <input
               type="range"
@@ -108,10 +108,10 @@ export default function MonteCarlo() {
               max={100}
               value={stockAllocationPct}
               onChange={(e) => setStockAllocationPct(Number(e.target.value))}
-              className="mt-3 w-full accent-accent"
+              className="mt-2.5 w-full accent-accent"
             />
           </label>
-          <div className="col-span-2 flex items-end sm:col-span-3">
+          <div className="col-span-2 flex items-end sm:col-span-1">
             <Button type="submit" loading={loading} loadingLabel="Simulating...">
               Run Simulation
             </Button>
@@ -119,11 +119,11 @@ export default function MonteCarlo() {
         </form>
       </Card>
 
-      {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-4 text-xs text-bad">{error}</p>}
 
       {result && (
         <>
-          <section className="mt-8 grid grid-cols-2 gap-4">
+          <section className="mt-4 grid grid-cols-2 gap-3">
             <StatCard
               card
               size="lg"
@@ -138,7 +138,7 @@ export default function MonteCarlo() {
             />
           </section>
 
-          <section className="mt-8">
+          <section className="mt-4">
             <SectionHeader
               label="projected balance"
               description="10th / 50th / 90th percentile across all simulated paths each year."
@@ -146,7 +146,7 @@ export default function MonteCarlo() {
             <Chart bands={result.bands} />
           </section>
 
-          <Callout label="assumptions" className="mt-8">
+          <Callout label="assumptions" className="mt-4">
             Assumed {formatPercent(result.assumptions.annualReturn)} annual return and{" "}
             {formatPercent(result.assumptions.annualVolatility)} annual volatility, blended from
             ~5 years of real SPY/AGG history at your chosen allocation. Each simulated year draws

@@ -9,25 +9,25 @@ import { Card, chartAxisProps, chartGridProps, chartTooltipStyle } from "@/compo
 
 export default function Chart({ equityHistory }: { equityHistory: { date: string; equity: number }[] }) {
   return (
-    <Card className="mt-4 h-64" padding="sm">
+    <Card className="mt-3 h-56" padding="sm">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={equityHistory}>
           <CartesianGrid {...chartGridProps} vertical={false} />
           <XAxis dataKey="date" {...chartAxisProps} minTickGap={30} />
           <YAxis
             {...chartAxisProps}
-            width={56}
+            width={52}
             domain={["auto", "auto"]}
             tickFormatter={(value) => formatCurrencyCompact(value)}
           />
-          <Tooltip formatter={(value) => formatCurrency(String(value))} contentStyle={chartTooltipStyle} />
+          <Tooltip cursor={{ stroke: "var(--border)" }} formatter={(value) => formatCurrency(String(value))} contentStyle={chartTooltipStyle} />
           <Line
             type="monotone"
             dataKey="equity"
-            stroke="var(--chart-line)"
-            strokeWidth={2}
+            stroke="var(--accent)"
+            strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 4 }}
+            activeDot={{ r: 3, fill: "var(--accent)", stroke: "none" }}
           />
         </LineChart>
       </ResponsiveContainer>

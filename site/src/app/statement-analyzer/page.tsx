@@ -107,45 +107,61 @@ function rateRatio(label: string, value: number | null): Rating | null {
 function RatioGroup({ group, ratios }: { group: string; ratios: Ratio[] }) {
   if (ratios.length === 0) return null;
   return (
-    <div className="mt-6">
+    <div className="mt-5">
       <SectionHeader label={group.toLowerCase()} />
-      <div className="mt-2">
-        {ratios.map((ratio, i) => (
-          <div
-            key={ratio.label}
-            className={`py-3 ${i === 0 ? "" : "border-t border-zinc-200 dark:border-zinc-800"}`}
-          >
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <p className="text-sm font-medium text-black dark:text-zinc-50">{ratio.label}</p>
-              <div className="flex items-baseline gap-3 text-sm tabular-nums">
-                <span className="inline-flex items-center gap-1.5">
+      <table className="mt-2 w-full text-left">
+        <thead>
+          <tr className="border-b border-border">
+            <th className="py-1 text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">Ratio</th>
+            <th className="py-1 text-right text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">Current</th>
+            <th className="py-1 pl-4 text-right text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">Prior</th>
+            <th className="py-1 pl-5 text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">Flag</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ratios.map((ratio) => {
+            const rating = rateRatio(ratio.label, ratio.value);
+            return (
+              <tr key={ratio.label} className="border-b border-border/50 align-top last:border-b-0 hover:bg-accent/[0.06]">
+                <td className="py-1.5 pr-3">
+                  <p className="text-xs text-foreground">{ratio.label}</p>
+                  <p className="mt-0.5 max-w-md text-[10px] leading-4 text-zinc-600">{ratio.description}</p>
+                </td>
+                <td
+                  className="py-1.5 text-right text-xs tabular-nums"
+                  style={rating ? { color: `var(--status-${rating})` } : undefined}
+                >
                   {formatRatioValue(ratio.value, ratio.format)}
-                  <StatusBadge rating={rateRatio(ratio.label, ratio.value)} />
-                </span>
-                <span className="text-xs text-zinc-400 dark:text-zinc-600">
-                  prior: {formatRatioValue(ratio.prior, ratio.format)}
-                </span>
-              </div>
-            </div>
-            <p className="mt-1 text-xs text-zinc-500">{ratio.description}</p>
-          </div>
-        ))}
-      </div>
+                </td>
+                <td className="py-1.5 pl-4 text-right text-xs tabular-nums text-zinc-500">
+                  {formatRatioValue(ratio.prior, ratio.format)}
+                </td>
+                <td className="py-1.5 pl-5 text-xs">
+                  <StatusBadge rating={rating} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashboard }) {
   return (
-    <Card className="mt-6">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="font-medium text-black dark:text-zinc-50">
-          {company.title} ({company.ticker})
+    <Card className="mt-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="text-sm text-foreground">
+          <span className="text-accent">{company.ticker}</span>
+          <span className="ml-2 text-zinc-500">{company.title}</span>
         </h3>
-        <span className="text-xs text-zinc-500">FY end {dashboard.periodEnd ?? "N/A"}</span>
+        <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+          FY end {dashboard.periodEnd ?? "N/A"}
+        </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 sm:grid-cols-3">
         <StatCard label="Revenue" value={formatCurrencyCompact(dashboard.revenue)} />
         <StatCard label="Revenue Growth (YoY)" value={formatPercent(dashboard.revenueGrowth)} />
         <StatCard label="Net Income" value={formatCurrencyCompact(dashboard.netIncome)} />
@@ -192,23 +208,23 @@ function RedFlagsPanel({ ticker }: { ticker: string }) {
   }
 
   return (
-    <Card className="mt-6">
+    <Card className="mt-4">
       <SectionHeader
         label="red flags"
         description="Checks for revenue up while cash flow is down, rising debt with falling interest coverage, inventory outpacing revenue, heavy reliance on non-GAAP figures, and going-concern language."
       />
-      <Button onClick={scan} loading={loading} loadingLabel="Scanning..." className="mt-4">
+      <Button onClick={scan} loading={loading} loadingLabel="Scanning..." className="mt-3">
         Scan for Red Flags
       </Button>
 
-      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-3 text-xs text-bad">{error}</p>}
 
       {flags && (
         <div className="mt-4">
           {flags.length === 0 ? (
-            <p className="text-sm text-zinc-500">No red flags detected against the checks above.</p>
+            <p className="text-xs text-good">-- no red flags detected against the checks above</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {flags.map((flag, i) => (
                 <Callout key={i} title={flag.pattern}>
                   {flag.why}
@@ -216,7 +232,7 @@ function RedFlagsPanel({ ticker }: { ticker: string }) {
               ))}
             </div>
           )}
-          <p className="mt-3 text-xs text-zinc-500">
+          <p className="mt-3 text-[10px] uppercase tracking-[0.1em] text-zinc-600">
             AI-generated — verify against the actual filing before relying on it.
           </p>
         </div>
@@ -279,7 +295,7 @@ export default function StatementAnalyzer() {
       title="10-K Analyzer"
       description="Liquidity, leverage, profitability, and efficiency ratios pulled straight from SEC EDGAR."
     >
-      <div className="mt-6">
+      <div className="mt-4">
         <Tabs
           tabs={[
             { key: "search", label: "Search" },
@@ -291,7 +307,7 @@ export default function StatementAnalyzer() {
       </div>
 
       {tab === "search" && (
-        <section className="mt-6">
+        <section className="mt-4">
           <form onSubmit={submitSearch} className="flex items-end gap-3">
             <Field
               label="Ticker"
@@ -304,8 +320,8 @@ export default function StatementAnalyzer() {
             <Button type="submit">Analyze</Button>
           </form>
 
-          {loading && <p className="mt-4 text-sm text-zinc-500">Loading...</p>}
-          {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+          {loading && <p className="mt-4 text-xs text-zinc-500"><span className="cursor-blink">▌</span> fetching filing</p>}
+          {error && <p className="mt-4 text-xs text-bad">{error}</p>}
           {dashboard && company && (
             <>
               <Dashboard company={company} dashboard={dashboard} />
@@ -316,8 +332,8 @@ export default function StatementAnalyzer() {
       )}
 
       {tab === "browse" && (
-        <section className="mt-6">
-          <div className="flex flex-wrap gap-2">
+        <section className="mt-4">
+          <div className="flex flex-wrap gap-1.5">
             {CATEGORIES.map((c) => (
               <Chip key={c.key} active={category === c.key} onClick={() => loadCategory(c.key)}>
                 {c.label}
@@ -325,9 +341,9 @@ export default function StatementAnalyzer() {
             ))}
           </div>
 
-          {browseLoading && <p className="mt-4 text-sm text-zinc-500">Loading...</p>}
+          {browseLoading && <p className="mt-4 text-xs text-zinc-500"><span className="cursor-blink">▌</span> loading</p>}
 
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {companies.map((c) => (
               <Card
                 key={c.cik}
@@ -340,12 +356,12 @@ export default function StatementAnalyzer() {
                   lookup(c.ticker);
                 }}
               >
-                <p className="font-medium text-black dark:text-zinc-50">{c.ticker}</p>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">{c.title}</p>
+                <p className="text-xs text-accent">{c.ticker}</p>
+                <p className="mt-0.5 text-[11px] text-zinc-500">{c.title}</p>
               </Card>
             ))}
             {!browseLoading && companies.length === 0 && (
-              <p className="text-sm text-zinc-500">Pick a category to see companies.</p>
+              <p className="text-xs text-zinc-500">-- pick a category to see companies</p>
             )}
           </div>
         </section>

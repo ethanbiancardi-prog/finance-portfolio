@@ -12,10 +12,10 @@ export function Chip({
   return (
     <button
       onClick={onClick}
-      className={`rounded-md border px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition-colors duration-150 ease-out ${
+      className={`border px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors duration-150 ease-out ${
         active
-          ? "border-accent text-accent"
-          : "border-zinc-200 text-zinc-600 hover:border-accent/50 dark:border-zinc-800 dark:text-zinc-400"
+          ? "border-accent bg-accent/10 text-accent"
+          : "border-border text-zinc-500 hover:border-zinc-400 hover:text-foreground dark:hover:border-zinc-600"
       }`}
     >
       {children}

@@ -16,17 +16,17 @@ export function StatCard({
 }) {
   const content = (
     <>
-      <p className={size === "lg" ? "text-sm text-zinc-500" : "text-xs text-zinc-500"}>{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">{label}</p>
       <p
-        className={`mt-1 tabular-nums text-black dark:text-zinc-50 ${
-          size === "lg" ? "text-2xl font-semibold" : "font-medium"
+        className={`mt-1 tabular-nums tracking-tight text-foreground ${
+          size === "lg" ? "text-2xl sm:text-[28px]" : "text-sm"
         }`}
       >
         {value}
       </p>
-      {hint && <div className="mt-1">{hint}</div>}
+      {hint && <div className="mt-1 text-[11px]">{hint}</div>}
     </>
   );
 
-  return card ? <Card>{content}</Card> : <div>{content}</div>;
+  return card ? <Card padding="sm">{content}</Card> : <div>{content}</div>;
 }

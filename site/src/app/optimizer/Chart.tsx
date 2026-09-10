@@ -19,7 +19,7 @@ export default function Chart({
   maxSharpeSeries: SampledPortfolio[];
 }) {
   return (
-    <Card className="mt-4 h-80" padding="sm">
+    <Card className="mt-3 h-72" padding="sm">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
           <CartesianGrid {...chartGridProps} />
@@ -39,13 +39,13 @@ export default function Chart({
             tickFormatter={(v) => formatPercent(v)}
           />
           <Tooltip
-            cursor={{ strokeDasharray: "3 3" }}
+            cursor={{ stroke: "var(--border)", strokeDasharray: "3 3" }}
             formatter={(value) => formatPercent(Number(value))}
             contentStyle={chartTooltipStyle}
           />
-          <Scatter data={samples} fill="var(--chart-muted)" opacity={0.35} />
-          <Scatter data={minVarianceSeries} fill="var(--chart-line)" />
-          <Scatter data={maxSharpeSeries} fill="var(--chart-line-2)" />
+          <Scatter data={samples} fill="var(--chart-muted)" opacity={0.3} shape="square" />
+          <Scatter data={minVarianceSeries} fill="var(--chart-line)" shape="square" />
+          <Scatter data={maxSharpeSeries} fill="var(--chart-line-2)" shape="square" />
         </ScatterChart>
       </ResponsiveContainer>
     </Card>

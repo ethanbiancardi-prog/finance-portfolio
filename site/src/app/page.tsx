@@ -68,38 +68,36 @@ const projects: Project[] = [
 export default function Home() {
   return (
     <PageShell
-      eyebrow="finance × ai portfolio"
+      eyebrow="portfolio"
       title="Ethan Biancardi"
       subtitle="Finance x AI @ Bentley"
       description="I build working finance tools with modern AI — not just a resume, a set of projects you can actually try."
     >
-      <section className="mt-8">
+      <section className="mt-4">
         <SectionHeader label="projects" />
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {projects.map((project, i) => {
+            const live = project.status === "Live";
             const card = (
               <>
-                <div className="flex items-start justify-between gap-3">
-                  <span className="font-mono text-xs tabular-nums text-zinc-400 dark:text-zinc-600">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] tabular-nums text-zinc-600">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
-                      project.status === "Live"
-                        ? "border-accent/40 text-accent"
-                        : "border-zinc-300 text-zinc-500 dark:border-zinc-700 dark:text-zinc-500"
+                    className={`inline-flex shrink-0 items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] ${
+                      live ? "text-good" : "text-zinc-600"
                     }`}
                   >
-                    {project.status === "Live" && (
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
-                    )}
+                    <span className={`h-1.5 w-1.5 ${live ? "animate-pulse bg-good" : "bg-zinc-700"}`} />
                     {project.status}
                   </span>
                 </div>
-                <h3 className="mt-3 font-medium text-black dark:text-zinc-50">{project.name}</h3>
-                <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                  {project.blurb}
-                </p>
+                <h3 className="mt-2 text-sm uppercase tracking-[0.04em] text-foreground">
+                  {project.name}
+                  {project.href && <span className="ml-1 text-zinc-600">→</span>}
+                </h3>
+                <p className="mt-1.5 text-[11px] leading-5 text-zinc-500 dark:text-zinc-400">{project.blurb}</p>
               </>
             );
 
@@ -112,11 +110,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-4">
         <SectionHeader label="contact" />
         <a
           href="mailto:ethanbiancardi@gmail.com"
-          className="mt-3 inline-block font-mono text-sm font-medium text-black underline underline-offset-4 transition-colors duration-150 ease-out hover:text-accent dark:text-zinc-50"
+          className="mt-3 inline-block text-xs text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-accent hover:decoration-accent"
         >
           ethanbiancardi@gmail.com
         </a>

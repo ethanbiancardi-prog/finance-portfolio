@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 // always resolved to a concrete "light"/"dark" (never left unset) since
 // globals.css's dark: variant and CSS vars key off this attribute directly,
 // with no separate prefers-color-scheme fallback to stay in sync with.
-const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem('theme-mode')||'system';var a=localStorage.getItem('theme-accent');var isDark=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.setAttribute('data-mode',isDark?'dark':'light');if(a&&a!=='amber')r.setAttribute('data-accent',a);}catch(e){}})();`;
+const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem('theme-mode')||'dark';var a=localStorage.getItem('theme-accent');var isDark=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.setAttribute('data-mode',isDark?'dark':'light');if(a&&a!=='amber')r.setAttribute('data-accent',a);}catch(e){}})();`;
 
 export default function RootLayout({
   children,
