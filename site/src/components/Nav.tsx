@@ -10,8 +10,8 @@ const links = [
   { href: "/rotation", label: "Sector Rotation" },
   { href: "/monte-carlo", label: "Monte Carlo" },
   { href: "/optimizer", label: "Optimizer" },
+  { href: "/research", label: "Research" },
   { href: "/dcf-builder", label: "DCF Builder" },
-  { href: "/statement-analyzer", label: "10-K Analyzer" },
   { href: "/quant-notes", label: "Quant Notes" },
   { href: "/about", label: "About" },
 ];

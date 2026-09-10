@@ -1,22 +1,21 @@
 "use client";
 
+// 10-K fundamentals: ratio dashboard + AI red-flag scan. Extracted from the
+// old /statement-analyzer page so the research tab can compose it with news
+// and the persona panel.
 import { useState } from "react";
 import { formatCurrencyCompact, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
   Callout,
   Card,
-  Chip,
-  PageShell,
   SectionHeader,
   StatCard,
   StatusBadge,
-  Tabs,
-  TickerSearch,
   type Rating,
 } from "@/components/ui";
 
-type Company = { cik: number; ticker: string; title: string };
+export type Company = { cik: number; ticker: string; title: string };
 
 type RatioFormat = "x" | "%" | "$";
 
@@ -32,7 +31,7 @@ type Ratio = {
 // Groups render in this order regardless of the order the API returns them in.
 const GROUP_ORDER = ["Liquidity", "Leverage", "Profitability", "Efficiency", "Cash Flow"];
 
-type Dashboard = {
+export type Dashboard = {
   periodEnd: string | null;
   priorPeriodEnd: string | null;
   revenue: number | null;
@@ -41,15 +40,6 @@ type Dashboard = {
   netIncome: number | null;
   ratios: Ratio[];
 };
-
-const CATEGORIES = [
-  { key: "tech", label: "Tech" },
-  { key: "biotech", label: "Biotech" },
-  { key: "healthcare", label: "Healthcare" },
-  { key: "consumer", label: "Consumer" },
-  { key: "energy", label: "Energy" },
-  { key: "sustainability", label: "Sustainability" },
-];
 
 function formatRatioValue(value: number | null, format: RatioFormat) {
   if (format === "%") return formatPercent(value);
@@ -148,7 +138,7 @@ function RatioGroup({ group, ratios }: { group: string; ratios: Ratio[] }) {
   );
 }
 
-function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashboard }) {
+export function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashboard }) {
   return (
     <Card className="mt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -180,7 +170,7 @@ function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashbo
 
 type RedFlag = { pattern: string; why: string };
 
-function RedFlagsPanel({ ticker }: { ticker: string }) {
+export function RedFlagsPanel({ ticker }: { ticker: string }) {
   const [flags, setFlags] = useState<RedFlag[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -241,132 +231,3 @@ function RedFlagsPanel({ ticker }: { ticker: string }) {
   );
 }
 
-export default function StatementAnalyzer() {
-  const [tab, setTab] = useState<"search" | "browse">("search");
-
-  const [ticker, setTicker] = useState("");
-  const [company, setCompany] = useState<Company | null>(null);
-  const [dashboard, setDashboardData] = useState<Dashboard | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const [category, setCategory] = useState(CATEGORIES[0].key);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [browseLoading, setBrowseLoading] = useState(false);
-
-  async function lookup(symbol: string) {
-    setLoading(true);
-    setError("");
-    setDashboardData(null);
-
-    const res = await fetch(`/api/statement-analyzer/lookup?ticker=${symbol}`);
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.error ?? "Lookup failed");
-      setLoading(false);
-      return;
-    }
-
-    setCompany(data.company);
-    setDashboardData(data.dashboard);
-    setLoading(false);
-  }
-
-  async function submitSearch(e: React.FormEvent) {
-    e.preventDefault();
-    lookup(ticker);
-  }
-
-  async function loadCategory(key: string) {
-    setCategory(key);
-    setBrowseLoading(true);
-    setCompanies([]);
-
-    const res = await fetch(`/api/statement-analyzer/industry?category=${key}`);
-    const data = await res.json();
-    setCompanies(data.companies ?? []);
-    setBrowseLoading(false);
-  }
-
-  return (
-    <PageShell
-      eyebrow="10-k analyzer"
-      title="10-K Analyzer"
-      description="Liquidity, leverage, profitability, and efficiency ratios pulled straight from SEC EDGAR."
-    >
-      <div className="mt-4">
-        <Tabs
-          tabs={[
-            { key: "search", label: "Search" },
-            { key: "browse", label: "Browse by Industry" },
-          ]}
-          active={tab}
-          onChange={setTab}
-        />
-      </div>
-
-      {tab === "search" && (
-        <section className="mt-4">
-          <form onSubmit={submitSearch} className="flex items-end gap-3">
-            <TickerSearch
-              label="Ticker or company"
-              value={ticker}
-              onChange={setTicker}
-              onSelect={lookup}
-              endpoint="/api/statement-analyzer/search"
-              required
-              wrapperClassName="w-64 max-w-full"
-            />
-            <Button type="submit">Analyze</Button>
-          </form>
-
-          {loading && <p className="mt-4 text-xs text-zinc-500"><span className="cursor-blink">▌</span> fetching filing</p>}
-          {error && <p className="mt-4 text-xs text-bad">{error}</p>}
-          {dashboard && company && (
-            <>
-              <Dashboard company={company} dashboard={dashboard} />
-              <RedFlagsPanel key={company.ticker} ticker={company.ticker} />
-            </>
-          )}
-        </section>
-      )}
-
-      {tab === "browse" && (
-        <section className="mt-4">
-          <div className="flex flex-wrap gap-1.5">
-            {CATEGORIES.map((c) => (
-              <Chip key={c.key} active={category === c.key} onClick={() => loadCategory(c.key)}>
-                {c.label}
-              </Chip>
-            ))}
-          </div>
-
-          {browseLoading && <p className="mt-4 text-xs text-zinc-500"><span className="cursor-blink">▌</span> loading</p>}
-
-          <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-            {companies.map((c) => (
-              <Card
-                key={c.cik}
-                as="button"
-                padding="sm"
-                interactive
-                onClick={() => {
-                  setTab("search");
-                  setTicker(c.ticker);
-                  lookup(c.ticker);
-                }}
-              >
-                <p className="text-xs text-accent">{c.ticker}</p>
-                <p className="mt-0.5 text-[11px] text-zinc-500">{c.title}</p>
-              </Card>
-            ))}
-            {!browseLoading && companies.length === 0 && (
-              <p className="text-xs text-zinc-500">-- pick a category to see companies</p>
-            )}
-          </div>
-        </section>
-      )}
-    </PageShell>
-  );
-}

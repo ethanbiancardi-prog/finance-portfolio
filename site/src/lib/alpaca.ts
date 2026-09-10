@@ -43,6 +43,32 @@ export async function alpacaData(path: string) {
   return res.json();
 }
 
+export type AlpacaNewsItem = {
+  id: number;
+  headline: string;
+  summary: string;
+  source: string;
+  url: string;
+  created_at: string;
+  symbols: string[];
+};
+
+// News lives on the data host under v1beta1, not the v2 prefix alpacaData()
+// uses, so it gets its own fetch. Benzinga-sourced, per-symbol.
+export async function alpacaNews(symbol: string, limit = 15): Promise<AlpacaNewsItem[]> {
+  const params = new URLSearchParams({ symbols: symbol, limit: String(limit), sort: "desc" });
+  const res = await fetch(`https://data.alpaca.markets/v1beta1/news?${params}`, {
+    headers: {
+      "APCA-API-KEY-ID": process.env.APCA_API_KEY_ID ?? "",
+      "APCA-API-SECRET-KEY": process.env.APCA_API_SECRET_KEY ?? "",
+    },
+    next: { revalidate: 300 },
+  });
+  if (!res.ok) throw new Error(`Alpaca news failed (${res.status})`);
+  const data = await res.json();
+  return data.news ?? [];
+}
+
 type AlpacaAsset = { symbol: string; name: string; exchange: string; tradable: boolean };
 
 // The full active-equity asset list is ~10k rows and changes rarely, so

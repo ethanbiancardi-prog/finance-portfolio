@@ -11,7 +11,7 @@ const projects: Project[] = [
   {
     name: "AI Paper Trading Simulator",
     blurb:
-      "Fake-money portfolio tracking real market prices, with an AI analyst that explains each position and flags risk.",
+      "Fake-money portfolio tracking real market prices, with a trade journal, risk metrics, and a live equity curve.",
     status: "Live",
     href: "/paper-trading",
   },
@@ -44,11 +44,11 @@ const projects: Project[] = [
     href: "/dcf-builder",
   },
   {
-    name: "10-K Statement Analyzer",
+    name: "Stock Research",
     blurb:
-      "Search by ticker or browse by industry to get liquidity, leverage, and profitability ratios pulled straight from SEC filings.",
+      "One ticker, everything on it: 17 ratios from the latest 10-K, an AI red-flag scan, live headlines from Yahoo Finance and Benzinga, and six AI analyst takes.",
     status: "Live",
-    href: "/statement-analyzer",
+    href: "/research",
   },
   {
     name: "Quant Notes",

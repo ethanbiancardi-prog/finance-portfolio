@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
-  Callout,
   Card,
   Field,
   PageShell,
@@ -74,16 +73,6 @@ type PortfolioHistory = {
   equity: (number | null)[];
 };
 
-type PersonaTake = {
-  name: string;
-  take: string;
-};
-
-type Analysis = {
-  personas: PersonaTake[];
-  key_disagreement: string;
-};
-
 type RiskMetrics = {
   sharpe: number;
   annualizedVolatility: number;
@@ -103,11 +92,6 @@ export default function PaperTrading() {
   const [qty, setQty] = useState("");
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [message, setMessage] = useState("");
-
-  const [analysisTicker, setAnalysisTicker] = useState("");
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisError, setAnalysisError] = useState("");
 
   const [journalDate, setJournalDate] = useState(today());
   const [journalTicker, setJournalTicker] = useState("");
@@ -192,32 +176,6 @@ export default function PaperTrading() {
     setJournalTicker("");
     setJournalThesis("");
     setJournalExit("");
-  }
-
-  async function submitAnalysis(e: React.FormEvent) {
-    e.preventDefault();
-    runAnalysis(analysisTicker);
-  }
-
-  async function runAnalysis(ticker: string) {
-    setAnalysisLoading(true);
-    setAnalysisError("");
-    setAnalysis(null);
-
-    const res = await fetch("/api/paper-trading/analysis", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ticker }),
-    });
-
-    if (!res.ok) {
-      setAnalysisError("Analysis failed.");
-      setAnalysisLoading(false);
-      return;
-    }
-
-    setAnalysis(await res.json());
-    setAnalysisLoading(false);
   }
 
   return (
@@ -431,7 +389,7 @@ export default function PaperTrading() {
         </div>
       </Card>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mt-4">
         <Card as="section">
           <SectionHeader label="place order" description="Market order — fills immediately at the current price." />
           {/* Market order = buy/sell immediately at the current price. A limit order
@@ -475,45 +433,8 @@ export default function PaperTrading() {
           )}
         </Card>
 
-        <Card as="section">
-          <SectionHeader
-            label="ai analysis"
-            description="Six takes on a ticker, then the sharpest disagreement between them."
-          />
-          <form onSubmit={submitAnalysis} className="mt-3 flex items-end gap-3">
-            <TickerSearch
-              label="Ticker"
-              value={analysisTicker}
-              onChange={setAnalysisTicker}
-              onSelect={runAnalysis}
-              endpoint="/api/paper-trading/search"
-              required
-              wrapperClassName="w-40"
-            />
-            <Button type="submit" loading={analysisLoading} loadingLabel="Analyzing...">
-              Analyze
-            </Button>
-          </form>
-          {analysisError && <p className="mt-3 text-xs text-bad">{analysisError}</p>}
-        </Card>
       </div>
 
-      {analysis && (
-        <section className="mt-4">
-          <SectionHeader label={`analysis: ${analysisTicker.toUpperCase() || "ticker"}`} />
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {analysis.personas.map((p) => (
-              <Card key={p.name} padding="sm">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-accent">{p.name}</p>
-                <p className="mt-1.5 text-xs leading-5 text-zinc-400">{p.take}</p>
-              </Card>
-            ))}
-          </div>
-          <Callout label="key disagreement" className="mt-3">
-            {analysis.key_disagreement}
-          </Callout>
-        </section>
-      )}
     </PageShell>
   );
 }
