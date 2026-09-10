@@ -5,6 +5,7 @@ export { Card } from "./Card";
 export { Callout } from "./Callout";
 export { Button } from "./Button";
 export { Field, SelectField } from "./Field";
+export { TickerSearch } from "./TickerSearch";
 export { StatusDot, StatusBadge, type Rating } from "./Status";
 export { StatCard } from "./StatCard";
 export { Tabs } from "./Tabs";

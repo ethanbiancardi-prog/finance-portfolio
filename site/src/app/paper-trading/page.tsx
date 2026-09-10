@@ -13,6 +13,7 @@ import {
   SelectField,
   StatCard,
   StatusBadge,
+  TickerSearch,
   tableCellClass,
   tableCellStrongClass,
   tableHeadCellClass,
@@ -195,6 +196,10 @@ export default function PaperTrading() {
 
   async function submitAnalysis(e: React.FormEvent) {
     e.preventDefault();
+    runAnalysis(analysisTicker);
+  }
+
+  async function runAnalysis(ticker: string) {
     setAnalysisLoading(true);
     setAnalysisError("");
     setAnalysis(null);
@@ -202,7 +207,7 @@ export default function PaperTrading() {
     const res = await fetch("/api/paper-trading/analysis", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ticker: analysisTicker }),
+      body: JSON.stringify({ ticker }),
     });
 
     if (!res.ok) {
@@ -432,13 +437,14 @@ export default function PaperTrading() {
           {/* Market order = buy/sell immediately at the current price. A limit order
               (not implemented in Phase 1) only fills at a price you set or better. */}
           <form onSubmit={submitOrder} className="mt-3 flex flex-wrap items-end gap-3">
-            <Field
+            <TickerSearch
               label="Ticker"
-              placeholder="AAPL"
               value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
+              onChange={setSymbol}
+              onSelect={setSymbol}
+              endpoint="/api/paper-trading/search"
               required
-              className="w-24"
+              wrapperClassName="w-36"
             />
             <Field
               label="Qty"
@@ -475,13 +481,14 @@ export default function PaperTrading() {
             description="Six takes on a ticker, then the sharpest disagreement between them."
           />
           <form onSubmit={submitAnalysis} className="mt-3 flex items-end gap-3">
-            <Field
+            <TickerSearch
               label="Ticker"
-              placeholder="AAPL"
               value={analysisTicker}
-              onChange={(e) => setAnalysisTicker(e.target.value)}
+              onChange={setAnalysisTicker}
+              onSelect={runAnalysis}
+              endpoint="/api/paper-trading/search"
               required
-              className="w-28"
+              wrapperClassName="w-40"
             />
             <Button type="submit" loading={analysisLoading} loadingLabel="Analyzing...">
               Analyze

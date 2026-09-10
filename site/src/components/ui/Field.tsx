@@ -6,11 +6,11 @@ type FieldProps = {
   wrapperClassName?: string;
 } & InputHTMLAttributes<HTMLInputElement>;
 
-const labelClasses = "block text-[10px] uppercase tracking-[0.14em] text-zinc-500";
+export const labelClasses = "block text-[10px] uppercase tracking-[0.14em] text-zinc-500";
 
 // Underline-only inputs: no box, just a baseline that lights up on focus —
 // the field reads like a prompt rather than a form control.
-const inputClasses =
+export const inputClasses =
   "mt-0.5 border-0 border-b border-border bg-transparent px-0 py-1 text-sm tabular-nums text-foreground transition-colors placeholder:text-zinc-600 hover:border-zinc-500 focus:border-accent focus:shadow-none";
 
 export function Field({ label, suffix, wrapperClassName, className, ...rest }: FieldProps) {

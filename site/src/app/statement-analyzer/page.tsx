@@ -7,12 +7,12 @@ import {
   Callout,
   Card,
   Chip,
-  Field,
   PageShell,
   SectionHeader,
   StatCard,
   StatusBadge,
   Tabs,
+  TickerSearch,
   type Rating,
 } from "@/components/ui";
 
@@ -309,13 +309,14 @@ export default function StatementAnalyzer() {
       {tab === "search" && (
         <section className="mt-4">
           <form onSubmit={submitSearch} className="flex items-end gap-3">
-            <Field
-              label="Ticker"
-              placeholder="AAPL"
+            <TickerSearch
+              label="Ticker or company"
               value={ticker}
-              onChange={(e) => setTicker(e.target.value)}
+              onChange={setTicker}
+              onSelect={lookup}
+              endpoint="/api/statement-analyzer/search"
               required
-              className="w-32"
+              wrapperClassName="w-64 max-w-full"
             />
             <Button type="submit">Analyze</Button>
           </form>

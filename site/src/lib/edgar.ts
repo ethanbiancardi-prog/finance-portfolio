@@ -13,6 +13,8 @@ async function secFetch(url: string, init?: RequestInit) {
   return res;
 }
 
+import { searchTickers, type TickerMatch } from "./tickerSearch";
+
 export type TickerEntry = { cik: number; ticker: string; title: string };
 
 let tickerMapPromise: Promise<{
@@ -40,6 +42,40 @@ function getTickerMaps() {
       });
   }
   return tickerMapPromise;
+}
+
+// Separate from the ticker->CIK map above: SEC also publishes a variant of
+// the same file that includes the listing exchange, which the search
+// dropdown shows. Cached for the process lifetime just like getTickerMaps().
+let searchListPromise: Promise<TickerMatch[]> | null = null;
+
+function getSearchList() {
+  if (!searchListPromise) {
+    searchListPromise = secFetch("https://www.sec.gov/files/company_tickers_exchange.json", {
+      next: { revalidate: 86400 },
+    })
+      .then((res) => res.json())
+      .then((raw: { fields: string[]; data: (string | number | null)[][] }) => {
+        const col = (name: string) => raw.fields.indexOf(name);
+        const [iName, iTicker, iExchange] = [col("name"), col("ticker"), col("exchange")];
+        return raw.data
+          .filter((row) => row[iTicker])
+          .map((row) => ({
+            symbol: String(row[iTicker]),
+            name: String(row[iName] ?? ""),
+            exchange: String(row[iExchange] ?? ""),
+          }));
+      })
+      .catch((err) => {
+        searchListPromise = null; // let the next request retry
+        throw err;
+      });
+  }
+  return searchListPromise;
+}
+
+export async function searchCompanies(query: string, limit = 8): Promise<TickerMatch[]> {
+  return searchTickers(await getSearchList(), query, limit);
 }
 
 export async function resolveTicker(ticker: string): Promise<TickerEntry | null> {
