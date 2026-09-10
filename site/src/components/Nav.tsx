@@ -13,6 +13,7 @@ const links = [
   { href: "/dcf-builder", label: "DCF Builder" },
   { href: "/statement-analyzer", label: "10-K Analyzer" },
   { href: "/quant-notes", label: "Quant Notes" },
+  { href: "/about", label: "About" },
 ];
 
 export default function Nav() {
