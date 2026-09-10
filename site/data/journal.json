@@ -1,5 +1,61 @@
 [
   {
+    "id": "c1a1a001-0000-4000-8000-000000000001",
+    "date": "2026-09-10",
+    "ticker": "VOO",
+    "action": "buy",
+    "thesis": "Funding the Core sleeve (STRATEGY.md) that had sat unbuilt while cash piled up from the rotation satellite alone. VOO is the US large-cap anchor at 30% of the new Core allocation, alongside VXF/VEA/VWO/BND/VNQ/GLD for asset-class diversification (US small-mid, intl developed, emerging markets, bonds, REITs, gold). Sized to leave ~5% of total equity in cash.",
+    "exitCondition": "Rebalance if Core sleeve drifts >5pp from target weights, or reconsider the whole Core allocation if it fails to track SPY over a full cycle (per STRATEGY.md benchmark)."
+  },
+  {
+    "id": "c1a1a001-0000-4000-8000-000000000002",
+    "date": "2026-09-10",
+    "ticker": "VXF",
+    "action": "buy",
+    "thesis": "US small/mid-cap slice (10% of Core) to complement VOO's large-cap exposure — same Core-funding rationale as the VOO entry.",
+    "exitCondition": "Rebalance if Core sleeve drifts >5pp from target weights, or reconsider the whole Core allocation if it fails to track SPY over a full cycle (per STRATEGY.md benchmark)."
+  },
+  {
+    "id": "c1a1a001-0000-4000-8000-000000000003",
+    "date": "2026-09-10",
+    "ticker": "VEA",
+    "action": "buy",
+    "thesis": "International developed-market equity (15% of Core) for geographic diversification beyond US holdings — same Core-funding rationale as the VOO entry.",
+    "exitCondition": "Rebalance if Core sleeve drifts >5pp from target weights, or reconsider the whole Core allocation if it fails to track SPY over a full cycle (per STRATEGY.md benchmark)."
+  },
+  {
+    "id": "c1a1a001-0000-4000-8000-000000000004",
+    "date": "2026-09-10",
+    "ticker": "VWO",
+    "action": "buy",
+    "thesis": "Emerging-market equity (10% of Core) for further geographic diversification — same Core-funding rationale as the VOO entry.",
+    "exitCondition": "Rebalance if Core sleeve drifts >5pp from target weights, or reconsider the whole Core allocation if it fails to track SPY over a full cycle (per STRATEGY.md benchmark)."
+  },
+  {
+    "id": "c1a1a001-0000-4000-8000-000000000005",
+    "date": "2026-09-10",
+    "ticker": "BND",
+    "action": "buy",
+    "thesis": "US aggregate bonds (20% of Core) to dampen equity volatility and diversify by asset class, not just sector — same Core-funding rationale as the VOO entry.",
+    "exitCondition": "Rebalance if Core sleeve drifts >5pp from target weights, or reconsider the whole Core allocation if it fails to track SPY over a full cycle (per STRATEGY.md benchmark)."
+  },
+  {
+    "id": "c1a1a001-0000-4000-8000-000000000006",
+    "date": "2026-09-10",
+    "ticker": "VNQ",
+    "action": "buy",
+    "thesis": "US REITs (8% of Core) add real-estate exposure uncorrelated with the equity/bond sectors already held — same Core-funding rationale as the VOO entry.",
+    "exitCondition": "Rebalance if Core sleeve drifts >5pp from target weights, or reconsider the whole Core allocation if it fails to track SPY over a full cycle (per STRATEGY.md benchmark)."
+  },
+  {
+    "id": "c1a1a001-0000-4000-8000-000000000007",
+    "date": "2026-09-10",
+    "ticker": "GLD",
+    "action": "buy",
+    "thesis": "Gold (7% of Core) as an inflation/tail-risk hedge uncorrelated with equities and bonds, rounding out the Core sleeve's asset-class mix — same Core-funding rationale as the VOO entry.",
+    "exitCondition": "Rebalance if Core sleeve drifts >5pp from target weights, or reconsider the whole Core allocation if it fails to track SPY over a full cycle (per STRATEGY.md benchmark)."
+  },
+  {
     "id": "8be58fd3-f4e4-4e6b-9d2a-437c7a6fdf45",
     "date": "2026-07-19",
     "ticker": "S&P500",
