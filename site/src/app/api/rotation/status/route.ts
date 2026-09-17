@@ -12,8 +12,13 @@ export async function GET() {
 
   return NextResponse.json({
     asOf: new Date().toISOString(),
+    equity: Number(account.equity),
+    cash: Number(account.cash),
+    regime: plan.regime,
     sleeveDollars: plan.sleeveDollars,
     picks: plan.picks,
+    leveraged: plan.leveraged,
+    targets: plan.targets,
     lastRebalance,
   });
 }

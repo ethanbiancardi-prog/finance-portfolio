@@ -20,7 +20,7 @@ import {
   type IconName,
 } from "@/components/ui";
 
-type SectorKey = StockSectorKey | "indexes";
+type SectorKey = StockSectorKey | "leveraged" | "indexes";
 
 type Pick = {
   symbol: string;
@@ -41,12 +41,22 @@ type RebalanceRecord = {
   sleeveDollars: number;
 };
 
+type Target = { symbol: string; sector: SectorKey; name: string; targetWeight: number; targetQty: number };
+type Regime = { riskOn: boolean; spyClose: number; spySma: number; asOf: string };
+
 type Status = {
   asOf: string;
+  equity: number;
+  cash: number;
+  regime: Regime;
   sleeveDollars: number;
   picks: Pick[];
+  leveraged: Target[];
+  targets: Target[];
   lastRebalance: RebalanceRecord | null;
 };
+
+type RunResult = { blocked: boolean; reason?: string; placedOrders: unknown[]; failedOrders: unknown[] };
 
 type Order = {
   id: string;
@@ -61,9 +71,10 @@ type Order = {
 
 // Sector display comes from lib/sectors.ts; "indexes" is the strategy's
 // extra broad-market bucket. Icon names match sector keys one-to-one.
-const SECTOR_ORDER: SectorKey[] = [...SECTOR_KEYS, "indexes"];
+const SECTOR_ORDER: SectorKey[] = [...SECTOR_KEYS, "leveraged", "indexes"];
 const SECTOR_LABEL: Record<SectorKey, string> = {
   ...Object.fromEntries(SECTOR_KEYS.map((k) => [k, SECTORS[k].label])),
+  leveraged: "Leveraged Index",
   indexes: "Indexes",
 } as Record<SectorKey, string>;
 const SECTOR_ICON = (sector: SectorKey): IconName => sector;
@@ -74,6 +85,7 @@ export default function SectorRotation() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [running, setRunning] = useState(false);
+  const [runMessage, setRunMessage] = useState("");
 
   async function load() {
     setLoading(true);
@@ -104,6 +116,12 @@ export default function SectorRotation() {
     try {
       const res = await fetch("/api/rotation/run", { method: "POST" });
       if (!res.ok) throw new Error("Rebalance run failed");
+      const result: RunResult = await res.json();
+      setRunMessage(
+        result.blocked
+          ? result.reason ?? "Blocked."
+          : `Placed ${result.placedOrders.length} orders${result.failedOrders.length ? `, ${result.failedOrders.length} failed` : ""}.`,
+      );
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Rebalance run failed");
@@ -117,16 +135,44 @@ export default function SectorRotation() {
   return (
     <PageShell
       eyebrow="automated strategy"
-      title="Sector Rotation"
-      description="Every month, ranks well-known stocks across eight sectors (communications, consumer, energy, financials, healthcare, materials & industrials, sustainability, technology) plus broad-market index ETFs by risk-adjusted price momentum, picks the top 2 per sector, caps any single position at 20% of the sleeve, and rebalances automatically via a scheduled job on the Alpaca paper account."
+      title="Momentum + Leverage"
+      description="An aggressive, rule-based book. 60% of equity goes to the 10 strongest stocks by risk-adjusted momentum across eight sectors (max 3 per sector); 30% to 3x leveraged index ETFs (TQQQ, SOXL); 10% stays in cash. Circuit breaker: if SPY is below its 200-day average, the leveraged sleeve goes to cash and momentum shrinks to 5 names. Rebalanced monthly by a scheduled job on the Alpaca paper account — never on margin."
     >
       {loading && <p className="mt-4 text-xs text-zinc-500">Loading...</p>}
       {error && <p className="mt-4 text-xs text-bad">{error}</p>}
 
       {status && (
         <>
-          <section className="mt-4 grid grid-cols-2 gap-3">
-            <StatCard card size="lg" label="Rotation Sleeve" value={formatCurrency(status.sleeveDollars)} />
+          <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard
+              card
+              size="lg"
+              label="Regime"
+              value={status.regime.riskOn ? "Risk on" : "Risk off"}
+              hint={
+                <span className={`text-[11px] ${status.regime.riskOn ? "text-good" : "text-bad"}`}>
+                  SPY {status.regime.spyClose.toFixed(0)} vs 200-day {status.regime.spySma.toFixed(0)}
+                </span>
+              }
+            />
+            <StatCard
+              card
+              size="lg"
+              label="Momentum Sleeve"
+              value={formatCurrency(status.sleeveDollars)}
+              hint={<span className="text-[11px] text-zinc-500">{formatPercent(status.sleeveDollars / status.equity, { decimals: 0 })} of equity</span>}
+            />
+            <StatCard
+              card
+              size="lg"
+              label="Leveraged Sleeve"
+              value={formatCurrency(status.leveraged.reduce((s, t) => s + t.targetWeight * status.equity, 0))}
+              hint={
+                <span className="text-[11px] text-zinc-500">
+                  {status.leveraged.length ? status.leveraged.map((t) => t.symbol).join(" + ") : "in cash (risk off)"}
+                </span>
+              }
+            />
             <StatCard
               card
               size="lg"
@@ -145,9 +191,36 @@ export default function SectorRotation() {
           <section className="mt-4">
             <SectionHeader
               label="current picks"
-              description="Momentum score = trailing return ÷ volatility over the lookback window — a risk-adjusted rank, not a raw return."
+              description="Top 10 across every sector by momentum score = trailing return ÷ volatility over the lookback window — a risk-adjusted rank, not a raw return. Each pick is 6% of equity; the leveraged ETFs are 20% and 10%."
             />
             <div className="mt-3 space-y-2">
+              {status.leveraged.length > 0 && (
+                <Card padding="sm">
+                  <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-foreground">
+                    <Icon name="leveraged" className="text-accent" />
+                    {SECTOR_LABEL.leveraged}
+                  </p>
+                  <table className="mt-2 w-full text-left">
+                    <thead>
+                      <tr className={tableHeadRowClass}>
+                        <th className={tableHeadCellClass}>Ticker</th>
+                        <th className={`${tableHeadCellClass} text-right`}>Weight</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {status.leveraged.map((t) => (
+                        <tr key={t.symbol} className={tableRowClass}>
+                          <td className="py-1">
+                            <span className="text-xs text-foreground">{t.symbol}</span>
+                            <span className="block text-[10px] text-zinc-600">{t.name}</span>
+                          </td>
+                          <td className={`${tableCellStrongClass} text-right`}>{formatPercent(t.targetWeight, { decimals: 0 })}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Card>
+              )}
               {SECTOR_ORDER.map((sector) => {
                 const picks = status.picks.filter((p) => p.sector === sector);
                 if (picks.length === 0) return null;
@@ -179,7 +252,7 @@ export default function SectorRotation() {
                             <td className={`${tableCellStrongClass} text-right`}>{formatRatio(p.momentumScore)}</td>
                             <td className={`${tableCellStrongClass} text-right`}>
                               <span className="inline-flex items-center gap-1.5">
-                                {formatPercent(p.weight)}
+                                {formatPercent((p.weight * status.sleeveDollars) / status.equity)}
                                 {p.capped && <StatusBadge rating="average" label="Capped at 20%" />}
                               </span>
                             </td>
@@ -227,10 +300,14 @@ export default function SectorRotation() {
           </section>
 
           <section className="mt-4">
-            <SectionHeader label="run rebalance" description="Manually trigger the same rebalance the scheduled job runs monthly — useful for demos." />
+            <SectionHeader
+              label="run rebalance"
+              description="Manually trigger the same rebalance the scheduled job runs monthly. It refuses to place anything that would need margin — sell positions outside the strategy first."
+            />
             <Button className="mt-3" loading={running} loadingLabel="Running..." onClick={runNow}>
               Run Rebalance Now
             </Button>
+            {runMessage && <p className="mt-3 max-w-2xl text-xs leading-5 text-zinc-500">{runMessage}</p>}
           </section>
         </>
       )}

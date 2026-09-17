@@ -20,9 +20,9 @@ const projects: Project[] = [
     screenshot: "/screenshots/paper-trading.png",
   },
   {
-    name: "Sector Rotation Strategy",
+    name: "Momentum + Leverage Strategy",
     blurb:
-      "Automated monthly rebalance across well-known names in eight sectors by risk-adjusted momentum, with position-size caps and scheduled execution.",
+      "Aggressive rule-based book: the 10 strongest stocks by risk-adjusted momentum plus 3x index ETFs, with a 200-day trend circuit breaker, rebalanced monthly by a scheduled job.",
     status: "Live",
     href: "/rotation",
     screenshot: "/screenshots/rotation.png",

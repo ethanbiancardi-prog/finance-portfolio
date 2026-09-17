@@ -7,7 +7,7 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 const links = [
   { href: "/", label: "Home" },
   { href: "/paper-trading", label: "Paper Trading" },
-  { href: "/rotation", label: "Sector Rotation" },
+  { href: "/rotation", label: "Momentum" },
   { href: "/monte-carlo", label: "Monte Carlo" },
   { href: "/optimizer", label: "Optimizer" },
   { href: "/research", label: "Research" },

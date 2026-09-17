@@ -10,6 +10,7 @@ export type IconName =
   | "industrials"
   | "sustainability"
   | "technology"
+  | "leveraged"
   | "indexes";
 
 // Each entry supplies only inner shapes — the shared <svg> shell below owns
@@ -63,6 +64,14 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M5 19 C5 9 11 5 20 4 C19 13 15 19 5 19 Z" />
       <path d="M5 19 L14 10" />
+    </>
+  ),
+  // Three chevrons stacked: "3x".
+  leveraged: (
+    <>
+      <path d="M6 20 L12 14 L18 20" />
+      <path d="M6 14 L12 8 L18 14" />
+      <path d="M6 8 L12 2 L18 8" />
     </>
   ),
   indexes: (

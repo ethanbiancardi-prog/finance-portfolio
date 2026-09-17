@@ -4,32 +4,55 @@ import { SECTOR_KEYS, SECTORS, type SectorKey as StockSectorKey } from "@/lib/se
 
 // Every constant here is a deliberate, tunable choice — see the comment on
 // each — not a magic number. Tune them in one place if the strategy changes.
+// The strategy itself is written up in projects/paper-trading/STRATEGY.md.
 
-// The eight stock sectors from lib/sectors.ts plus a broad-market "indexes"
-// bucket, so the strategy always holds something even when every sector's
-// momentum is negative.
-export const ROTATION_SECTOR_KEYS = [...SECTOR_KEYS, "indexes"] as const;
-export type SectorKey = StockSectorKey | "indexes";
-
-// Index ETFs aren't in the curated sector lists (they're funds, not
-// companies), so they get their own fixed list here.
-export const INDEX_TICKERS = ["SPY", "QQQ", "DIA", "IWM"];
+// The eight stock sectors from lib/sectors.ts. "leveraged" is the leveraged
+// index sleeve (not a stock sector, but it's grouped like one on the
+// dashboard); "indexes" is kept so rebalance records saved before Sep 2026
+// still type-check.
+export const ROTATION_SECTOR_KEYS = [...SECTOR_KEYS, "leveraged", "indexes"] as const;
+export type SectorKey = StockSectorKey | "leveraged" | "indexes";
 
 // ~3 months of trading days — long enough to filter out single-week noise,
-// short enough that the "rotation" actually rotates month to month.
+// short enough that the book actually turns over month to month.
 export const LOOKBACK_TRADING_DAYS = 63;
-// Picks per sector. 2 x 9 buckets (8 sectors + indexes) = 18 total positions.
-export const TOP_N_PER_SECTOR = 2;
-// No single stock may exceed this share of the rotation sleeve. At
-// TOP_N_PER_SECTOR=2 the natural equal weight (~5.6% across 18 positions)
-// already respects this — the cap exists as a safety ceiling for when a
-// sector returns fewer usable candidates than TOP_N_PER_SECTOR (thin/missing
-// price data).
+
+// --- Momentum sleeve -------------------------------------------------------
+// Top N stocks by risk-adjusted momentum across the whole universe, not per
+// sector: an aggressive book should own the strongest trends wherever they
+// are, not the best name in a sector that's falling. The per-sector cap
+// stops it becoming a single-sector bet (10 energy names in an oil spike).
+export const TOP_N_OVERALL = 10;
+export const MAX_PER_SECTOR = 3;
+// No single stock may exceed this share of its sleeve. At 10 equal-weight
+// picks (10% each) it isn't binding; it's a ceiling for when fewer names
+// have usable price data.
 export const POSITION_CAP_PCT = 0.2;
-// % of current account equity dedicated to this strategy. See
-// projects/paper-trading/STRATEGY.md "Satellite 3" for the TODO(ethan) on
-// tuning this against the other satellites.
-export const DEFAULT_ROTATION_SLEEVE_PCT = 0.1;
+// Share of account equity in the momentum sleeve.
+export const MOMENTUM_SLEEVE_PCT = 0.6;
+
+// --- Leveraged index sleeve -----------------------------------------------
+// 3x daily-leveraged ETFs: TQQQ tracks 3x the Nasdaq-100, SOXL 3x the
+// semiconductor index. They compound daily, so they beat 3x the index in a
+// steady uptrend and lose far more than 3x in a choppy or falling one (TQQQ
+// fell 79% in 2022) — which is exactly why the regime filter below exists.
+export const LEVERAGED_TARGETS: { symbol: string; name: string; weight: number }[] = [
+  { symbol: "TQQQ", name: "ProShares UltraPro QQQ (3x Nasdaq-100)", weight: 0.2 },
+  { symbol: "SOXL", name: "Direxion Daily Semiconductor Bull 3x", weight: 0.1 },
+];
+
+// --- Regime filter (the circuit breaker) ----------------------------------
+// If SPY closes below its 200-day moving average at rebalance time, the
+// market is in a downtrend by the most common trend-following definition:
+// the leveraged sleeve goes to cash and the momentum sleeve shrinks. Momentum
+// strategies suffer their worst crashes at trend reversals, and 3x ETFs
+// bleed in choppy markets — this rule side-steps the worst of both.
+export const REGIME_SMA_DAYS = 200;
+export const RISK_OFF_TOP_N = 5;
+export const RISK_OFF_MOMENTUM_SLEEVE_PCT = 0.3;
+
+// The remaining ~10% of equity stays in cash as a buffer: 3x ETFs can gap
+// several percent overnight, and the run refuses to buy on margin.
 
 export type Candidate = { symbol: string; sector: SectorKey; name: string };
 export type ScoredCandidate = Candidate & {
@@ -43,21 +66,29 @@ export type TargetPosition = {
   symbol: string;
   sector: SectorKey;
   name: string;
-  targetWeight: number;
+  targetWeight: number; // share of account equity, not of a sleeve
   targetQty: number;
 };
+export type Regime = { riskOn: boolean; spyClose: number; spySma: number; asOf: string };
 
-// The curated tickers per sector plus the index ETFs, with company names
-// looked up from SEC's ticker file (one cached fetch for all of them).
+// The curated tickers per sector, with company names looked up from SEC's
+// ticker file (one cached fetch for all of them).
 export async function buildUniverse(): Promise<Candidate[]> {
-  const symbolsBySector: [SectorKey, readonly string[]][] = [
-    ...SECTOR_KEYS.map((key): [SectorKey, readonly string[]] => [key, SECTORS[key].tickers]),
-    ["indexes", INDEX_TICKERS],
-  ];
+  const symbolsBySector = SECTOR_KEYS.map((key): [SectorKey, readonly string[]] => [key, SECTORS[key].tickers]);
   const names = await resolveTickerNames(symbolsBySector.flatMap(([, symbols]) => [...symbols]));
   return symbolsBySector.flatMap(([sector, symbols]) =>
     symbols.map((symbol) => ({ symbol, sector, name: names.get(symbol) ?? symbol })),
   );
+}
+
+// SPY's last close vs. its 200-day simple moving average. Needs a little
+// more than 200 bars; getDailyBars pads the calendar window for that.
+export function computeRegime(spyBars: DailyBar[]): Regime {
+  const closes = spyBars.map((b) => b.c);
+  const window = closes.slice(-REGIME_SMA_DAYS);
+  const spySma = window.reduce((sum, c) => sum + c, 0) / window.length;
+  const spyClose = closes[closes.length - 1];
+  return { riskOn: spyClose >= spySma, spyClose, spySma, asOf: spyBars[spyBars.length - 1].t };
 }
 
 // Momentum = trailing return over the lookback window, divided by the
@@ -109,19 +140,21 @@ export function scoreCandidates(
   return scored;
 }
 
-// A stock listed in two sectors (Sustainability overlaps several) is only
-// picked once — in the first sector where it makes the cut — so it can't end
-// up double-weighted. The later sector just takes the next name down.
-export function rankAndPick(scored: ScoredCandidate[], topN: number): ScoredCandidate[] {
+// Walk the whole universe from strongest momentum down, taking a name
+// unless its sector already has maxPerSector picks. A stock listed in two
+// sectors (Sustainability overlaps several) is only taken once, under
+// whichever sector it's seen first.
+export function rankAndPick(scored: ScoredCandidate[], topN: number, maxPerSector: number): ScoredCandidate[] {
   const picks: ScoredCandidate[] = [];
   const taken = new Set<string>();
-  for (const sector of ROTATION_SECTOR_KEYS) {
-    const inSector = scored
-      .filter((s) => s.sector === sector && !taken.has(s.symbol))
-      .sort((a, b) => b.momentumScore - a.momentumScore)
-      .slice(0, topN);
-    for (const p of inSector) taken.add(p.symbol);
-    picks.push(...inSector);
+  const perSector = new Map<SectorKey, number>();
+  for (const s of [...scored].sort((a, b) => b.momentumScore - a.momentumScore)) {
+    if (picks.length >= topN) break;
+    if (taken.has(s.symbol)) continue;
+    if ((perSector.get(s.sector) ?? 0) >= maxPerSector) continue;
+    taken.add(s.symbol);
+    perSector.set(s.sector, (perSector.get(s.sector) ?? 0) + 1);
+    picks.push(s);
   }
   return picks;
 }
@@ -165,14 +198,37 @@ export function applyPositionCap(picks: ScoredCandidate[], capPct: number): Pick
   }));
 }
 
-export function buildTargetPositions(picks: Pick[], sleeveDollars: number): TargetPosition[] {
+export function buildTargetPositions(picks: Pick[], sleeveDollars: number, accountEquity: number): TargetPosition[] {
   return picks.map((p) => ({
     symbol: p.symbol,
     sector: p.sector,
     name: p.name,
-    targetWeight: p.weight,
+    targetWeight: (p.weight * sleeveDollars) / accountEquity,
     targetQty: Math.floor((p.weight * sleeveDollars) / p.lastPrice),
   }));
+}
+
+// Leveraged sleeve targets — fixed weights, sized off equity, or nothing at
+// all when the regime is risk-off.
+export function buildLeveragedTargets(
+  regime: Regime,
+  lastPriceBySymbol: Map<string, number>,
+  accountEquity: number,
+): TargetPosition[] {
+  if (!regime.riskOn) return [];
+  return LEVERAGED_TARGETS.flatMap((t) => {
+    const price = lastPriceBySymbol.get(t.symbol);
+    if (!price) return [];
+    return [
+      {
+        symbol: t.symbol,
+        sector: "leveraged" as const,
+        name: t.name,
+        targetWeight: t.weight,
+        targetQty: Math.floor((t.weight * accountEquity) / price),
+      },
+    ];
+  });
 }
 
 // Sells (including full exits for dropped picks) are listed before buys so
@@ -199,20 +255,30 @@ export function diffRebalance(
 // Read-only orchestrator: builds this month's target basket without placing
 // any orders or touching persisted state. Used by GET /status (display
 // only) and by the first half of POST/GET /run (before it diffs and trades).
-export async function computeRotationPlan(
-  accountEquity: number,
-  sleevePct: number = DEFAULT_ROTATION_SLEEVE_PCT,
-) {
+export async function computeRotationPlan(accountEquity: number) {
   const universe = await buildUniverse();
-  const bars = await getDailyBars(
-    [...new Set(universe.map((c) => c.symbol))], // overlapping sectors share bars
-    LOOKBACK_TRADING_DAYS,
-  );
+  const leveragedSymbols = LEVERAGED_TARGETS.map((t) => t.symbol);
+  const [bars, regimeBars] = await Promise.all([
+    getDailyBars(
+      [...new Set([...universe.map((c) => c.symbol), ...leveragedSymbols])], // overlapping sectors share bars
+      LOOKBACK_TRADING_DAYS,
+    ),
+    getDailyBars(["SPY"], REGIME_SMA_DAYS + 5),
+  ]);
+  const regime = computeRegime(regimeBars.get("SPY") ?? []);
+
   const scored = scoreCandidates(universe, bars);
-  const ranked = rankAndPick(scored, TOP_N_PER_SECTOR);
+  const topN = regime.riskOn ? TOP_N_OVERALL : RISK_OFF_TOP_N;
+  const sleevePct = regime.riskOn ? MOMENTUM_SLEEVE_PCT : RISK_OFF_MOMENTUM_SLEEVE_PCT;
+  const ranked = rankAndPick(scored, topN, MAX_PER_SECTOR);
   const picks = applyPositionCap(ranked, POSITION_CAP_PCT);
   const sleeveDollars = accountEquity * sleevePct;
-  const targets = buildTargetPositions(picks, sleeveDollars);
 
-  return { scored, picks, targets, sleeveDollars };
+  const lastPriceBySymbol = new Map<string, number>(
+    leveragedSymbols.map((sym) => [sym, bars.get(sym)?.at(-1)?.c ?? 0]),
+  );
+  const leveraged = buildLeveragedTargets(regime, lastPriceBySymbol, accountEquity);
+  const targets = [...buildTargetPositions(picks, sleeveDollars, accountEquity), ...leveraged];
+
+  return { regime, scored, picks, targets, leveraged, sleeveDollars };
 }

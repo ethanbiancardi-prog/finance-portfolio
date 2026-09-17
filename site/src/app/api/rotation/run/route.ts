@@ -22,6 +22,34 @@ async function runRebalance() {
   const orderIntents = diffRebalance(currentQtyBySymbol, plan.targets);
   const month = new Date().toISOString().slice(0, 7);
 
+  // Never buy on margin. Alpaca's paper account offers ~4x buying power, so
+  // without this check a rebalance sized at 90% of equity would happily fill
+  // on borrowed money on top of whatever else the account holds (e.g. the
+  // old passive core before it's been sold). Estimate the cash the buys
+  // need against cash on hand plus what this run's sells will raise, and
+  // refuse the whole run — placing nothing — if it doesn't cover.
+  const priceBySymbol = new Map<string, number>();
+  for (const t of plan.targets) if (t.targetQty > 0) priceBySymbol.set(t.symbol, (t.targetWeight * Number(account.equity)) / t.targetQty);
+  const livePositions: { symbol: string; current_price: string }[] = await alpaca("/positions");
+  for (const p of livePositions) if (!priceBySymbol.has(p.symbol)) priceBySymbol.set(p.symbol, Number(p.current_price));
+  const dollars = (o: { symbol: string; qty: number }) => o.qty * (priceBySymbol.get(o.symbol) ?? 0);
+  const buyDollars = orderIntents.filter((o) => o.side === "buy").reduce((sum, o) => sum + dollars(o), 0);
+  const sellDollars = orderIntents.filter((o) => o.side === "sell").reduce((sum, o) => sum + dollars(o), 0);
+  const deployable = Number(account.cash) + sellDollars;
+  if (buyDollars > deployable) {
+    return {
+      month,
+      blocked: true,
+      reason: `This rebalance needs about $${Math.round(buyDollars).toLocaleString()} of buys but only $${Math.round(deployable).toLocaleString()} would be available without margin (cash $${Math.round(Number(account.cash)).toLocaleString()} + $${Math.round(sellDollars).toLocaleString()} from this run's sells). Sell the non-strategy positions first, then run again. No orders were placed.`,
+      regime: plan.regime,
+      picks: plan.picks,
+      orders: orderIntents,
+      placedOrders: [],
+      failedOrders: [],
+      skippedOrders: [],
+    };
+  }
+
   // Sells (incl. full exits) before buys, to free up buying power first.
   const ordered = [
     ...orderIntents.filter((o) => o.side === "sell"),
@@ -107,7 +135,7 @@ async function runRebalance() {
     sleeveDollars: plan.sleeveDollars,
   });
 
-  return { month, picks: plan.picks, orders: orderIntents, placedOrders, failedOrders, skippedOrders };
+  return { month, blocked: false, regime: plan.regime, picks: plan.picks, orders: orderIntents, placedOrders, failedOrders, skippedOrders };
 }
 
 // Vercel Cron always sends GET requests. This is the one route on the site
