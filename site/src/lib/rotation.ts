@@ -109,13 +109,19 @@ export function scoreCandidates(
   return scored;
 }
 
+// A stock listed in two sectors (Sustainability overlaps several) is only
+// picked once — in the first sector where it makes the cut — so it can't end
+// up double-weighted. The later sector just takes the next name down.
 export function rankAndPick(scored: ScoredCandidate[], topN: number): ScoredCandidate[] {
   const picks: ScoredCandidate[] = [];
+  const taken = new Set<string>();
   for (const sector of ROTATION_SECTOR_KEYS) {
     const inSector = scored
-      .filter((s) => s.sector === sector)
-      .sort((a, b) => b.momentumScore - a.momentumScore);
-    picks.push(...inSector.slice(0, topN));
+      .filter((s) => s.sector === sector && !taken.has(s.symbol))
+      .sort((a, b) => b.momentumScore - a.momentumScore)
+      .slice(0, topN);
+    for (const p of inSector) taken.add(p.symbol);
+    picks.push(...inSector);
   }
   return picks;
 }
@@ -199,7 +205,7 @@ export async function computeRotationPlan(
 ) {
   const universe = await buildUniverse();
   const bars = await getDailyBars(
-    universe.map((c) => c.symbol),
+    [...new Set(universe.map((c) => c.symbol))], // overlapping sectors share bars
     LOOKBACK_TRADING_DAYS,
   );
   const scored = scoreCandidates(universe, bars);

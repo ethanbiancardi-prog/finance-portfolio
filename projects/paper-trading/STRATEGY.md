@@ -39,7 +39,9 @@
 - **Mechanics:** every month, rank a curated list of ~12 well-known stocks in
   each of eight sectors (communications, consumer, energy, financials,
   healthcare, materials & industrials, sustainability, technology — see
-  `site/src/lib/sectors.ts`), plus a fixed list of 4 broad-market index ETFs
+  `site/src/lib/sectors.ts`; Sustainability mirrors the Bentley Investment
+  Group Sustainability Fund's holdings, and a stock listed in two sectors is
+  only ever picked once), plus a fixed list of 4 broad-market index ETFs
   (SPY/QQQ/DIA/IWM), by risk-adjusted momentum (trailing 3-month return ÷
   volatility over that window). Takes the top 2 per bucket (18 positions total
   across 9 buckets), equal-weights them, and caps any single position at 20%

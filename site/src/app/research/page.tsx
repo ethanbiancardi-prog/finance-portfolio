@@ -5,7 +5,7 @@ import { Button, Card, Chip, PageShell, Tabs, TickerSearch } from "@/components/
 import { Dashboard, RedFlagsPanel, type Company, type Dashboard as DashboardData } from "./Fundamentals";
 import { NewsPanel } from "./NewsPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
-import { SECTOR_KEYS, SECTORS } from "@/lib/sectors";
+import { isSectorKey, SECTOR_KEYS, SECTORS } from "@/lib/sectors";
 
 const CATEGORIES = SECTOR_KEYS.map((key) => ({ key, label: SECTORS[key].label }));
 
@@ -116,6 +116,9 @@ export default function Research() {
               </Chip>
             ))}
           </div>
+          {isSectorKey(category) && (
+            <p className="mt-2 max-w-2xl text-[11px] leading-5 text-zinc-500">{SECTORS[category].description}</p>
+          )}
 
           {browseLoading && (
             <p className="mt-4 text-xs text-zinc-500">
