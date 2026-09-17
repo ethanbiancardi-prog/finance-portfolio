@@ -546,6 +546,67 @@ export async function getFilingText(cik: number, filing: FilingRef): Promise<str
   return stripHtml(html);
 }
 
+export type CompanyProfile = {
+  sicDescription: string | null; // SEC's industry label, e.g. "Semiconductors & Related Devices"
+  stateOfIncorporation: string | null;
+  fiscalYearEnd: string | null; // "MMDD"
+  headquarters: string | null; // "Santa Clara, CA"
+  exchange: string | null;
+};
+
+// Basic facts from the same submissions feed getRecentTenKFilings walks.
+// Cached a day — none of this changes between annual reports.
+export async function getCompanyProfile(cik: number): Promise<CompanyProfile> {
+  const padded = String(cik).padStart(10, "0");
+  const res = await secFetch(`https://data.sec.gov/submissions/CIK${padded}.json`, {
+    next: { revalidate: 86400 },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = await res.json();
+  const biz = data.addresses?.business;
+  const headquarters = biz?.city
+    ? `${titleCase(biz.city)}, ${biz.stateOrCountry ?? ""}`.replace(/, $/, "")
+    : null;
+  return {
+    sicDescription: data.sicDescription || null,
+    stateOfIncorporation: data.stateOfIncorporation || null,
+    fiscalYearEnd: data.fiscalYearEnd || null,
+    headquarters,
+    exchange: data.exchanges?.[0] ?? null,
+  };
+}
+
+function titleCase(s: string) {
+  return s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// "Item 1. Business" is the section where a company describes what it does,
+// in its own words — the best source for a plain-English summary. The
+// phrase appears several times in every 10-K: in the table of contents, as
+// the real heading, and in cross-references like "see Item 1. Business of
+// this report" inside the risk factors. Only the first two are followed by
+// an "Item 1A. Risk Factors" heading, and of those the real one is by far
+// the longer — so take the longest *bounded* candidate and cap it: the first
+// few thousand words are the overview, the rest is segment detail.
+export function extractBusinessSection(text: string, maxChars = 14000): string | null {
+  const headings = [...text.matchAll(/item\s*1\.?\s*[-–—:]?\s*business\b/gi)];
+  if (headings.length === 0) return null;
+
+  let best: string | null = null;
+  for (const h of headings) {
+    const start = h.index! + h[0].length;
+    // A cross-reference reads "...see Item 1. Business of this report" / "in
+    // Part I" / ")"; a real heading is followed straight by body text.
+    if (/^\s*(of (this|our|the)|(of|in) part|and elsewhere|above|below|[),.;])/i.test(text.slice(start, start + 16))) continue;
+    const next = text.slice(start).search(/item\s*1a\.?\s*[-–—:]?\s*risk\s*factors/i);
+    if (next === -1) continue; // unbounded: a cross-reference after the real 1A heading
+    const section = text.slice(start, start + next);
+    if (!best || section.length > best.length) best = section;
+  }
+  if (!best || best.length < 500) return null;
+  return best.slice(0, maxChars).trim();
+}
+
 // Pull short excerpts of text around each match of a pattern, so an AI
 // prompt only sees the relevant sentences instead of the entire filing.
 export function findSnippets(text: string, pattern: RegExp, contextChars: number, maxSnippets: number): string[] {

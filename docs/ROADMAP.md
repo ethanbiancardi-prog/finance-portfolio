@@ -15,7 +15,7 @@
 
 ## Phase 2 — AI wow-factor (weeks 4–6)
 - [x] 10-K analyzer: pull from SEC EDGAR, compute ratio dashboard (Search by ticker + Browse by Industry, sorted by public float)
-- [ ] 10-K analyzer: AI-written one-page summary per filing
+- [x] 10-K analyzer: AI-written business summary per filing (from Item 1, shown on every research lookup)
 - [ ] Add "AI assumptions mode" to the DCF builder (pre-fill assumptions from a filing)
 
 ## Phase 3 — Flagship (weeks 7–12)
