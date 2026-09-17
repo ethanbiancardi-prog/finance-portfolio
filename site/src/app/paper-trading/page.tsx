@@ -12,6 +12,7 @@ import {
   SelectField,
   StatCard,
   StatusBadge,
+  Term,
   TickerSearch,
   tableCellClass,
   tableCellStrongClass,
@@ -204,11 +205,12 @@ export default function PaperTrading() {
           how much you can spend right now — it can exceed cash on hand because
           a margin account lets you borrow against your equity. */}
       <section className="mt-4 grid grid-cols-2 gap-3">
-        <StatCard card size="lg" label="Equity" value={account ? formatCurrency(account.equity) : "..."} />
+        <StatCard card size="lg" label="Equity" term="equity" value={account ? formatCurrency(account.equity) : "..."} />
         <StatCard
           card
           size="lg"
           label="Buying Power"
+          term="buyingPower"
           value={account ? formatCurrency(account.buying_power) : "..."}
         />
       </section>
@@ -225,6 +227,7 @@ export default function PaperTrading() {
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard
             label="Sharpe Ratio"
+            term="sharpe"
             value={riskMetrics ? formatRatio(riskMetrics.sharpe) : "..."}
             hint={
               riskMetrics && (
@@ -237,13 +240,15 @@ export default function PaperTrading() {
           />
           <StatCard
             label="Volatility (ann.)"
+            term="volatility"
             value={riskMetrics ? formatPercent(riskMetrics.annualizedVolatility) : "..."}
           />
           <StatCard
             label="Max Drawdown"
+            term="drawdown"
             value={riskMetrics ? formatPercent(riskMetrics.maxDrawdown) : "..."}
           />
-          <StatCard label="Beta vs SPY" value={riskMetrics ? formatRatio(riskMetrics.beta) : "..."} />
+          <StatCard label="Beta vs SPY" term="beta" value={riskMetrics ? formatRatio(riskMetrics.beta) : "..."} />
         </div>
       </Card>
 
@@ -260,9 +265,13 @@ export default function PaperTrading() {
               <tr className={tableHeadRowClass}>
                 <th className={tableHeadCellClass}>Symbol</th>
                 <th className={`${tableHeadCellClass} text-right`}>Qty</th>
-                <th className={`${tableHeadCellClass} text-right`}>Avg Entry</th>
+                <th className={`${tableHeadCellClass} text-right`}>
+                  <Term term="avgEntry">Avg Entry</Term>
+                </th>
                 <th className={`${tableHeadCellClass} text-right`}>Current</th>
-                <th className={`${tableHeadCellClass} text-right`}>P&L</th>
+                <th className={`${tableHeadCellClass} text-right`}>
+                  <Term term="pnl">P&L</Term>
+                </th>
               </tr>
             </thead>
             <tbody>

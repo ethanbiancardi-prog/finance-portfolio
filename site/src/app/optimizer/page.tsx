@@ -126,6 +126,7 @@ export default function Optimizer() {
               card
               size="lg"
               label="Max Sharpe"
+              term="sharpe"
               value={formatRatio(result.maxSharpe.sharpe)}
               hint={
                 <span className="text-[11px] text-zinc-500">

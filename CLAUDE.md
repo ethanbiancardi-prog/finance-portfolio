@@ -25,6 +25,7 @@ Live at https://site-theta-drab-22.vercel.app. All app code is in `site/src`; `p
 - DCF builder, portfolio optimizer (efficient frontier), Monte Carlo simulator, Quant Notes (7 concepts w/ detail pages)
 - Sector rotation — monthly momentum rebalance on the Alpaca account via Vercel Cron (1st of month); Upstash Redis + CRON_SECRET provisioned, live. Universe is the curated list in `lib/sectors.ts` (8 sectors x ~12 household names + 4 index ETFs, 18 positions; a stock in two sectors is only picked once) — same list drives the research page's Browse by Sector tab. The Sustainability sector mirrors Bentley Investment Group's Sustainability Fund holdings (bentleyinvestmentgroup.org/sustainability) — Ethan is interviewing for that fund; keep it in sync with the fund's page
 - `lib/portfolioMath.ts` — shared return/cov/Sharpe/drawdown/beta math used by risk metrics, optimizer, Monte Carlo
+- Hover glossary — `components/ui/Term` + `lib/glossary.ts`; `StatCard term="sharpe"` etc. shows a definition on hover/tap with a link to the Quant Note. Definitions come from the notes where one exists, so add new terms there first
 
 **In progress**
 - Nothing mid-flight. Persona names/character are staying as-is (Ethan's call, Sep 2026); the stale-data problem was fixed by briefing the model, not by rewording.
