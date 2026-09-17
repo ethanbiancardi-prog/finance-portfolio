@@ -5,15 +5,9 @@ import { Button, Card, Chip, PageShell, Tabs, TickerSearch } from "@/components/
 import { Dashboard, RedFlagsPanel, type Company, type Dashboard as DashboardData } from "./Fundamentals";
 import { NewsPanel } from "./NewsPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
+import { SECTOR_KEYS, SECTORS } from "@/lib/sectors";
 
-const CATEGORIES = [
-  { key: "tech", label: "Tech" },
-  { key: "biotech", label: "Biotech" },
-  { key: "healthcare", label: "Healthcare" },
-  { key: "consumer", label: "Consumer" },
-  { key: "energy", label: "Energy" },
-  { key: "sustainability", label: "Sustainability" },
-];
+const CATEGORIES = SECTOR_KEYS.map((key) => ({ key, label: SECTORS[key].label }));
 
 export default function Research() {
   const [tab, setTab] = useState<"search" | "browse">("search");
@@ -24,7 +18,7 @@ export default function Research() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [category, setCategory] = useState(CATEGORIES[0].key);
+  const [category, setCategory] = useState<string>(CATEGORIES[0].key);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [browseLoading, setBrowseLoading] = useState(false);
 
@@ -74,7 +68,7 @@ export default function Research() {
         <Tabs
           tabs={[
             { key: "search", label: "Search" },
-            { key: "browse", label: "Browse by Industry" },
+            { key: "browse", label: "Browse by Sector" },
           ]}
           active={tab}
           onChange={setTab}

@@ -1,34 +1,27 @@
-import { INDUSTRY_CATEGORIES, getCompaniesBySic, resolveTickerNames } from "@/lib/edgar";
+import { resolveTickerNames } from "@/lib/edgar";
 import { getDailyBars, type DailyBar } from "@/lib/marketdata";
+import { SECTOR_KEYS, SECTORS, type SectorKey as StockSectorKey } from "@/lib/sectors";
 
 // Every constant here is a deliberate, tunable choice — see the comment on
 // each — not a magic number. Tune them in one place if the strategy changes.
-export const ROTATION_SECTOR_KEYS = [
-  "tech",
-  "biotech",
-  "consumer",
-  "financial",
-  "healthcare",
-  "energy",
-  "indexes",
-] as const;
-export type SectorKey = (typeof ROTATION_SECTOR_KEYS)[number];
 
-// A fixed list, not an EDGAR SIC lookup — index ETFs are investment trusts,
-// not SIC-classified operating companies, so they don't show up in the
-// company-browse categories the way individual stocks do.
+// The eight stock sectors from lib/sectors.ts plus a broad-market "indexes"
+// bucket, so the strategy always holds something even when every sector's
+// momentum is negative.
+export const ROTATION_SECTOR_KEYS = [...SECTOR_KEYS, "indexes"] as const;
+export type SectorKey = StockSectorKey | "indexes";
+
+// Index ETFs aren't in the curated sector lists (they're funds, not
+// companies), so they get their own fixed list here.
 export const INDEX_TICKERS = ["SPY", "QQQ", "DIA", "IWM"];
 
-// Top N of EDGAR's ~40-per-sector (sorted by public float) we bother scoring.
-// Keeps the monthly momentum lookup from ballooning across 7 sectors.
-export const UNIVERSE_SIZE_PER_SECTOR = 15;
 // ~3 months of trading days — long enough to filter out single-week noise,
 // short enough that the "rotation" actually rotates month to month.
 export const LOOKBACK_TRADING_DAYS = 63;
-// Picks per sector. 2 x 7 sectors = 14 total positions.
+// Picks per sector. 2 x 9 buckets (8 sectors + indexes) = 18 total positions.
 export const TOP_N_PER_SECTOR = 2;
 // No single stock may exceed this share of the rotation sleeve. At
-// TOP_N_PER_SECTOR=2 the natural equal weight (~7.1% across 14 positions)
+// TOP_N_PER_SECTOR=2 the natural equal weight (~5.6% across 18 positions)
 // already respects this — the cap exists as a safety ceiling for when a
 // sector returns fewer usable candidates than TOP_N_PER_SECTOR (thin/missing
 // price data).
@@ -54,35 +47,17 @@ export type TargetPosition = {
   targetQty: number;
 };
 
+// The curated tickers per sector plus the index ETFs, with company names
+// looked up from SEC's ticker file (one cached fetch for all of them).
 export async function buildUniverse(): Promise<Candidate[]> {
-  const bySector = await Promise.all(
-    ROTATION_SECTOR_KEYS.map(async (sector) => {
-      if (sector === "indexes") {
-        const names = await resolveTickerNames(INDEX_TICKERS);
-        return INDEX_TICKERS.map((symbol) => ({
-          symbol,
-          sector,
-          name: names.get(symbol) ?? symbol,
-        }));
-      }
-      const companies = await getCompaniesBySic(INDUSTRY_CATEGORIES[sector].sic);
-      return companies
-        // SEC's ticker file includes preferred shares/warrants with
-        // exchange-specific separators (e.g. "BML-PJ") that Alpaca's symbol
-        // format rejects outright — and since bars are fetched in one
-        // batched multi-symbol request, a single bad ticker fails the
-        // entire sector's lookup. Plain common-stock tickers are what the
-        // strategy actually wants to rank anyway.
-        .filter((c) => /^[A-Z]{1,5}$/.test(c.ticker))
-        .slice(0, UNIVERSE_SIZE_PER_SECTOR)
-        .map((c) => ({
-          symbol: c.ticker,
-          sector,
-          name: c.title,
-        }));
-    }),
+  const symbolsBySector: [SectorKey, readonly string[]][] = [
+    ...SECTOR_KEYS.map((key): [SectorKey, readonly string[]] => [key, SECTORS[key].tickers]),
+    ["indexes", INDEX_TICKERS],
+  ];
+  const names = await resolveTickerNames(symbolsBySector.flatMap(([, symbols]) => [...symbols]));
+  return symbolsBySector.flatMap(([sector, symbols]) =>
+    symbols.map((symbol) => ({ symbol, sector, name: names.get(symbol) ?? symbol })),
   );
-  return bySector.flat();
 }
 
 // Momentum = trailing return over the lookback window, divided by the

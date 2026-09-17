@@ -560,99 +560,12 @@ export function findSnippets(text: string, pattern: RegExp, contextChars: number
   return snippets;
 }
 
-// Friendly industry categories mapped to representative SEC SIC codes. This
-// is a rough proxy, not exhaustive — SEC's classification predates most of
-// these informal industry labels.
-export const INDUSTRY_CATEGORIES: Record<string, { label: string; sic: number[] }> = {
-  tech: { label: "Tech", sic: [7372, 3674] },
-  biotech: { label: "Biotech", sic: [8731, 2836] },
-  healthcare: { label: "Healthcare", sic: [2834, 8000] },
-  consumer: { label: "Consumer", sic: [5812, 5311] },
-  energy: { label: "Energy", sic: [1311, 2911] },
-  financial: { label: "Financial", sic: [6021, 6311] },
-  sustainability: { label: "Sustainability", sic: [4911] },
-};
-
-function recentQuarterLabels(count: number): string[] {
-  const now = new Date();
-  let year = now.getFullYear();
-  // Start one quarter back — the current quarter's frame is usually incomplete.
-  let quarter = Math.floor(now.getMonth() / 3) + 1 - 1;
-  if (quarter === 0) {
-    quarter = 4;
-    year -= 1;
-  }
-
-  const labels: string[] = [];
-  for (let i = 0; i < count; i++) {
-    labels.push(`CY${year}Q${quarter}I`);
-    quarter -= 1;
-    if (quarter === 0) {
-      quarter = 4;
-      year -= 1;
-    }
-  }
-  return labels;
-}
-
-let popularityPromise: Promise<Map<number, number>> | null = null;
-
-// SEC has no notion of "popularity" — public float (roughly, market cap held
-// by public shareholders) is a stand-in: bigger companies are the ones people
-// have actually heard of. Each filer reports it once a year, but "as of" its
-// own fiscal Q2 end — a date that can land in any calendar quarter depending
-// on the company's fiscal year — so pool two trailing years to be sure every
-// filer's most recent report falls inside the window.
-function getPopularityMap() {
-  if (!popularityPromise) {
-    popularityPromise = Promise.all(
-      recentQuarterLabels(8).map((period) =>
-        secFetch(`https://data.sec.gov/api/xbrl/frames/dei/EntityPublicFloat/USD/${period}.json`)
-          .then((res) => res.json())
-          .catch(() => ({ data: [] })),
-      ),
-    ).then((frames) => {
-      const latestEnd = new Map<number, string>();
-      const map = new Map<number, number>();
-      for (const frame of frames) {
-        for (const row of frame.data ?? []) {
-          const seenEnd = latestEnd.get(row.cik);
-          if (!seenEnd || row.end > seenEnd) {
-            latestEnd.set(row.cik, row.end);
-            map.set(row.cik, row.val);
-          }
-        }
-      }
-      return map;
-    });
-  }
-  return popularityPromise;
-}
-
-// SEC's atom feed for browse-edgar has a long-standing bug where company
-// names come through as "ARRAY(0x...)" — but the CIK is intact, so we
-// cross-reference it against the ticker master file for the real name.
-export async function getCompaniesBySic(sicCodes: number[]): Promise<TickerEntry[]> {
-  const [{ byCik }, popularity] = await Promise.all([getTickerMaps(), getPopularityMap()]);
-  const seen = new Set<number>();
-  const companies: TickerEntry[] = [];
-
-  for (const sic of sicCodes) {
-    const res = await secFetch(
-      `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&SIC=${sic}&type=10-K&dateb=&owner=include&count=100&output=atom`,
-    );
-    const xml = await res.text();
-    const ciks = [...xml.matchAll(/<cik>(\d+)<\/cik>/g)].map((m) => Number(m[1]));
-
-    for (const cik of ciks) {
-      if (seen.has(cik)) continue;
-      seen.add(cik);
-      const entry = byCik.get(cik);
-      if (entry) companies.push(entry);
-    }
-  }
-
-  companies.sort((a, b) => (popularity.get(b.cik) ?? 0) - (popularity.get(a.cik) ?? 0));
-
-  return companies.slice(0, 40);
+// Resolves a curated ticker list (see lib/sectors.ts) to SEC filer entries,
+// preserving the list's order and skipping anything SEC doesn't know about
+// — cheap because getTickerMaps() caches the whole ticker file in memory.
+export async function resolveTickerEntries(tickers: string[]): Promise<TickerEntry[]> {
+  const { byTicker } = await getTickerMaps();
+  return tickers
+    .map((t) => byTicker.get(t.toUpperCase()))
+    .filter((entry): entry is TickerEntry => !!entry);
 }

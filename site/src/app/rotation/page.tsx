@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
+import { SECTOR_KEYS, SECTORS, type SectorKey as StockSectorKey } from "@/lib/sectors";
 import {
   Button,
   Card,
@@ -19,7 +20,7 @@ import {
   type IconName,
 } from "@/components/ui";
 
-type SectorKey = "tech" | "biotech" | "consumer" | "financial" | "healthcare" | "energy" | "indexes";
+type SectorKey = StockSectorKey | "indexes";
 
 type Pick = {
   symbol: string;
@@ -58,35 +59,14 @@ type Order = {
   client_order_id?: string;
 };
 
-const SECTOR_ORDER: SectorKey[] = [
-  "tech",
-  "biotech",
-  "consumer",
-  "financial",
-  "healthcare",
-  "energy",
-  "indexes",
-];
-
+// Sector display comes from lib/sectors.ts; "indexes" is the strategy's
+// extra broad-market bucket. Icon names match sector keys one-to-one.
+const SECTOR_ORDER: SectorKey[] = [...SECTOR_KEYS, "indexes"];
 const SECTOR_LABEL: Record<SectorKey, string> = {
-  tech: "Tech",
-  biotech: "Biotech",
-  consumer: "Consumer",
-  financial: "Financial",
-  healthcare: "Healthcare",
-  energy: "Energy",
+  ...Object.fromEntries(SECTOR_KEYS.map((k) => [k, SECTORS[k].label])),
   indexes: "Indexes",
-};
-
-const SECTOR_ICON: Record<SectorKey, IconName> = {
-  tech: "tech",
-  biotech: "biotech",
-  consumer: "consumer",
-  financial: "financial",
-  healthcare: "healthcare",
-  energy: "energy",
-  indexes: "indexes",
-};
+} as Record<SectorKey, string>;
+const SECTOR_ICON = (sector: SectorKey): IconName => sector;
 
 export default function SectorRotation() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -138,7 +118,7 @@ export default function SectorRotation() {
     <PageShell
       eyebrow="automated strategy"
       title="Sector Rotation"
-      description="Every month, ranks stocks and index ETFs across tech, biotech, consumer, financial, healthcare, energy, and broad-market indexes by risk-adjusted price momentum, picks the top 2 per sector, caps any single position at 20% of the sleeve, and rebalances automatically via a scheduled job on the Alpaca paper account."
+      description="Every month, ranks well-known stocks across eight sectors (communications, consumer, energy, financials, healthcare, materials & industrials, sustainability, technology) plus broad-market index ETFs by risk-adjusted price momentum, picks the top 2 per sector, caps any single position at 20% of the sleeve, and rebalances automatically via a scheduled job on the Alpaca paper account."
     >
       {loading && <p className="mt-4 text-xs text-zinc-500">Loading...</p>}
       {error && <p className="mt-4 text-xs text-bad">{error}</p>}
@@ -174,7 +154,7 @@ export default function SectorRotation() {
                 return (
                   <Card key={sector} padding="sm">
                     <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-foreground">
-                      <Icon name={SECTOR_ICON[sector]} className="text-accent" />
+                      <Icon name={SECTOR_ICON(sector)} className="text-accent" />
                       {SECTOR_LABEL[sector]}
                     </p>
                     <table className="mt-2 w-full text-left">

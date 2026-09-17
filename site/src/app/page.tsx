@@ -22,7 +22,7 @@ const projects: Project[] = [
   {
     name: "Sector Rotation Strategy",
     blurb:
-      "Automated monthly rebalance across tech, biotech, and consumer stocks by risk-adjusted momentum, with position-size caps and scheduled execution.",
+      "Automated monthly rebalance across well-known names in eight sectors by risk-adjusted momentum, with position-size caps and scheduled execution.",
     status: "Live",
     href: "/rotation",
     screenshot: "/screenshots/rotation.png",

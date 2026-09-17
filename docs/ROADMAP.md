@@ -22,7 +22,7 @@
 - [x] Paper trading simulator v1: manual trades, real prices, P&L dashboard (Alpaca paper account — equity, positions, recent orders, buy/sell form)
 - [x] v2a: AI analyst commentary — six-persona panel per ticker (Bull, Bear, Accountant, Risk Manager, Historian, Indexer)
 - [ ] v2b: weekly full-portfolio review
-- [x] v3: sector rotation strategy — automated monthly rebalance across tech/biotech/consumer
+- [x] v3: sector rotation strategy — automated monthly rebalance across eight curated sectors
       by risk-adjusted momentum, position-size-capped at 20%, executed via a scheduled job
       on the Alpaca paper account (fully live — Upstash Redis + CRON_SECRET provisioned,
       runs monthly on the 1st)

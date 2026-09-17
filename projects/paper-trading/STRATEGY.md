@@ -32,17 +32,18 @@
 ## Satellite 3: Sector rotation
 
 - **The bet:** momentum persists over a multi-month horizon within a sector more
-  reliably than across the whole market — the stocks leading tech, biotech, or
-  consumer over the last quarter are more likely than not to keep leading into
+  reliably than across the whole market — the stocks leading technology or
+  energy over the last quarter are more likely than not to keep leading into
   the next one, so rotating into the current leaders each month should beat
   buying-and-holding a static basket.
-- **Mechanics:** every month, rank the ~15 largest (by public float) stocks in
-  each of tech, biotech, consumer, financial, healthcare, and energy, plus a
-  fixed list of 4 broad-market index ETFs (SPY/QQQ/DIA/IWM, since ETFs aren't
-  SIC-classified companies the same lookup can browse), by risk-adjusted
-  momentum (trailing 3-month return ÷ volatility over that window). Takes the
-  top 2 per sector (14 positions total across 7 sectors), equal-weights them,
-  and caps any single position at 20% of the sleeve. Runs automatically via a
+- **Mechanics:** every month, rank a curated list of ~12 well-known stocks in
+  each of eight sectors (communications, consumer, energy, financials,
+  healthcare, materials & industrials, sustainability, technology — see
+  `site/src/lib/sectors.ts`), plus a fixed list of 4 broad-market index ETFs
+  (SPY/QQQ/DIA/IWM), by risk-adjusted momentum (trailing 3-month return ÷
+  volatility over that window). Takes the top 2 per bucket (18 positions total
+  across 9 buckets), equal-weights them, and caps any single position at 20%
+  of the sleeve. Runs automatically via a
   scheduled job against the paper account — see `site/src/lib/rotation.ts` for
   the exact formula and thresholds. Note: the "indexes" sector can end up
   holding SPY itself as a position even though SPY is also the strategy's
