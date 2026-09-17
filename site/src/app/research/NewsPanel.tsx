@@ -61,11 +61,11 @@ export function NewsPanel({ ticker }: { ticker: string }) {
 
       {items === null && (
         <p className="mt-3 text-xs text-zinc-500">
-          <span className="cursor-blink">▌</span> fetching headlines
+          Fetching headlines...
         </p>
       )}
       {error && <p className="mt-3 text-xs text-bad">{error}</p>}
-      {items && items.length === 0 && !error && <p className="mt-3 text-xs text-zinc-500">-- no recent headlines</p>}
+      {items && items.length === 0 && !error && <p className="mt-3 text-xs text-zinc-500">No recent headlines</p>}
 
       {items && items.length > 0 && (
         <ul className="mt-3 divide-y divide-border/60">

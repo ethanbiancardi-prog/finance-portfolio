@@ -168,7 +168,7 @@ export default function DcfBuilder() {
 
   return (
     <PageShell
-      eyebrow="dcf builder"
+      eyebrow="valuation"
       title="DCF Builder"
       description="A 5-year unlevered discounted cash flow model. Edit any assumption below — everything recalculates live, including the WACC x terminal growth sensitivity table."
     >

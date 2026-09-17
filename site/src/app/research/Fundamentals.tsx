@@ -3,7 +3,7 @@
 // 10-K fundamentals: ratio dashboard + AI red-flag scan. Extracted from the
 // old /statement-analyzer page so the research tab can compose it with news
 // and the persona panel.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatCurrencyCompact, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
@@ -138,6 +138,49 @@ function RatioGroup({ group, ratios }: { group: string; ratios: Ratio[] }) {
   );
 }
 
+type Quote = { price: number; change: number | null; changePercent: number | null; asOf: string };
+
+// Latest trade next to the annual numbers, with its timestamp, so it's
+// obvious which figures are live and which are from the last 10-K. Keyed by
+// ticker where it's rendered, so a new ticker remounts it with fresh state.
+function QuoteBadge({ ticker }: { ticker: string }) {
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/research/quote?symbol=${encodeURIComponent(ticker)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("quote failed"))))
+      .then((q) => {
+        if (!cancelled) setQuote(q);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker]);
+
+  if (failed) return null;
+  if (!quote) return <span className="text-xs text-zinc-600">...</span>;
+
+  const up = (quote.change ?? 0) >= 0;
+  const asOf = new Date(quote.asOf).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return (
+    <span className="text-xs tabular-nums">
+      <span className="text-foreground">${quote.price.toFixed(2)}</span>
+      {quote.changePercent != null && (
+        <span className={`ml-2 ${up ? "text-good" : "text-bad"}`}>
+          {up ? "+" : ""}
+          {formatPercent(quote.changePercent)}
+        </span>
+      )}
+      <span className="ml-2 text-[10px] uppercase tracking-[0.1em] text-zinc-500">as of {asOf}</span>
+    </span>
+  );
+}
+
 export function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashboard }) {
   return (
     <Card className="mt-4">
@@ -146,10 +189,11 @@ export function Dashboard({ company, dashboard }: { company: Company; dashboard:
           <span className="text-accent">{company.ticker}</span>
           <span className="ml-2 text-zinc-500">{company.title}</span>
         </h3>
-        <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-          FY end {dashboard.periodEnd ?? "N/A"}
-        </span>
+        <QuoteBadge key={company.ticker} ticker={company.ticker} />
       </div>
+      <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+        Annual figures from the 10-K for the fiscal year ending {dashboard.periodEnd ?? "N/A"}
+      </p>
 
       <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 sm:grid-cols-3">
         <StatCard label="Revenue" value={formatCurrencyCompact(dashboard.revenue)} />
@@ -212,7 +256,7 @@ export function RedFlagsPanel({ ticker }: { ticker: string }) {
       {flags && (
         <div className="mt-4">
           {flags.length === 0 ? (
-            <p className="text-xs text-good">-- no red flags detected against the checks above</p>
+            <p className="text-xs text-good">No red flags detected against the checks above</p>
           ) : (
             <div className="space-y-2">
               {flags.map((flag, i) => (

@@ -58,7 +58,7 @@ export default function MonteCarlo() {
 
   return (
     <PageShell
-      eyebrow="monte carlo simulator"
+      eyebrow="simulation"
       title="Monte Carlo Simulator"
       description="Runs 10,000 simulated portfolio paths from your inputs, using real historical SPY/AGG returns to estimate a stock/bond blend's expected return and volatility."
     >

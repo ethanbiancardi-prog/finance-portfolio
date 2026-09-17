@@ -11,7 +11,6 @@ export function EmptyRow({ colSpan, children }: { colSpan: number; children: Rea
   return (
     <tr>
       <td colSpan={colSpan} className="py-3 text-xs text-zinc-500">
-        <span className="text-zinc-600">-- </span>
         {children}
       </td>
     </tr>

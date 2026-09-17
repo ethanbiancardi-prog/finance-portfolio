@@ -145,12 +145,12 @@ export function TickerSearch({
         >
           {loading && matches.length === 0 && !error && (
             <li className="px-2.5 py-1.5 text-zinc-500">
-              <span className="cursor-blink">▌</span> searching
+              Searching...
             </li>
           )}
           {error && <li className="px-2.5 py-1.5 text-bad">{error}</li>}
           {!loading && !error && matches.length === 0 && (
-            <li className="px-2.5 py-1.5 text-zinc-500">-- no matches</li>
+            <li className="px-2.5 py-1.5 text-zinc-500">No matches</li>
           )}
           {matches.map((m, i) => (
             <li

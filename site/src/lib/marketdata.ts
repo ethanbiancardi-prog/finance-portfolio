@@ -49,3 +49,33 @@ export async function getDailyBars(
 
   return bars;
 }
+
+export type Quote = {
+  price: number;
+  // Day change vs. the previous session's close — what a quote widget
+  // usually shows as "+1.23 (+0.85%)".
+  change: number | null;
+  changePercent: number | null;
+  prevClose: number | null;
+  asOf: string; // ISO timestamp of the last trade we priced from
+};
+
+// Latest price for one symbol. Alpaca's snapshot bundles the last trade
+// with today's and yesterday's daily bars in a single call. The free IEX
+// feed only sees IEX's slice of volume, so the last trade can lag the
+// consolidated tape by a few minutes — asOf makes that visible instead of
+// hiding it.
+export async function getQuote(symbol: string): Promise<Quote> {
+  const snap = await alpacaData(`/stocks/${encodeURIComponent(symbol)}/snapshot?feed=iex`);
+  const trade = snap.latestTrade;
+  if (!trade?.p) throw new Error(`No recent trade for ${symbol}`);
+  const prevClose: number | null = snap.prevDailyBar?.c ?? null;
+  const change = prevClose == null ? null : trade.p - prevClose;
+  return {
+    price: trade.p,
+    change,
+    changePercent: change == null || !prevClose ? null : change / prevClose,
+    prevClose,
+    asOf: trade.t,
+  };
+}

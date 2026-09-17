@@ -21,9 +21,8 @@ export default function Nav() {
 
   return (
     <nav className="sticky top-0 z-40 border-b border-border bg-background font-mono">
-      {/* Tab bar: the active route is inverse-video, like a tmux window list. */}
+      {/* Tab bar: the active route is filled with the accent color. */}
       <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-1 gap-y-1 px-4 py-1.5 sm:px-6">
-        <span className="mr-2 text-[10px] text-accent">■</span>
         {links.map((link) => {
           const active = pathname === link.href;
           return (
@@ -46,9 +45,10 @@ export default function Nav() {
       <div className="border-t border-border/60 bg-panel">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:px-6">
           <span className="truncate">
-            <span className="text-accent">ethan@portfolio</span>:~{pathname === "/" ? "" : pathname}
+            <span className="text-accent">Ethan Biancardi</span>
+            <span className="ml-2 hidden sm:inline">Finance x AI</span>
           </span>
-          <span className="hidden shrink-0 sm:inline">alpaca · sec edgar · anthropic</span>
+          <span className="hidden shrink-0 sm:inline">Data: Alpaca · SEC EDGAR · Anthropic</span>
         </div>
       </div>
     </nav>

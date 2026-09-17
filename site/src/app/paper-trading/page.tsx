@@ -88,6 +88,8 @@ export default function PaperTrading() {
   const [equityHistory, setEquityHistory] = useState<EquityPoint[]>([]);
   const [journal, setJournal] = useState<JournalEntry[]>([]);
   const [riskMetrics, setRiskMetrics] = useState<RiskMetrics | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [symbol, setSymbol] = useState("");
   const [qty, setQty] = useState("");
   const [side, setSide] = useState<"buy" | "sell">("buy");
@@ -100,6 +102,7 @@ export default function PaperTrading() {
   const [journalExit, setJournalExit] = useState("");
 
   async function loadAll() {
+    setRefreshing(true);
     const [accountRes, positionsRes, ordersRes, historyRes, journalRes, riskMetricsRes] =
       await Promise.all([
         fetch("/api/paper-trading/account"),
@@ -128,11 +131,17 @@ export default function PaperTrading() {
           equity: point.equity,
         })),
     );
+    setUpdatedAt(new Date());
+    setRefreshing(false);
   }
 
+  // Positions and P&L move with the market, so re-pull every minute while
+  // the tab is open instead of showing whatever was true at page load.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time fetch on mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount, then poll
     loadAll();
+    const timer = setInterval(loadAll, 60_000);
+    return () => clearInterval(timer);
   }, []);
 
   async function submitOrder(e: React.FormEvent) {
@@ -180,10 +189,17 @@ export default function PaperTrading() {
 
   return (
     <PageShell
-      eyebrow="paper trading"
+      eyebrow="live paper account"
       title="Paper Trading"
       description="Live fake-money account via Alpaca's paper trading API."
     >
+      <div className="mt-3 flex items-center gap-3 text-[10px] uppercase tracking-[0.12em] text-zinc-500">
+        <span>{updatedAt ? `Updated ${updatedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : "Loading..."}</span>
+        <span>Refreshes every minute</span>
+        <Button variant="outline" onClick={loadAll} loading={refreshing} loadingLabel="Refreshing">
+          Refresh
+        </Button>
+      </div>
       {/* Equity is total account value (cash + position value). Buying power is
           how much you can spend right now — it can exceed cash on hand because
           a margin account lets you borrow against your equity. */}

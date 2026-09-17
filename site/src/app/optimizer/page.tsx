@@ -93,7 +93,7 @@ export default function Optimizer() {
 
   return (
     <PageShell
-      eyebrow="portfolio optimizer"
+      eyebrow="portfolio construction"
       title="Portfolio Optimizer"
       description="Samples thousands of random portfolio weightings across your tickers and plots return vs. volatility — the top-left edge of the cloud approximates the efficient frontier."
     >

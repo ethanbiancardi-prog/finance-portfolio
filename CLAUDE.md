@@ -18,22 +18,22 @@ Next.js + Tailwind + Recharts. Python/FastAPI only for heavy analysis. Deployed 
 Live at https://site-theta-drab-22.vercel.app. All app code is in `site/src`; `projects/` holds docs only.
 
 **Built & working**
-- Homepage — project cards, contact links, theme switcher; terminal-style design system shared across every page (`components/ui/`)
-- Paper trading (`/paper-trading`) — Alpaca paper account: equity, positions, buy/sell; trade journal (thesis + exit condition per trade, `site/data/journal.json`); Sharpe / vol / max drawdown / beta risk metrics
+- Homepage — project cards with screenshot thumbnails (`public/screenshots/`, regenerate with `site/scripts/screenshots.js` when pages change), contact links, theme switcher; mono/dark design system shared across every page (`components/ui/`) — terminal glyphs (`//`, `[ ]`, `$ ~/`, blinking cursor, custom cursor) were removed Sep 2026 for a cleaner look
+- Paper trading (`/paper-trading`) — Alpaca paper account: equity, positions, buy/sell, auto-refresh every 60s with an "updated" stamp; trade journal (thesis + exit condition per trade, `site/data/journal.json`); Sharpe / vol / max drawdown / beta risk metrics
 - Strategy doc (`projects/paper-trading/STRATEGY.md`) — core-satellite plan, 3 satellites; `TODO(ethan)` placeholders for real tickers/allocations are Ethan's to fill, not a build task
-- 10-K analyzer, now inside Stock Research (`/research`; `/statement-analyzer` redirects) — ticker/company search, 17-ratio EDGAR dashboard with color flags, AI red-flag scan, merged news feed (Yahoo RSS + Alpaca), six-persona AI takes
+- 10-K analyzer, now inside Stock Research (`/research`; `/statement-analyzer` redirects) — ticker/company search, live quote with timestamp, 17-ratio EDGAR dashboard with color flags, AI red-flag scan, merged news feed (Yahoo RSS + Alpaca), six-persona AI takes (`api/research/analysis` briefs the model with the ratios, price, and headlines and shows "based on" under the output)
 - DCF builder, portfolio optimizer (efficient frontier), Monte Carlo simulator, Quant Notes (7 concepts w/ detail pages)
 - Sector rotation — monthly momentum rebalance on the Alpaca account via Vercel Cron (1st of month); Upstash Redis + CRON_SECRET provisioned, live
 - `lib/portfolioMath.ts` — shared return/cov/Sharpe/drawdown/beta math used by risk metrics, optimizer, Monte Carlo
 
 **In progress**
-- Persona panel wording on `/research` — Ethan still deciding the direction
-- EDGAR revenue bug: `lib/edgar.ts` only tries two revenue tags, so some filers show wrong/missing revenue (NVDA, CRWD) — needs a fallback tag list
+- Nothing mid-flight. Persona names/character are staying as-is (Ethan's call, Sep 2026); the stale-data problem was fixed by briefing the model, not by rewording.
 
 **Planned next**
 - 10-K analyzer: AI-written one-page filing summary
 - DCF "AI assumptions mode" (pre-fill from a filing)
 - Client-work case study pages (`projects/client-work` is a README placeholder)
+- Stream the AI takes in as they generate — the panel takes ~30s and only shows "Analyzing..." meanwhile
 - Later: weekly full-portfolio review, strategy backtester (stretch)
 
 Full phase breakdown in `docs/ROADMAP.md`.

@@ -156,6 +156,16 @@ export type RatioDashboard = {
   ratios: Ratio[];
 };
 
+// Revenue tags, most-preferred first. "Revenues" is the generic total;
+// the ContractWithCustomer variants are the ASC 606-era tags most filers
+// use, and some (e.g. CrowdStrike) only report the Including variant.
+const REVENUE_TAGS = [
+  "Revenues",
+  "RevenueFromContractWithCustomerExcludingAssessedTax",
+  "RevenueFromContractWithCustomerIncludingAssessedTax",
+  "SalesRevenueNet",
+];
+
 // Shared by computeRatios and getRedFlagNumbers — both need the same
 // "pull an annual XBRL series, with fallback tags" building blocks.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -168,14 +178,20 @@ function buildSeriesHelpers(facts: any) {
   }
 
   // Different filers tag the same line item differently (e.g. older vs.
-  // newer taxonomy revisions) — try each tag in order, use the first that
-  // has data.
+  // newer taxonomy revisions), and a single filer can switch tags between
+  // years — NVIDIA reported revenue under ...ExcludingAssessedTax through
+  // FY2022 and under Revenues from FY2023 on. So instead of "first tag with
+  // any data" (which returned NVIDIA's FY2022 revenue as if it were current),
+  // merge every tag's points by fiscal year end, earlier tags in the list
+  // winning when two report the same year.
   function seriesAny(tags: string[]): FactPoint[] {
+    const byEnd = new Map<string, FactPoint>();
     for (const tag of tags) {
-      const points = series(tag);
-      if (points.length) return points;
+      for (const p of series(tag)) {
+        if (!byEnd.has(p.end)) byEnd.set(p.end, p);
+      }
     }
-    return [];
+    return [...byEnd.values()].sort((a, b) => b.end.localeCompare(a.end));
   }
 
   function val(points: FactPoint[], i: number): number | null {
@@ -195,7 +211,7 @@ export function computeRatios(facts: any): RatioDashboard {
   const liabilitiesCurrent = series("LiabilitiesCurrent");
   const equity = series("StockholdersEquity");
   const netIncome = series("NetIncomeLoss");
-  const revenue = seriesAny(["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues"]);
+  const revenue = seriesAny(REVENUE_TAGS);
   const inventory = series("InventoryNet");
   const cash = series("CashAndCashEquivalentsAtCarryingValue");
   const costOfRevenue = seriesAny(["CostOfGoodsAndServicesSold", "CostOfRevenue"]);
@@ -446,7 +462,7 @@ export type RedFlagNumbers = {
 export function getRedFlagNumbers(facts: any): RedFlagNumbers {
   const { series, seriesAny, val } = buildSeriesHelpers(facts);
 
-  const revenue = seriesAny(["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues"]);
+  const revenue = seriesAny(REVENUE_TAGS);
   const operatingCashFlow = series("NetCashProvidedByUsedInOperatingActivities");
   const liabilities = series("Liabilities");
   const operatingIncome = series("OperatingIncomeLoss");

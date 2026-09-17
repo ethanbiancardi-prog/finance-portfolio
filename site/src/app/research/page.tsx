@@ -66,7 +66,7 @@ export default function Research() {
 
   return (
     <PageShell
-      eyebrow="research"
+      eyebrow="fundamentals, news, ai analysis"
       title="Stock Research"
       description="One ticker, everything on it: fundamentals and ratios from the latest 10-K, an AI red-flag scan, live headlines, and six AI analyst takes."
     >
@@ -98,7 +98,7 @@ export default function Research() {
 
           {loading && (
             <p className="mt-4 text-xs text-zinc-500">
-              <span className="cursor-blink">▌</span> fetching filing
+              Fetching filing...
             </p>
           )}
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
@@ -125,7 +125,7 @@ export default function Research() {
 
           {browseLoading && (
             <p className="mt-4 text-xs text-zinc-500">
-              <span className="cursor-blink">▌</span> loading
+              Loading...
             </p>
           )}
 
@@ -147,7 +147,7 @@ export default function Research() {
               </Card>
             ))}
             {!browseLoading && companies.length === 0 && (
-              <p className="text-xs text-zinc-500">-- pick a category to see companies</p>
+              <p className="text-xs text-zinc-500">Pick a category to see companies</p>
             )}
           </div>
         </section>

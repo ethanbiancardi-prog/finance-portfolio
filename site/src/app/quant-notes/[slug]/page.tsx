@@ -17,7 +17,7 @@ export default async function QuantNotePage({ params }: { params: Promise<{ slug
   const d = note.detail;
 
   return (
-    <PageShell eyebrow={`quant notes/${note.slug}`} title={note.title} description={d.summary}>
+    <PageShell eyebrow="quant notes" title={note.title} description={d.summary}>
       <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
         <Link href="/quant-notes" className={linkClass}>
           ← all notes

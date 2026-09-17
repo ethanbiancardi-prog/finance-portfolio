@@ -4,7 +4,7 @@ import { NOTES } from "./notes";
 export default function QuantNotes() {
   return (
     <PageShell
-      eyebrow="quant notes"
+      eyebrow="notes"
       title="Quant Notes"
       description="Plain-language notes on the quantitative concepts behind the tools on this site — what each formula means, why it's used this way, and where to see it running on real data."
     >

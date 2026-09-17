@@ -136,11 +136,11 @@ export default function SectorRotation() {
 
   return (
     <PageShell
-      eyebrow="sector rotation"
+      eyebrow="automated strategy"
       title="Sector Rotation"
       description="Every month, ranks stocks and index ETFs across tech, biotech, consumer, financial, healthcare, energy, and broad-market indexes by risk-adjusted price momentum, picks the top 2 per sector, caps any single position at 20% of the sleeve, and rebalances automatically via a scheduled job on the Alpaca paper account."
     >
-      {loading && <p className="mt-4 text-xs text-zinc-500"><span className="cursor-blink">▌</span> loading</p>}
+      {loading && <p className="mt-4 text-xs text-zinc-500">Loading...</p>}
       {error && <p className="mt-4 text-xs text-bad">{error}</p>}
 
       {status && (
@@ -211,7 +211,7 @@ export default function SectorRotation() {
                 );
               })}
               {status.picks.length === 0 && (
-                <p className="text-xs text-zinc-500">-- no candidates scored yet</p>
+                <p className="text-xs text-zinc-500">No candidates scored yet</p>
               )}
             </div>
           </section>

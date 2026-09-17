@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Card, PageShell, SectionHeader } from "@/components/ui";
 
 type Project = {
@@ -5,6 +6,8 @@ type Project = {
   blurb: string;
   status: "Live" | "In progress" | "Planned";
   href?: string;
+  // Screenshot of the tool, from public/screenshots (928x464, content column only).
+  screenshot?: string;
 };
 
 const projects: Project[] = [
@@ -14,6 +17,7 @@ const projects: Project[] = [
       "Fake-money portfolio tracking real market prices, with a trade journal, risk metrics, and a live equity curve.",
     status: "Live",
     href: "/paper-trading",
+    screenshot: "/screenshots/paper-trading.png",
   },
   {
     name: "Sector Rotation Strategy",
@@ -21,6 +25,7 @@ const projects: Project[] = [
       "Automated monthly rebalance across tech, biotech, and consumer stocks by risk-adjusted momentum, with position-size caps and scheduled execution.",
     status: "Live",
     href: "/rotation",
+    screenshot: "/screenshots/rotation.png",
   },
   {
     name: "Monte Carlo Simulator",
@@ -28,6 +33,7 @@ const projects: Project[] = [
       "Simulates 10,000 portfolio paths from real SPY/AGG history to project a range of outcomes and your odds of hitting a savings goal.",
     status: "Live",
     href: "/monte-carlo",
+    screenshot: "/screenshots/monte-carlo.png",
   },
   {
     name: "Portfolio Optimizer",
@@ -35,6 +41,7 @@ const projects: Project[] = [
       "Samples thousands of random portfolio weightings across your tickers to approximate the efficient frontier, with max-Sharpe and min-variance picks.",
     status: "Live",
     href: "/optimizer",
+    screenshot: "/screenshots/optimizer.png",
   },
   {
     name: "Interactive DCF Builder",
@@ -42,6 +49,7 @@ const projects: Project[] = [
       "Input revenue growth, margins, and WACC to get a live valuation with a WACC x terminal growth sensitivity table.",
     status: "Live",
     href: "/dcf-builder",
+    screenshot: "/screenshots/dcf-builder.png",
   },
   {
     name: "Stock Research",
@@ -49,6 +57,7 @@ const projects: Project[] = [
       "One ticker, everything on it: 17 ratios from the latest 10-K, an AI red-flag scan, live headlines from Yahoo Finance and Benzinga, and six AI analyst takes.",
     status: "Live",
     href: "/research",
+    screenshot: "/screenshots/research.png",
   },
   {
     name: "Quant Notes",
@@ -56,6 +65,7 @@ const projects: Project[] = [
       "Plain-language notes on the quant concepts behind these tools — momentum, Sharpe, beta, diversification, mean-variance optimization, Monte Carlo — each linking to the live page that demonstrates it.",
     status: "Live",
     href: "/quant-notes",
+    screenshot: "/screenshots/quant-notes.png",
   },
   {
     name: "Client Work",
@@ -80,6 +90,18 @@ export default function Home() {
             const live = project.status === "Live";
             const card = (
               <>
+                {project.screenshot && (
+                  <div className="-mx-3 -mt-3 mb-3 aspect-[2/1] overflow-hidden border-b border-border">
+                    <Image
+                      src={project.screenshot}
+                      alt={`${project.name} screenshot`}
+                      width={928}
+                      height={464}
+                      sizes="(min-width: 640px) 50vw, 100vw"
+                      className="h-full w-full object-cover object-top"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[10px] tabular-nums text-zinc-600">
                     {String(i + 1).padStart(2, "0")}
