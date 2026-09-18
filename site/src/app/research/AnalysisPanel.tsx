@@ -64,7 +64,7 @@ export function AnalysisPanel({ ticker }: { ticker: string }) {
         <Button onClick={run} loading={loading} loadingLabel="Analyzing...">
           Analyze {ticker}
         </Button>
-        {stale && <span className="text-[10px] uppercase tracking-[0.1em] text-zinc-600">showing {analyzedTicker}</span>}
+        {stale && <span className="text-[10px] caps text-zinc-600">showing {analyzedTicker}</span>}
       </div>
 
       {error && <p className="mt-3 text-xs text-bad">{error}</p>}
@@ -74,7 +74,7 @@ export function AnalysisPanel({ ticker }: { ticker: string }) {
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {analysis.personas.map((p) => (
               <Card key={p.name} padding="sm">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-accent">{p.name}</p>
+                <p className="text-[10px] caps text-accent">{p.name}</p>
                 <p className="mt-1.5 text-xs leading-5 text-zinc-400">{p.take}</p>
               </Card>
             ))}
@@ -82,7 +82,7 @@ export function AnalysisPanel({ ticker }: { ticker: string }) {
           <Callout label="key disagreement" className="mt-3">
             {analysis.key_disagreement}
           </Callout>
-          <p className="mt-2 text-[10px] uppercase tracking-[0.1em] text-zinc-600">{basedOnLabel(analysis.basedOn)}</p>
+          <p className="mt-2 text-[10px] caps text-zinc-600">{basedOnLabel(analysis.basedOn)}</p>
         </div>
       )}
     </Card>

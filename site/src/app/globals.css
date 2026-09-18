@@ -87,14 +87,134 @@
   --accent: #a78bfa;
 }
 
-/* Everything is monospace — the whole site reads as one terminal surface.
-   Geist Sans stays loaded only as a fallback chain. */
+/* ---------------------------------------------------------------------------
+   Style: "terminal" (no data-style attribute) vs "modern" (data-style="modern").
+   Set by ThemeSwitcher.tsx, applied before paint by layout.tsx's init script,
+   exactly like mode and accent. Everything that distinguishes the two looks
+   is a variable here; components use .caps / .section-title / .page-title
+   and rounded-[var(--radius)] instead of hard-coding the terminal styling.
+   --------------------------------------------------------------------------- */
+:root {
+  --font-ui: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-num: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --caps-transform: uppercase;
+  --caps-tracking: 0.14em;
+  --caps-tracking-wide: 0.18em;
+  --caps-tracking-tight: 0.06em;
+  --radius: 0px;
+  --radius-sm: 0px;
+  --card-shadow: none;
+}
+:root[data-style="modern"] {
+  --font-ui: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --caps-transform: none;
+  --caps-tracking: 0;
+  --caps-tracking-wide: 0.01em;
+  --caps-tracking-tight: -0.01em;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  --background: #f6f6f4;
+  --panel: #ffffff;
+  --border: #e4e3de;
+}
+:root[data-style="modern"][data-mode="dark"] {
+  --background: #09090b;
+  --panel: #131316;
+  --border: #232327;
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-ui);
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Small-caps labels (stat labels, table headers, eyebrows, chips, buttons).
+   Terminal: uppercase + tracked. Modern: sentence case, a touch larger. */
+.caps {
+  text-transform: var(--caps-transform);
+  letter-spacing: var(--caps-tracking);
+}
+.caps-wide {
+  text-transform: var(--caps-transform);
+  letter-spacing: var(--caps-tracking-wide);
+}
+.caps-tight {
+  text-transform: var(--caps-transform);
+  letter-spacing: var(--caps-tracking-tight);
+}
+:root[data-style="modern"] .caps,
+:root[data-style="modern"] .caps-wide {
+  font-size: 11px;
+}
+
+/* Numbers stay monospace in both styles so columns line up. Every numeric
+   cell/value on the site already carries tabular-nums. */
+.tabular-nums {
+  font-family: var(--font-num);
+}
+
+/* Page title and section headers get real hierarchy in the modern style. */
+:root[data-style="modern"] .page-title {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+/* Section labels are written lowercase in the source (the terminal style
+   uppercases them); Modern title-cases them instead. */
+:root[data-style="modern"] .section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--foreground);
+  text-transform: capitalize;
+}
+:root[data-style="modern"] .caps-wide {
+  text-transform: capitalize;
+}
+:root[data-style="modern"] .rule::after {
+  display: none;
+}
+:root[data-style="modern"] .surface {
+  box-shadow: var(--card-shadow);
+}
+
+/* Inputs: an underline in Terminal, a proper box in Modern. */
+:root[data-style="modern"] .field-input {
+  border-width: 1px;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  background: var(--panel);
+  margin-top: 4px;
+}
+:root[data-style="modern"] .field-input:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Page content fades up on navigation so route changes feel continuous
+   rather than popping in after the loading skeleton. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-enter {
+  animation: page-in 180ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
 }
 
 ::selection {
@@ -105,7 +225,7 @@ body {
 *:focus-visible {
   outline: none;
   box-shadow: 0 0 0 1px var(--accent);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
 }
 
 /* Thin, flat scrollbars so overflow containers (tables, code) match the chrome. */

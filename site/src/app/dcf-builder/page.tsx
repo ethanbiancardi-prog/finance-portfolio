@@ -268,7 +268,7 @@ export default function DcfBuilder() {
       </section>
 
       {result.terminalValue == null && (
-        <p className="mt-3 font-mono text-xs text-bad">
+        <p className="mt-3 text-xs text-bad">
           WACC must be greater than terminal growth for the terminal value to be defined.
         </p>
       )}

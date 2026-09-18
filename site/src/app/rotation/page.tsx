@@ -209,7 +209,7 @@ export default function SectorRotation() {
             <div className="mt-3 space-y-2">
               {status.leveraged.length > 0 && (
                 <Card padding="sm">
-                  <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-foreground">
+                  <p className="flex items-center gap-2 text-[11px] caps text-foreground">
                     <Icon name="leveraged" className="text-accent" />
                     {SECTOR_LABEL.leveraged}
                   </p>
@@ -239,7 +239,7 @@ export default function SectorRotation() {
                 if (picks.length === 0) return null;
                 return (
                   <Card key={sector} padding="sm">
-                    <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-foreground">
+                    <p className="flex items-center gap-2 text-[11px] caps text-foreground">
                       <Icon name={SECTOR_ICON(sector)} className="text-accent" />
                       {SECTOR_LABEL[sector]}
                     </p>
@@ -301,9 +301,9 @@ export default function SectorRotation() {
                       <span className="text-xs text-foreground">{o.symbol}</span>
                       {o.name && <span className="block text-[10px] text-zinc-600">{o.name}</span>}
                     </td>
-                    <td className={`${tableCellClass} uppercase ${o.side === "buy" ? "text-good" : "text-bad"}`}>{o.side}</td>
+                    <td className={`${tableCellClass} caps ${o.side === "buy" ? "text-good" : "text-bad"}`}>{o.side}</td>
                     <td className={`${tableCellStrongClass} text-right`}>{o.qty}</td>
-                    <td className={`${tableCellClass} pl-4 text-[10px] uppercase tracking-[0.08em]`}>{o.status}</td>
+                    <td className={`${tableCellClass} pl-4 text-[10px] caps-tight`}>{o.status}</td>
                     <td className={`${tableCellClass} whitespace-nowrap text-right`}>{new Date(o.submitted_at).toLocaleString()}</td>
                   </tr>
                 ))}

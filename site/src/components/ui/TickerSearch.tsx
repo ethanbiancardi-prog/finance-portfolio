@@ -141,7 +141,7 @@ export function TickerSearch({
         <ul
           id={listId}
           role="listbox"
-          className="absolute left-0 z-30 mt-1 min-w-full max-w-[90vw] border border-border bg-panel text-xs shadow-none sm:min-w-[22rem]"
+          className="absolute left-0 z-30 mt-1 min-w-full max-w-[90vw] rounded-[var(--radius)] border border-border bg-panel text-xs shadow-lg sm:min-w-[22rem]"
         >
           {loading && matches.length === 0 && !error && (
             <li className="px-2.5 py-1.5 text-zinc-500">
@@ -168,7 +168,7 @@ export function TickerSearch({
               <span className={`min-w-0 flex-1 truncate ${i === active ? "opacity-80" : "text-zinc-400"}`}>
                 {m.name}
               </span>
-              <span className={`shrink-0 text-[10px] uppercase tracking-[0.1em] ${i === active ? "opacity-70" : "text-zinc-600"}`}>
+              <span className={`shrink-0 text-[10px] caps ${i === active ? "opacity-70" : "text-zinc-600"}`}>
                 {m.exchange}
               </span>
             </li>

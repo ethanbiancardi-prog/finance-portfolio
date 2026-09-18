@@ -57,19 +57,19 @@ export function BusinessSummary({ ticker, name }: { ticker: string; name: string
       {data && (
         <>
           {facts.length > 0 && (
-            <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-zinc-500">{facts.join(" · ")}</p>
+            <p className="mt-2 text-[10px] caps text-zinc-500">{facts.join(" · ")}</p>
           )}
           <p className="mt-3 max-w-3xl text-xs leading-6 text-foreground">{data.summary}</p>
           {data.segments.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {data.segments.map((s) => (
-                <span key={s} className="border border-border px-2 py-0.5 text-[11px] uppercase tracking-[0.1em] text-zinc-500">
+                <span key={s} className="border border-border px-2 py-0.5 text-[11px] caps text-zinc-500">
                   {s}
                 </span>
               ))}
             </div>
           )}
-          <p className="mt-3 text-[10px] uppercase tracking-[0.1em] text-zinc-600">
+          <p className="mt-3 text-[10px] caps text-zinc-600">
             From the Business section of the 10-K filed {data.filingDate}. AI-written summary.
           </p>
         </>

@@ -1,12 +1,8 @@
 import { Card, PageShell, SectionHeader } from "@/components/ui";
 
-function Todo({ children }: { children: string }) {
-  return <p className="mt-2 text-xs text-zinc-600"><span className="text-average">TODO(ethan):</span> {children}</p>;
-}
-
 function Tag({ children }: { children: string }) {
   return (
-    <span className="border border-border px-2 py-0.5 text-[11px] uppercase tracking-[0.08em] text-zinc-400">
+    <span className="rounded-[var(--radius-sm)] border border-border px-2 py-0.5 text-[11px] caps-tight text-zinc-400">
       {children}
     </span>
   );
@@ -59,7 +55,7 @@ export default function About() {
         <SectionHeader label="skills" />
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Card padding="sm">
-            <h3 className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Finance</h3>
+            <h3 className="text-[10px] caps text-zinc-500">Finance</h3>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {FINANCE_SKILLS.map((skill) => (
                 <Tag key={skill}>{skill}</Tag>
@@ -67,7 +63,7 @@ export default function About() {
             </div>
           </Card>
           <Card padding="sm">
-            <h3 className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Technical</h3>
+            <h3 className="text-[10px] caps text-zinc-500">Technical</h3>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {TECHNICAL_SKILLS.map((skill) => (
                 <Tag key={skill}>{skill}</Tag>
@@ -75,7 +71,6 @@ export default function About() {
             </div>
           </Card>
         </div>
-        <Todo>Confirm and trim the lists above to what's actually true.</Todo>
       </section>
 
       <section className="mt-4">
@@ -85,7 +80,6 @@ export default function About() {
             <Tag key={course}>{course}</Tag>
           ))}
         </div>
-        <Todo>Add relevant work/internship experience, if any.</Todo>
       </section>
 
       <section className="mt-4">

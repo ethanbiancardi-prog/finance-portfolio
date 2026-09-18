@@ -46,6 +46,7 @@ const pages = [
       await p.waitForFunction(() => document.body.innerText.includes("Gross Margin"), null, { timeout: 60000 });
       await p.keyboard.press("Escape");
       await p.evaluate(() => document.activeElement && document.activeElement.blur());
+      await p.mouse.click(1200, 120);
       await p.waitForFunction(() => /as of/i.test(document.body.innerText), null, { timeout: 20000 }).catch(() => {});
       await p.waitForTimeout(1000);
     },

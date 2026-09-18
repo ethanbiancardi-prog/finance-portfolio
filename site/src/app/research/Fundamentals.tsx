@@ -102,10 +102,10 @@ function RatioGroup({ group, ratios }: { group: string; ratios: Ratio[] }) {
       <table className="mt-2 w-full text-left">
         <thead>
           <tr className="border-b border-border">
-            <th className="py-1 text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">Ratio</th>
-            <th className="py-1 text-right text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">Current</th>
-            <th className="py-1 pl-4 text-right text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">Prior</th>
-            <th className="py-1 pl-5 text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-500">Flag</th>
+            <th className="py-1 text-[10px] font-normal caps text-zinc-500">Ratio</th>
+            <th className="py-1 text-right text-[10px] font-normal caps text-zinc-500">Current</th>
+            <th className="py-1 pl-4 text-right text-[10px] font-normal caps text-zinc-500">Prior</th>
+            <th className="py-1 pl-5 text-[10px] font-normal caps text-zinc-500">Flag</th>
           </tr>
         </thead>
         <tbody>
@@ -176,7 +176,7 @@ function QuoteBadge({ ticker }: { ticker: string }) {
           {formatPercent(quote.changePercent)}
         </span>
       )}
-      <span className="ml-2 text-[10px] uppercase tracking-[0.1em] text-zinc-500">as of {asOf}</span>
+      <span className="ml-2 text-[10px] caps text-zinc-500">as of {asOf}</span>
     </span>
   );
 }
@@ -191,7 +191,7 @@ export function Dashboard({ company, dashboard }: { company: Company; dashboard:
         </h3>
         <QuoteBadge key={company.ticker} ticker={company.ticker} />
       </div>
-      <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+      <p className="mt-1 text-[10px] caps text-zinc-500">
         Annual figures from the 10-K for the fiscal year ending {dashboard.periodEnd ?? "N/A"}
       </p>
 
@@ -266,7 +266,7 @@ export function RedFlagsPanel({ ticker }: { ticker: string }) {
               ))}
             </div>
           )}
-          <p className="mt-3 text-[10px] uppercase tracking-[0.1em] text-zinc-600">
+          <p className="mt-3 text-[10px] caps text-zinc-600">
             AI-generated — verify against the actual filing before relying on it.
           </p>
         </div>

@@ -71,7 +71,7 @@ export function Term({ term, children, className }: { term: GlossaryKey; childre
           ref={popoverRef}
           id={id}
           role="tooltip"
-          className={`absolute z-30 w-72 max-w-[calc(100vw-2rem)] border border-border bg-panel p-3 text-left normal-case tracking-normal shadow-lg ${
+          className={`absolute z-30 w-72 max-w-[calc(100vw-2rem)] rounded-[var(--radius)] border border-border bg-panel p-3 text-left normal-case tracking-normal shadow-lg ${
             below ? "top-full mt-1.5" : "bottom-full mb-1.5"
           } ${alignRight ? "right-0" : "left-0"}`}
         >

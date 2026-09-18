@@ -46,7 +46,7 @@ export function Card({
   const rectRef = useRef<DOMRect | null>(null);
 
   const classes = [
-    "border border-border bg-panel",
+    "surface rounded-[var(--radius)] border border-border bg-panel",
     padding === "sm" ? "p-3" : "p-3.5",
     interactive
       ? "relative overflow-hidden block w-full text-left transition-colors duration-150 ease-out hover:border-accent/60"

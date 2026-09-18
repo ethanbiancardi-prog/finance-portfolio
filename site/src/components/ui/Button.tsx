@@ -25,7 +25,7 @@ export function Button({
 
   return (
     <button
-      className={`px-2 py-1 text-xs uppercase tracking-[0.12em] transition-colors duration-100 disabled:cursor-not-allowed disabled:opacity-40 ${variantClass} ${
+      className={`rounded-[var(--radius-sm)] px-2 py-1 text-xs caps transition-colors duration-100 disabled:cursor-not-allowed disabled:opacity-40 ${variantClass} ${
         className ?? ""
       }`}
       disabled={disabled || loading}

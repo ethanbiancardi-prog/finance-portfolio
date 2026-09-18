@@ -196,7 +196,7 @@ export default function Optimizer() {
                     </tr>
                   ))}
                   <tr className="border-t border-border">
-                    <td className={`${tableCellClass} text-[10px] uppercase tracking-[0.1em]`}>Return / Vol / Sharpe</td>
+                    <td className={`${tableCellClass} text-[10px] caps`}>Return / Vol / Sharpe</td>
                     <td className={`${tableCellStrongClass} text-right`}>
                       {formatPercent(selectedPortfolio.return)} / {formatPercent(selectedPortfolio.volatility)} /{" "}
                       {formatRatio(selectedPortfolio.sharpe)}

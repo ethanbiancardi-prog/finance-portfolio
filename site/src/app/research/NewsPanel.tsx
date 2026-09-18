@@ -84,7 +84,7 @@ export function NewsPanel({ ticker }: { ticker: string }) {
                     <span className="mt-0.5 line-clamp-2 block text-[11px] leading-4 text-zinc-500">{n.summary}</span>
                   )}
                 </span>
-                <span className="shrink-0 text-[10px] uppercase tracking-[0.1em] text-zinc-600">{n.source}</span>
+                <span className="shrink-0 text-[10px] caps text-zinc-600">{n.source}</span>
               </a>
             </li>
           ))}

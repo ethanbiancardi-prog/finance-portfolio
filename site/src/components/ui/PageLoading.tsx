@@ -3,7 +3,7 @@
 export function PageLoading() {
   const bar = "animate-pulse bg-border";
   return (
-    <div className="flex flex-1 flex-col bg-background font-mono">
+    <div className="flex flex-1 flex-col bg-background">
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
         <div className="border-b border-border pb-5">
           <div className={`h-2.5 w-20 ${bar}`} />

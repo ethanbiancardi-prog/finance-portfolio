@@ -4,6 +4,15 @@ import { useEffect, useRef, useState } from "react";
 
 type Mode = "system" | "light" | "dark";
 type Accent = "amber" | "teal" | "green" | "violet";
+type Style = "modern" | "terminal";
+
+// "modern" is the default (no stored value). "terminal" is the original
+// all-mono, uppercase, square-cornered look; both are driven by CSS
+// variables keyed off data-style on <html> — see globals.css.
+const STYLES: { key: Style; label: string }[] = [
+  { key: "modern", label: "Modern" },
+  { key: "terminal", label: "Terminal" },
+];
 
 const MODES: { key: Mode; label: string }[] = [
   { key: "system", label: "Auto" },
@@ -25,6 +34,7 @@ export default function ThemeSwitcher() {
   // Dark is the default when nothing is stored (see layout.tsx init script).
   const [mode, setMode] = useState<Mode>("dark");
   const [accent, setAccent] = useState<Accent>("amber");
+  const [style, setStyle] = useState<Style>("modern");
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +45,7 @@ export default function ThemeSwitcher() {
     if (storedAccent === "teal" || storedAccent === "green" || storedAccent === "violet") {
       setAccent(storedAccent);
     }
+    if (localStorage.getItem("theme-style") === "terminal") setStyle("terminal");
   }, []);
 
   useEffect(() => {
@@ -70,6 +81,18 @@ export default function ThemeSwitcher() {
     document.documentElement.setAttribute("data-mode", isDark ? "dark" : "light");
   }
 
+  function applyStyle(next: Style) {
+    setStyle(next);
+    const root = document.documentElement;
+    if (next === "modern") {
+      root.setAttribute("data-style", "modern");
+      localStorage.removeItem("theme-style");
+    } else {
+      root.removeAttribute("data-style");
+      localStorage.setItem("theme-style", "terminal");
+    }
+  }
+
   function applyAccent(next: Accent) {
     setAccent(next);
     const root = document.documentElement;
@@ -89,21 +112,39 @@ export default function ThemeSwitcher() {
         onClick={() => setOpen((o) => !o)}
         aria-label="Theme settings"
         aria-expanded={open}
-        className="font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 transition-colors duration-150 ease-out hover:text-foreground"
+        className="rounded-[var(--radius-sm)] px-1.5 py-0.5 text-[11px] caps text-zinc-500 transition-colors duration-150 ease-out hover:text-foreground"
       >
         Theme
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-20 mt-1 w-52 border border-border bg-panel p-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">Mode</p>
+        <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-[var(--radius)] border border-border bg-panel p-3 shadow-lg">
+          <p className="text-[10px] caps text-zinc-500">Style</p>
+          <div className="mt-2 flex gap-1.5">
+            {STYLES.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => applyStyle(s.key)}
+                className={`rounded-[var(--radius-sm)] border px-2 py-0.5 text-[11px] caps transition-colors duration-150 ease-out ${
+                  style === s.key
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-zinc-500 hover:text-foreground"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          <p className="mt-3 text-[10px] caps text-zinc-500">Mode</p>
           <div className="mt-2 flex gap-1.5">
             {MODES.map((m) => (
               <button
                 key={m.key}
                 type="button"
                 onClick={() => applyMode(m.key)}
-                className={`border px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors duration-150 ease-out ${
+                className={`rounded-[var(--radius-sm)] border px-2 py-0.5 text-[11px] caps transition-colors duration-150 ease-out ${
                   mode === m.key
                     ? "border-accent bg-accent/10 text-accent"
                     : "border-border text-zinc-500 hover:text-foreground"
@@ -114,7 +155,7 @@ export default function ThemeSwitcher() {
             ))}
           </div>
 
-          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">Accent</p>
+          <p className="mt-3 text-[10px] caps text-zinc-500">Accent</p>
           <div className="mt-2 flex gap-2">
             {ACCENTS.map((a) => (
               <button

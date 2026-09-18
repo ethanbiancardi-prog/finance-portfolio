@@ -99,7 +99,7 @@ export default function MonteCarlo() {
             onChange={(e) => setGoal(e.target.value)}
           />
           <label className="col-span-2 block sm:col-span-3">
-            <span className="block text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+            <span className="block text-[10px] caps text-zinc-500">
               Allocation <span className="text-foreground">{stockAllocationPct}% stocks</span> / {100 - stockAllocationPct}% bonds
             </span>
             <input

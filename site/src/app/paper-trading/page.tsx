@@ -194,7 +194,7 @@ export default function PaperTrading() {
       title="Paper Trading"
       description="Live fake-money account via Alpaca's paper trading API."
     >
-      <div className="mt-3 flex items-center gap-3 text-[10px] uppercase tracking-[0.12em] text-zinc-500">
+      <div className="mt-3 flex items-center gap-3 text-[10px] caps text-zinc-500">
         <span>{updatedAt ? `Updated ${updatedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : "Loading..."}</span>
         <span>Refreshes every minute</span>
         <Button variant="outline" onClick={loadAll} loading={refreshing} loadingLabel="Refreshing">
@@ -324,7 +324,7 @@ export default function PaperTrading() {
                 <tr key={entry.id} className={`${tableRowClass} align-top`}>
                   <td className={`${tableCellClass} whitespace-nowrap pr-3`}>{entry.date}</td>
                   <td className={`${tableCellStrongClass} pr-3`}>{entry.ticker}</td>
-                  <td className={`${tableCellClass} pr-3 uppercase ${entry.action === "buy" ? "text-good" : "text-bad"}`}>
+                  <td className={`${tableCellClass} pr-3 caps ${entry.action === "buy" ? "text-good" : "text-bad"}`}>
                     {entry.action}
                   </td>
                   <td className={`${tableCellClass} pr-3 leading-4`}>{entry.thesis}</td>
@@ -402,9 +402,9 @@ export default function PaperTrading() {
                     <span className="text-xs text-foreground">{o.symbol}</span>
                     {o.name && <span className="block text-[10px] text-zinc-600">{o.name}</span>}
                   </td>
-                  <td className={`${tableCellClass} uppercase ${o.side === "buy" ? "text-good" : "text-bad"}`}>{o.side}</td>
+                  <td className={`${tableCellClass} caps ${o.side === "buy" ? "text-good" : "text-bad"}`}>{o.side}</td>
                   <td className={`${tableCellStrongClass} text-right`}>{o.qty}</td>
-                  <td className={`${tableCellClass} pl-4 text-[10px] uppercase tracking-[0.08em]`}>{o.status}</td>
+                  <td className={`${tableCellClass} pl-4 text-[10px] caps-tight`}>{o.status}</td>
                   <td className={`${tableCellClass} whitespace-nowrap text-right`}>{new Date(o.submitted_at).toLocaleString()}</td>
                 </tr>
               ))}

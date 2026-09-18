@@ -91,7 +91,7 @@ export default function Home() {
             const card = (
               <>
                 {project.screenshot && (
-                  <div className="-mx-3 -mt-3 mb-3 aspect-[2/1] overflow-hidden border-b border-border">
+                  <div className="-mx-3 -mt-3 mb-3 hidden aspect-[2/1] overflow-hidden rounded-t-[var(--radius)] border-b border-border sm:block">
                     <Image
                       src={project.screenshot}
                       alt={`${project.name} screenshot`}
@@ -107,7 +107,7 @@ export default function Home() {
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span
-                    className={`inline-flex shrink-0 items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] ${
+                    className={`inline-flex shrink-0 items-center gap-1.5 text-[10px] caps ${
                       live ? "text-good" : "text-zinc-600"
                     }`}
                   >
@@ -115,7 +115,7 @@ export default function Home() {
                     {project.status}
                   </span>
                 </div>
-                <h3 className="mt-2 text-sm uppercase tracking-[0.04em] text-foreground">
+                <h3 className="mt-2 text-sm caps-tight text-foreground">
                   {project.name}
                   {project.href && <span className="ml-1 text-zinc-600">→</span>}
                 </h3>

@@ -8,7 +8,7 @@ export function generateStaticParams() {
 }
 
 const linkClass =
-  "text-[11px] uppercase tracking-[0.1em] text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent";
+  "text-[11px] caps text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent";
 
 export default async function QuantNotePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -59,7 +59,7 @@ export default async function QuantNotePage({ params }: { params: Promise<{ slug
             {d.example.steps.map((s, i) => (
               <tr key={i} className="border-t border-border/60">
                 <td className="w-8 py-1.5 text-[10px] text-zinc-600">{String(i + 1).padStart(2, "0")}</td>
-                <td className="py-1.5 pr-4 text-[10px] uppercase tracking-[0.12em] text-zinc-500">{s.label}</td>
+                <td className="py-1.5 pr-4 text-[10px] caps text-zinc-500">{s.label}</td>
                 <td className="py-1.5 text-xs tabular-nums text-foreground">{s.calc}</td>
               </tr>
             ))}

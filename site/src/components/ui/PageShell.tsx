@@ -14,13 +14,13 @@ export function PageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-1 flex-col bg-background font-mono">
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
+    <div className="flex flex-1 flex-col bg-background">
+      <main className="page-enter mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
         <div className="border-b border-border pb-4">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+          <p className="text-[11px] caps-wide text-zinc-500">
             {eyebrow}
           </p>
-          <h1 className="mt-1.5 text-lg font-semibold uppercase tracking-[0.06em] text-foreground sm:text-xl">
+          <h1 className="page-title mt-1.5 text-lg font-semibold caps-tight text-foreground sm:text-xl">
             {title}
           </h1>
           {subtitle && <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>}

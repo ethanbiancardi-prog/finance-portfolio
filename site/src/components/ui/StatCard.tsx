@@ -21,7 +21,7 @@ export function StatCard({
 }) {
   const content = (
     <>
-      <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+      <p className="text-[10px] caps text-zinc-500">
         {term ? <Term term={term}>{label}</Term> : label}
       </p>
       <p
