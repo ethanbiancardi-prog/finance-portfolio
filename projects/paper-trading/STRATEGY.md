@@ -40,16 +40,19 @@ Two things I'm betting on, and one thing I'm not:
 - **Selection:** walk the universe from strongest score down, taking a name
   unless its sector already has 3. Stop at 10. A stock that appears in two
   sectors is taken once.
-- **Regime / circuit breaker:** at each rebalance, compare SPY's last close to
-  its 200-day simple moving average. Above = risk-on. Below = risk-off: the
-  leveraged sleeve is sold to cash and the momentum sleeve halves. This is the
-  most common trend-following rule there is; it's here because momentum
-  strategies crash hardest at trend reversals and 3x ETFs bleed in sideways
-  markets.
+- **Regime / circuit breaker:** compare SPY's last close to its 200-day
+  simple moving average. Above = risk-on. Below = risk-off: the leveraged
+  sleeve is sold to cash and the momentum sleeve halves. This is the most
+  common trend-following rule there is; it's here because momentum strategies
+  crash hardest at trend reversals and 3x ETFs bleed in sideways markets.
+  Checked **every weekday after the close** (`/api/rotation/check`, Vercel
+  Cron at 22:00 UTC): if the regime has flipped since the last rebalance, a
+  full rebalance runs that day instead of waiting for the 1st. Any other day
+  the check does nothing.
 - **Position cap:** no single stock over 20% of its sleeve (not binding at 10
   equal-weight picks; a safety ceiling for thin data).
-- **Rebalance:** monthly, on the 1st, via Vercel Cron → `/api/rotation/run`.
-  Sells before buys. Idempotent client order IDs so a retried run can't
+- **Rebalance:** monthly, on the 1st, via Vercel Cron → `/api/rotation/run`,
+  plus on any day the regime flips (above). Sells before buys. Idempotent client order IDs so a retried run can't
   double-buy.
 - **No margin, ever:** the run estimates the cash its buys need against cash
   on hand plus that run's sells and refuses to place anything if it doesn't
@@ -66,8 +69,10 @@ Two things I'm betting on, and one thing I'm not:
 
 - A whipsaw year: SPY crosses its 200-day repeatedly, the strategy sells low
   and buys back high each time, and the leveraged sleeve's volatility decay
-  eats the return. If the account trails SPY after 12 months with two or more
-  regime flips, the leverage sleeve should be cut or removed.
+  eats the return. The daily check makes this worse, not better — it reacts
+  to every cross, not just the ones that stick. If the account trails SPY
+  after 12 months with three or more regime flips, add a buffer (e.g. only
+  flip when SPY is 2% through the average) or remove the leverage sleeve.
 - Momentum picks cluster into one theme (three energy names on an oil spike is
   allowed by the sector cap; a whole book of AI beneficiaries across sectors
   isn't caught by it) and crater together.

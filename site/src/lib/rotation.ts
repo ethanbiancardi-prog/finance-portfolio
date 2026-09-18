@@ -252,6 +252,13 @@ export function diffRebalance(
   return orders;
 }
 
+// Just the regime, for the daily circuit-breaker check — one SPY request
+// instead of the full universe.
+export async function getRegime(): Promise<Regime> {
+  const bars = await getDailyBars(["SPY"], REGIME_SMA_DAYS + 5);
+  return computeRegime(bars.get("SPY") ?? []);
+}
+
 // Read-only orchestrator: builds this month's target basket without placing
 // any orders or touching persisted state. Used by GET /status (display
 // only) and by the first half of POST/GET /run (before it diffs and trades).

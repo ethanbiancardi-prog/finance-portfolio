@@ -34,15 +34,18 @@ type Pick = {
   capped: boolean;
 };
 
+type Regime = { riskOn: boolean; spyClose: number; spySma: number; asOf: string };
+
 type RebalanceRecord = {
   month: string;
   ranAt: string;
+  trigger?: "monthly" | "manual" | "regime-change";
+  regime?: Regime;
   positions: { symbol: string; sector: SectorKey; name?: string; qty: number; weight: number }[];
   sleeveDollars: number;
 };
 
 type Target = { symbol: string; sector: SectorKey; name: string; targetWeight: number; targetQty: number };
-type Regime = { riskOn: boolean; spyClose: number; spySma: number; asOf: string };
 
 type Status = {
   asOf: string;
@@ -78,6 +81,12 @@ const SECTOR_LABEL: Record<SectorKey, string> = {
   indexes: "Indexes",
 } as Record<SectorKey, string>;
 const SECTOR_ICON = (sector: SectorKey): IconName => sector;
+
+const TRIGGER_LABEL = {
+  monthly: "Scheduled monthly run",
+  manual: "Run by hand from this page",
+  "regime-change": "Circuit breaker: regime flipped",
+} as const;
 
 export default function SectorRotation() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -150,8 +159,9 @@ export default function SectorRotation() {
               label="Regime"
               value={status.regime.riskOn ? "Risk on" : "Risk off"}
               hint={
-                <span className={`text-[11px] ${status.regime.riskOn ? "text-good" : "text-bad"}`}>
+                <span className={`block text-[11px] ${status.regime.riskOn ? "text-good" : "text-bad"}`}>
                   SPY {status.regime.spyClose.toFixed(0)} vs 200-day {status.regime.spySma.toFixed(0)}
+                  <span className="mt-0.5 block text-zinc-500">Checked every weekday after the close</span>
                 </span>
               }
             />
@@ -180,8 +190,11 @@ export default function SectorRotation() {
               value={status.lastRebalance ? status.lastRebalance.month : "Never run"}
               hint={
                 status.lastRebalance && (
-                  <span className="text-[11px] text-zinc-500">
+                  <span className="block text-[11px] text-zinc-500">
                     {new Date(status.lastRebalance.ranAt).toLocaleString()}
+                    {status.lastRebalance.trigger && (
+                      <span className="mt-0.5 block">{TRIGGER_LABEL[status.lastRebalance.trigger]}</span>
+                    )}
                   </span>
                 )
               }
