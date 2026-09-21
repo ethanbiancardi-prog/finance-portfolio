@@ -32,7 +32,7 @@ export type DcfPrefill = {
 };
 
 const M = 1e6;
-const fmtM = (v: number) => `$${Math.round(v / M).toLocaleString()}M`;
+const fmtM = (v: number) => `${v < 0 ? "−" : ""}$${Math.round(Math.abs(v) / M).toLocaleString()}M`;
 const pct = (v: number, d = 1) => `${(v * 100).toFixed(d)}%`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

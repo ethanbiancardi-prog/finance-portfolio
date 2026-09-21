@@ -284,7 +284,7 @@ function DcfBuilderPage() {
 
       {filing && <FilingSources filing={filing} wacc={form.wacc} terminalGrowth={form.terminalGrowth} />}
 
-      <section className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <section className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 [&>*]:min-w-0">
         <StatCard card size="lg" label="Enterprise Value" value={formatMoneyMillions(result.enterpriseValue)} />
         <StatCard card size="lg" label="Equity Value" value={formatMoneyMillions(result.equityValue)} />
         <StatCard
@@ -305,8 +305,9 @@ function DcfBuilderPage() {
       )}
 
       <Card as="section" className="mt-4">
-        <SectionHeader label="5-year projection" description="$M. PV of FCF discounts each year back at WACC." />
-        <table className="mt-3 w-full text-left">
+        <SectionHeader label="5-year projection" description="PV of FCF discounts each year back at WACC." />
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[480px] text-left">
           <thead>
             <tr className={tableHeadRowClass}>
               <th className={tableHeadCellClass}>Year</th>
@@ -329,7 +330,8 @@ function DcfBuilderPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
 
         <FcfChart data={fcfChartData} />
       </Card>
