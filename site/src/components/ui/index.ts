@@ -15,3 +15,4 @@ export { chartAxisProps, chartGridProps, chartTooltipStyle, chartLegendStyle } f
 export { Icon, type IconName } from "./icons";
 export { Term } from "./Term";
 export { Section } from "./Section";
+export { Slider } from "./Slider";

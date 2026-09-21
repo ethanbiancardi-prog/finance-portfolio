@@ -52,6 +52,18 @@ const pages = [
     },
   },
   { slug: "quant-notes", url: "/quant-notes", wait: async (p) => p.waitForTimeout(1500) },
+  { slug: "backtester", url: "/quant/backtester", wait: async (p) => p.waitForSelector(".recharts-surface", { timeout: 30000 }).then(() => p.waitForTimeout(800)) },
+  { slug: "factor-risk", url: "/quant/factor-risk", wait: async (p) => p.waitForTimeout(800) },
+  {
+    slug: "vol-smile",
+    url: "/quant/vol-smile",
+    wait: async (p) => {
+      await p.waitForSelector(".recharts-surface", { timeout: 30000 });
+      const box = await p.locator(".recharts-surface").first().boundingBox();
+      await p.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.5);
+      await p.waitForTimeout(500);
+    },
+  },
 ];
 
 (async () => {

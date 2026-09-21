@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { QuantHubHeader } from "@/components/QuantHubHeader";
 import { formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
@@ -92,6 +93,8 @@ export default function Optimizer() {
       : null;
 
   return (
+    <>
+    <QuantHubHeader />
     <PageShell
       eyebrow="portfolio construction"
       title="Portfolio Optimizer"
@@ -209,5 +212,6 @@ export default function Optimizer() {
         </>
       )}
     </PageShell>
+    </>
   );
 }

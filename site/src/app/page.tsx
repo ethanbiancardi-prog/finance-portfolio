@@ -44,6 +44,30 @@ const projects: Project[] = [
     screenshot: "/screenshots/optimizer.png",
   },
   {
+    name: "Regime Backtester",
+    blurb:
+      "The momentum strategy's trend rule run through 2008, 2020, 2022 and a bull market: equity curve vs. benchmark, drawdowns, Sharpe, Sortino and how long you'd have been underwater.",
+    status: "Live",
+    href: "/quant/backtester",
+    screenshot: "/screenshots/backtester.png",
+  },
+  {
+    name: "Factor Risk Attribution",
+    blurb:
+      "Set a stock / bond / commodity mix and see its risk split into equity beta, interest-rate duration and inflation shock, with alpha, systemic beta and R-squared.",
+    status: "Live",
+    href: "/quant/factor-risk",
+    screenshot: "/screenshots/factor-risk.png",
+  },
+  {
+    name: "Options Volatility Smile",
+    blurb:
+      "An implied-volatility sandbox: fear and skew dials reshape the smile live, and every strike shows its vol, moneyness and Black-Scholes price.",
+    status: "Live",
+    href: "/quant/vol-smile",
+    screenshot: "/screenshots/vol-smile.png",
+  },
+  {
     name: "Interactive DCF Builder",
     blurb:
       "Input revenue growth, margins, and WACC to get a live valuation with a WACC x terminal growth sensitivity table.",

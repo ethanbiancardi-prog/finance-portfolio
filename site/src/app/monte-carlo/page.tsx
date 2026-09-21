@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { Button, Callout, Card, Field, PageShell, SectionHeader, StatCard } from "@/components/ui";
+import { QuantHubHeader } from "@/components/QuantHubHeader";
 
 const Chart = dynamic(() => import("./Chart"), {
   ssr: false,
@@ -57,6 +58,8 @@ export default function MonteCarlo() {
   }
 
   return (
+    <>
+    <QuantHubHeader />
     <PageShell
       eyebrow="simulation"
       title="Monte Carlo Simulator"
@@ -157,5 +160,6 @@ export default function MonteCarlo() {
         </>
       )}
     </PageShell>
+    </>
   );
 }
