@@ -189,6 +189,7 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
   const trades = signal.trades ?? [];
   const buys = trades.filter((t) => t.type === "buy").length;
   const sells = trades.filter((t) => t.type === "sell").length;
+  const exchanges = trades.filter((t) => t.type === "exchange").length;
 
   return (
     <Card padding="sm">
@@ -208,8 +209,24 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
       <p className="mt-2 flex flex-wrap gap-3 text-[11px] text-zinc-500">
         <StatusBadge rating="good" label={`${buys} ${buys === 1 ? "buy" : "buys"}`} />
         <StatusBadge rating="bad" label={`${sells} ${sells === 1 ? "sale" : "sales"}`} />
+        {exchanges > 0 && <StatusBadge rating="average" label={`${exchanges} ${exchanges === 1 ? "exchange" : "exchanges"}`} />}
         <span>{new Set(trades.map((t) => t.member)).size} {new Set(trades.map((t) => t.member)).size === 1 ? "member" : "members"}</span>
+        {signal.oversight && signal.oversight.length > 0 && (
+          <span className="rounded-[var(--radius-sm)] border border-average/60 px-1.5 py-0.5 text-[10px] caps text-average">
+            Committee oversight overlap
+          </span>
+        )}
       </p>
+
+      {signal.oversight && signal.oversight.length > 0 && (
+        <ul className="mt-2 space-y-0.5 text-[11px] text-zinc-500">
+          {signal.oversight.map((o) => (
+            <li key={o.committee}>
+              <span className="text-foreground">{o.committee}</span> — {o.members.join(", ")}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <p className="mt-2 max-w-3xl text-xs leading-5 text-foreground">{signal.reasoning}</p>
 
@@ -245,7 +262,13 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
                 <tr key={i} className={tableRowClass}>
                   <td className={`${textCell} pr-3`}>
                     {t.member}
-                    <span className="ml-1.5 text-zinc-600">{t.district}</span>
+                    <span className="ml-1.5 text-zinc-600">
+                      {t.district}
+                      {t.party ? ` · ${t.party[0]}` : ""}
+                    </span>
+                    {t.committees && t.committees.length > 0 && (
+                      <span className="block text-[10px] leading-4 text-zinc-600">{t.committees.join(" · ")}</span>
+                    )}
                   </td>
                   <td className={`${textCell} pr-3`}>{OWNER_LABEL[t.owner]}</td>
                   <td className={`${textCell} pr-3 ${t.type === "buy" ? "text-good" : t.type === "sell" ? "text-bad" : ""}`}>

@@ -11,6 +11,8 @@ export type PoliticalTrade = {
   member: string; // "Hon. Byron Donalds"
   chamber: "House" | "Senate";
   district: string; // "FL19"
+  party?: string; // "Republican" / "Democrat"
+  committees?: string[]; // full House committees the member sits on
   owner: "self" | "spouse" | "joint" | "child";
   type: "buy" | "sell" | "exchange";
   partial: boolean;
@@ -36,6 +38,9 @@ export type Signal = {
   sources: SignalSource[];
   // Category-specific detail; only political trades for now.
   trades?: PoliticalTrade[];
+  // Political trades: committees whose jurisdiction plausibly covers the
+  // company's sector, with the members who sit on them.
+  oversight?: { committee: string; members: string[] }[];
 };
 
 export type SignalBatch = {

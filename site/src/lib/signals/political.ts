@@ -10,8 +10,10 @@
 // Not covered: the Senate (its site needs a session cookie and an agreement
 // click per visit) and PTRs filed on paper and scanned (no text layer).
 import { unzipSync } from "fflate";
-import { resolveTickerNames } from "@/lib/edgar";
+import { getCompanyProfile, resolveTicker, resolveTickerNames } from "@/lib/edgar";
 import { getRedis } from "@/lib/kv";
+import { SECTOR_KEYS, SECTORS, type SectorKey } from "@/lib/sectors";
+import { loadHouseMembers, oversightOverlap, sectorFromSic, type MemberInfo } from "./committees";
 import type { PoliticalTrade, Signal, SignalBatch } from "./types";
 
 const USER_AGENT = "finance-portfolio ethanbiancardi@gmail.com";
@@ -122,7 +124,13 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
   const year = now.getUTCFullYear();
   const since = new Date(now.getTime() - WINDOW_DAYS * 86_400_000).toISOString().slice(0, 10);
 
-  const index = (await fetchPtrIndex(year))
+  const [indexAll, members] = await Promise.all([
+    fetchPtrIndex(year),
+    // Committee data is an enrichment — if the dataset is down, still
+    // publish the trades, just without it.
+    loadHouseMembers().catch((): Map<string, MemberInfo> => new Map()),
+  ]);
+  const index = indexAll
     .filter((r) => r.filingDate >= since)
     .sort((a, b) => b.filingDate.localeCompare(a.filingDate))
     .slice(0, MAX_FILINGS_PER_RUN);
@@ -146,12 +154,15 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
         return;
       }
       const member = `${row.prefix ? row.prefix + " " : ""}${row.first} ${row.last}`.trim();
+      const info = members.get(row.district);
       for (const t of parsed) {
         trades.push({
           ticker: t.ticker,
           member,
           chamber: "House",
           district: row.district,
+          party: info?.party,
+          committees: info?.committees.map((c) => c.name),
           owner: t.owner,
           type: t.type,
           partial: t.partial,
@@ -171,11 +182,18 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
   const byTicker = new Map<string, PoliticalTrade[]>();
   for (const t of trades) byTicker.set(t.ticker, [...(byTicker.get(t.ticker) ?? []), t]);
   const names = await resolveTickerNames([...byTicker.keys()]);
+  const sectors = await classifySectors([...byTicker.keys()].filter((tk) => names.has(tk)));
 
   const items: Signal[] = [...byTicker.entries()]
     .filter(([ticker]) => names.has(ticker))
-    .map(([ticker, ts]) => buildSignal(ticker, names.get(ticker)!, ts))
-    .sort((a, b) => (b.trades?.length ?? 0) - (a.trades?.length ?? 0) || b.eventDate.localeCompare(a.eventDate));
+    .map(([ticker, ts]) => buildSignal(ticker, names.get(ticker)!, ts, members, sectors.get(ticker) ?? { sector: null, industry: null }))
+    // Oversight overlaps first, then by trade count, then recency.
+    .sort(
+      (a, b) =>
+        (b.oversight?.length ? 1 : 0) - (a.oversight?.length ? 1 : 0) ||
+        (b.trades?.length ?? 0) - (a.trades?.length ?? 0) ||
+        b.eventDate.localeCompare(a.eventDate),
+    );
 
   const lags = trades.map((t) => t.lagDays).sort((a, b) => a - b);
   const batch: SignalBatch = {
@@ -191,6 +209,9 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
       tickers: items.length,
       medianLagDays: lags.length ? lags[Math.floor(lags.length / 2)] : 0,
       chambers: "House only",
+      membersWithCommittees: members.size,
+      tickersWithSector: [...sectors.values()].filter((c) => c.sector).length,
+      withOversightOverlap: items.filter((i) => i.oversight && i.oversight.length > 0).length,
     },
   };
   await getRedis().set(KEY, batch);
@@ -208,24 +229,81 @@ function daysBetween(a: string, b: string): number {
 // The reasoning is factual and template-built: who, what, when, how late.
 // No inference about motive — that's the reader's job, and the risk line
 // says why the inference is usually weaker than it looks.
-function buildSignal(ticker: string, company: string, ts: PoliticalTrade[]): Signal {
+// Sector for the overlap check: the curated universe is classified by hand;
+// everything else from SEC's industry description (one cached submissions
+// fetch per ticker, a few at a time to respect SEC's rate limit).
+const SECTOR_OF = new Map<string, SectorKey>();
+for (const key of SECTOR_KEYS) for (const t of SECTORS[key].tickers) if (!SECTOR_OF.has(t)) SECTOR_OF.set(t, key);
+
+type Classified = { sector: SectorKey | null; industry: string | null };
+
+async function classifySectors(tickers: string[]): Promise<Map<string, Classified>> {
+  const out = new Map<string, Classified>();
+  for (let i = 0; i < tickers.length; i += 5) {
+    await Promise.all(
+      tickers.slice(i, i + 5).map(async (t) => {
+        let industry: string | null = null;
+        try {
+          const company = await resolveTicker(t);
+          if (company) industry = (await getCompanyProfile(company.cik)).sicDescription;
+        } catch {
+          // no industry text — the hand-classified sector still applies
+        }
+        const sector = SECTOR_OF.get(t) ?? sectorFromSic(industry);
+        if (sector || industry) out.set(t, { sector, industry });
+      }),
+    );
+  }
+  return out;
+}
+
+function buildSignal(ticker: string, company: string, ts: PoliticalTrade[], houseMembers: Map<string, MemberInfo>, { sector, industry }: Classified): Signal {
   const buys = ts.filter((t) => t.type === "buy");
   const sells = ts.filter((t) => t.type === "sell");
+  const exchanges = ts.filter((t) => t.type === "exchange");
   const members = [...new Set(ts.map((t) => t.member))];
   const latest = ts.reduce((m, t) => (t.tradeDate > m ? t.tradeDate : m), ts[0].tradeDate);
-  const lead = buys.length > sells.length ? "net buying" : sells.length > buys.length ? "net selling" : "mixed buying and selling";
+  const lead =
+    buys.length === 0 && sells.length === 0
+      ? "exchanges only"
+      : buys.length > sells.length
+        ? "net buying"
+        : sells.length > buys.length
+          ? "net selling"
+          : "mixed buying and selling";
   const who = members.length === 1 ? `${members[0]} (${ts[0].district})` : `${members.length} members (${members.slice(0, 3).join(", ")}${members.length > 3 ? ", …" : ""})`;
-  const lag = Math.round(ts.reduce((s, t) => s + t.lagDays, 0) / ts.length);
+  // Amended re-filings of old trades would swamp the average; use the
+  // original filings when there are any.
+  const lagPool = ts.some((t) => !t.amended) ? ts.filter((t) => !t.amended) : ts;
+  const lag = Math.round(lagPool.reduce((s, t) => s + t.lagDays, 0) / lagPool.length);
+
+  // Committee overlap: which trading members sit on a committee that
+  // oversees this company's sector.
+  const overlapMap = new Map<string, Set<string>>();
+  for (const district of new Set(ts.map((t) => t.district))) {
+    const info = houseMembers.get(district);
+    if (!info) continue;
+    for (const c of oversightOverlap(info.committees, sector, industry)) {
+      overlapMap.set(c.name, (overlapMap.get(c.name) ?? new Set()).add(info.name));
+    }
+  }
+  const oversight = [...overlapMap.entries()].map(([committee, ms]) => ({ committee, members: [...ms] }));
+  const committeeNote = oversight.length
+    ? ` Oversight overlap: ${oversight.map((o) => `${o.members.join(" and ")} ${o.members.length === 1 ? "sits" : "sit"} on ${o.committee}`).join("; ")} — the committee whose jurisdiction covers ${SECTORS[sector!].label.toLowerCase()}.`
+    : "";
 
   const reasoning =
     `${who} reported ${ts.length} ${ts.length === 1 ? "transaction" : "transactions"} in ${company} (${ticker}) — ` +
-    `${buys.length} ${buys.length === 1 ? "buy" : "buys"}, ${sells.length} ${sells.length === 1 ? "sale" : "sales"}, ${lead}. ` +
-    `Trades were made between ${ts.map((t) => t.tradeDate).sort()[0]} and ${latest} and disclosed an average of ${lag} days later. ` +
+    `${buys.length} ${buys.length === 1 ? "buy" : "buys"}, ${sells.length} ${sells.length === 1 ? "sale" : "sales"}${exchanges.length ? `, ${exchanges.length} ${exchanges.length === 1 ? "exchange" : "exchanges"}` : ""}, ${lead}. ` +
+    `Trades were made between ${ts.map((t) => t.tradeDate).sort()[0]} and ${latest} and disclosed an average of ${lag} days later${ts.some((t) => t.amended) ? " (one or more are amended re-filings of earlier reports)" : ""}. ` +
     `Amounts are reported in ranges (${[...new Set(ts.map((t) => t.amountRange))].join("; ")}); ` +
-    `${ts.some((t) => t.owner !== "self") ? "some trades were in a spouse's or joint account" : "all trades were in the member's own name"}.`;
+    `${ts.some((t) => t.owner !== "self") ? "some trades were in a spouse's or joint account" : "all trades were in the member's own name"}.` +
+    committeeNote;
 
   const bullCase =
-    lead === "net buying"
+    oversight.length
+      ? `A member of ${oversight[0].committee} trading a company that committee oversees is the specific pattern the STOCK Act was written about. Look for pending bills, hearings, or agency actions in that committee's jurisdiction around the trade dates.`
+      : lead === "net buying"
       ? "Members sometimes sit on committees that oversee the industries they buy into, and a cluster of buys across several members has occasionally preceded strong runs. If you can find a committee link or a pending bill, that's the lead worth researching."
       : lead === "net selling"
         ? "Clustered selling by insiders-adjacent people can flag a sector others aren't worried about yet. Worth checking what changed for the business around the trade dates."
@@ -250,5 +328,6 @@ function buildSignal(ticker: string, company: string, ts: PoliticalTrade[]): Sig
       { label: "House Clerk financial disclosures", url: `${CLERK}/FinancialDisclosure` },
     ],
     trades: ts.sort((a, b) => b.tradeDate.localeCompare(a.tradeDate)),
+    oversight,
   };
 }
