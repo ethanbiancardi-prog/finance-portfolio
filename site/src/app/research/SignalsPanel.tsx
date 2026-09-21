@@ -4,7 +4,7 @@
 // evidence, each with a sourced reason. Served from the daily cache only —
 // this component never triggers a refresh. Research leads, not advice.
 import { useEffect, useState } from "react";
-import { Callout, Card, SectionHeader, StatusBadge, Tabs, tableCellClass, tableCellStrongClass, tableHeadCellClass, tableHeadRowClass, tableRowClass } from "@/components/ui";
+import { Callout, Card, Chip, SectionHeader, StatusBadge, Tabs, tableCellClass, tableCellStrongClass, tableHeadCellClass, tableHeadRowClass, tableRowClass } from "@/components/ui";
 import type { PresidentialAggregate, PresidentialBatch, Signal, SignalBatch, SignalCategory } from "@/lib/signals/types";
 
 const CATEGORIES: { key: SignalCategory; label: string; live: boolean }[] = [
@@ -271,10 +271,41 @@ function PresidentialTable({ title, rows, onResearch }: { title: string; rows: P
   );
 }
 
+type ChamberFilter = "all" | "House" | "Senate";
+type PartyFilter = "all" | "Democrat" | "Republican" | "Independent";
+const CHAMBERS: { key: ChamberFilter; label: string }[] = [
+  { key: "all", label: "Both chambers" },
+  { key: "House", label: "House" },
+  { key: "Senate", label: "Senate" },
+];
+const PARTIES: { key: PartyFilter; label: string }[] = [
+  { key: "all", label: "All parties" },
+  { key: "Democrat", label: "Democrats" },
+  { key: "Republican", label: "Republicans" },
+  { key: "Independent", label: "Independents" },
+];
+
 function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearch: (ticker: string) => void }) {
   const [showAll, setShowAll] = useState(false);
-  const items = showAll ? batch.items : batch.items.slice(0, 12);
+  const [chamber, setChamber] = useState<ChamberFilter>("all");
+  const [party, setParty] = useState<PartyFilter>("all");
   const lag = Number(batch.stats.medianLagDays);
+
+  // Filters apply to the trades inside each card; a card with no matching
+  // trades disappears, and the oversight flags only keep committees that a
+  // remaining member actually sits on. The summary paragraph still
+  // describes every trade in the ticker — it's written once, server-side.
+  const filtering = chamber !== "all" || party !== "all";
+  const filtered = batch.items
+    .map((sig): Signal | null => {
+      const trades = (sig.trades ?? []).filter((t) => (chamber === "all" || t.chamber === chamber) && (party === "all" || t.party === party));
+      if (trades.length === 0) return null;
+      const committees = new Set(trades.flatMap((t) => t.committees ?? []));
+      return { ...sig, trades, oversight: (sig.oversight ?? []).filter((o) => committees.has(o.committee)) };
+    })
+    .filter((sig): sig is Signal => sig !== null);
+  const items = showAll ? filtered : filtered.slice(0, 12);
+  const tradeCount = filtered.reduce((n, sig) => n + (sig.trades?.length ?? 0), 0);
 
   return (
     <div className="mt-6">
@@ -289,14 +320,41 @@ function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearc
         when the trade happened; disclosed dates are when the public could first see it.
       </Callout>
 
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <span className="flex flex-wrap gap-1.5">
+          {CHAMBERS.map((c) => (
+            <Chip key={c.key} active={chamber === c.key} onClick={() => setChamber(c.key)}>
+              {c.label}
+            </Chip>
+          ))}
+        </span>
+        <span className="flex flex-wrap gap-1.5">
+          {PARTIES.map((pt) => (
+            <Chip key={pt.key} active={party === pt.key} onClick={() => setParty(pt.key)}>
+              {pt.label}
+            </Chip>
+          ))}
+        </span>
+        <span className="text-[11px] text-zinc-500">
+          {tradeCount} {tradeCount === 1 ? "trade" : "trades"} across {filtered.length} {filtered.length === 1 ? "ticker" : "tickers"}
+          {filtering && " match"}
+        </span>
+      </div>
+      {filtering && (
+        <p className="mt-2 text-[11px] text-zinc-500">
+          Trade lists, counts and committee flags reflect the filter; each ticker&apos;s summary paragraph still describes all of its trades.
+        </p>
+      )}
+
       <div className="mt-3 space-y-3">
         {items.map((s) => (
           <SignalCard key={s.id} signal={s} onResearch={onResearch} />
         ))}
+        {filtered.length === 0 && <p className="text-xs text-zinc-500">No trades match that filter in the last {batch.windowDays} days.</p>}
       </div>
-      {batch.items.length > 12 && (
+      {filtered.length > 12 && (
         <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-3 text-xs text-accent underline decoration-border underline-offset-4 hover:decoration-accent">
-          {showAll ? "Show fewer" : `Show all ${batch.items.length} tickers`}
+          {showAll ? "Show fewer" : `Show all ${filtered.length} tickers`}
         </button>
       )}
     </div>
