@@ -156,13 +156,17 @@ function ResearchPage() {
       )}
 
       {tab === "signals" && (
-        <SignalsPanel
-          onResearch={(symbol) => {
-            setTab("search");
-            setTicker(symbol);
-            lookup(symbol);
-          }}
-        />
+        <SimpleProvider value={simple}>
+          <SignalsPanel
+            simple={simple}
+            onSimple={setSimple}
+            onResearch={(symbol) => {
+              setTab("search");
+              setTicker(symbol);
+              lookup(symbol);
+            }}
+          />
+        </SimpleProvider>
       )}
 
       {tab === "browse" && (

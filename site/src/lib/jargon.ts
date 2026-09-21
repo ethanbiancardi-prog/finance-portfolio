@@ -38,6 +38,18 @@ export const JARGON = {
   fomc: { term: "Fed / FOMC", definition: "The Federal Reserve's rate-setting committee. Higher rates make borrowing dearer and future profits worth less today." },
   yield: { term: "Yield", definition: "Annual income as a share of price: a bond paying $4 on $100 yields 4%." },
   spread: { term: "Spread", definition: "The gap between two rates or prices, e.g. what a bank earns on loans minus what it pays on deposits." },
+  antitrust: { term: "Antitrust", definition: "Laws that stop companies from getting so big or coordinated that competition disappears. Regulators can block deals or force changes." },
+  consentOrder: { term: "Consent order", definition: "A settlement where a company agrees to conditions from a regulator without admitting wrongdoing, instead of going to court." },
+  controlPremium: { term: "Control premium", definition: "The extra price a buyer pays to own a whole company rather than a few shares, because control lets them run it their way." },
+  overhang: { term: "Overhang", definition: "A known worry hanging over a stock, like a pending lawsuit or a big shareholder who might sell, that keeps the price down until it clears." },
+  divestiture: { term: "Divestiture", definition: "Selling off part of a business, sometimes because a regulator requires it as the price of approving a deal." },
+  consolidation: { term: "Consolidation", definition: "An industry shrinking to fewer, bigger players through mergers." },
+  proxy: { term: "Proxy", definition: "The voting process for shareholders who don't attend the annual meeting. Proxy rules govern what gets put to a vote." },
+  acceleratedApproval: { term: "Accelerated approval", definition: "The FDA clearing a drug early on promising evidence, with the company required to confirm the benefit in later trials." },
+  tariff: { term: "Tariff", definition: "A tax on imported goods. It raises costs for companies that buy from abroad and can shield those that make things at home." },
+  sanctions: { term: "Sanctions / export controls", definition: "Government limits on selling to, buying from, or dealing with a country or company. They can close off a market overnight." },
+  streamRoyalty: { term: "Stream / royalty", definition: "A deal where a company pays a mine upfront for the right to buy a share of its future metal at a fixed low price (stream) or take a cut of its revenue (royalty)." },
+  netInterestIncome: { term: "Net interest income", definition: "What a bank earns on loans and investments minus what it pays on deposits. Rises when rates go up faster than deposit costs." },
 } as const;
 
 export type JargonKey = keyof typeof JARGON;
@@ -82,6 +94,18 @@ export const JARGON_PATTERNS: [RegExp, JargonKey][] = [
   [/\bFOMC\b|\bthe Fed\b|\bFederal Reserve\b/g, "fomc"],
   [/\byields?\b/gi, "yield"],
   [/\bspreads?\b/gi, "spread"],
+  [/\bantitrust\b|\banticompetitive\b/gi, "antitrust"],
+  [/\bconsent orders?\b/gi, "consentOrder"],
+  [/\b(control|acquisition|takeover)[- ]premiums?\b/gi, "controlPremium"],
+  [/\boverhang\b/gi, "overhang"],
+  [/\bdivestitures?\b|\bdivest(ed|ing)?\b/gi, "divestiture"],
+  [/\bconsolidation\b/gi, "consolidation"],
+  [/\bproxy( rules| materials| vote)?\b/gi, "proxy"],
+  [/\baccelerated approval\b/gi, "acceleratedApproval"],
+  [/\btariffs?\b/gi, "tariff"],
+  [/\bsanctions?\b|\bexport controls?\b/gi, "sanctions"],
+  [/\broyalt(y|ies)\b|\bstream(s|ing)? (interests?|deals?)\b/gi, "streamRoyalty"],
+  [/\bnet interest (income|margin)\b/gi, "netInterestIncome"],
 ];
 
 // Split text into plain segments and jargon hits, for rendering.

@@ -3,9 +3,99 @@
 // Research Signals: a watchlist of tickers surfaced by different kinds of
 // evidence, each with a sourced reason. Served from the daily cache only —
 // this component never triggers a refresh. Research leads, not advice.
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState, type ReactNode } from "react";
 import { Callout, Card, Chip, SectionHeader, StatusBadge, Tabs, tableCellClass, tableCellStrongClass, tableHeadCellClass, tableHeadRowClass, tableRowClass } from "@/components/ui";
+import { SectionForce } from "@/components/ui/Section";
 import type { PresidentialAggregate, PresidentialBatch, Signal, SignalBatch, SignalCategory } from "@/lib/signals/types";
+import { JargonText, SimpleText } from "./SimpleMode";
+
+// A signal card that opens on click. The header is the digest — ticker,
+// company, chips, and a one-line summary — the body is the reasoning,
+// bull/risk, and sources. Listens to the page's expand/collapse-all.
+function SignalShell({
+  id,
+  header,
+  summary,
+  children,
+}: {
+  id: string;
+  header: ReactNode; // ticker/company/chips row
+  summary: ReactNode; // one line under the header, always visible
+  children: ReactNode; // the detail
+}) {
+  const force = useContext(SectionForce);
+  const [open, setOpen] = useState(false);
+  const [seenSeq, setSeenSeq] = useState(force?.seq ?? 0);
+  if (force && force.seq !== seenSeq) {
+    setSeenSeq(force.seq);
+    setOpen(force.open);
+  }
+  return (
+    <Card padding="none" className="overflow-hidden">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls={`${id}-body`} className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-border/30">
+        <span className="min-w-0 flex-1">
+          {header}
+          <span className="mt-1.5 block text-xs leading-5 text-foreground">{summary}</span>
+        </span>
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" className={`mt-1 shrink-0 text-zinc-500 transition-transform duration-150 ${open ? "rotate-180" : ""}`}>
+          <path d="M3 5 L7 9 L11 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      </button>
+      {open && (
+        <div id={`${id}-body`} className="border-t border-border/60 px-3 pb-3 pt-2.5">
+          {children}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// Ticker + company as a header row; the ticker button opens full research
+// without toggling the card (stopPropagation).
+function TickerHeader({ signal, right, onResearch }: { signal: Signal; right: ReactNode; onResearch: (ticker: string) => void }) {
+  return (
+    <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <span className="text-sm">
+        <span
+          role="link"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            onResearch(signal.ticker);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.stopPropagation();
+              onResearch(signal.ticker);
+            }
+          }}
+          className="text-accent hover:underline"
+          title={`Research ${signal.ticker}`}
+        >
+          {signal.ticker}
+        </span>
+        <span className="ml-2 text-zinc-500">{signal.company}</span>
+      </span>
+      <span className="flex items-center gap-3 text-[10px] caps text-zinc-500">{right}</span>
+    </span>
+  );
+}
+
+function Sources({ sources }: { sources: Signal["sources"] }) {
+  return (
+    <p className="mt-3 text-[10px] text-zinc-600">
+      Sources:{" "}
+      {sources.map((src, i) => (
+        <span key={src.url}>
+          {i > 0 && " · "}
+          <a href={src.url} target="_blank" rel="noreferrer" className="underline decoration-border underline-offset-4 hover:text-accent">
+            {src.label}
+          </a>
+        </span>
+      ))}
+    </p>
+  );
+}
 
 const CATEGORIES: { key: SignalCategory; label: string; live: boolean }[] = [
   { key: "political", label: "Political trades", live: true },
@@ -23,8 +113,17 @@ function fmtDate(iso: string) {
   return new Date(iso + (iso.length === 10 ? "T12:00:00Z" : "")).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => void }) {
+export function SignalsPanel({
+  onResearch,
+  simple,
+  onSimple,
+}: {
+  onResearch: (ticker: string) => void;
+  simple: boolean;
+  onSimple: (v: boolean) => void;
+}) {
   const [category, setCategory] = useState<SignalCategory>("political");
+  const [force, setForce] = useState<{ open: boolean; seq: number } | undefined>(undefined);
   const [political, setPolitical] = useState<SignalBatch | null | undefined>(undefined);
   const [presidential, setPresidential] = useState<PresidentialBatch | null | undefined>(undefined);
   const [ai, setAi] = useState<Partial<Record<SignalCategory, SignalBatch | null>>>({});
@@ -65,7 +164,30 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
       <div className="mt-4">
         <Tabs tabs={CATEGORIES.map((c) => ({ key: c.key, label: c.live ? c.label : `${c.label} (soon)` }))} active={category} onChange={setCategory} />
       </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <span className="flex items-center gap-2 text-[11px] text-zinc-500">
+          <button type="button" onClick={() => setForce({ open: true, seq: (force?.seq ?? 0) + 1 })} className="hover:text-foreground">
+            Expand all
+          </button>
+          <span>·</span>
+          <button type="button" onClick={() => setForce({ open: false, seq: (force?.seq ?? 0) + 1 })} className="hover:text-foreground">
+            Collapse all
+          </button>
+        </span>
+        <span className="ml-auto">
+          <Chip active={simple} onClick={() => onSimple(!simple)}>
+            {simple ? "Explaining simply" : "Explain simply"}
+          </Chip>
+        </span>
+      </div>
+      {simple && (
+        <p className="mt-2 text-[11px] leading-5 text-zinc-500">
+          Jargon is underlined — hover or tap for a plain definition. Open a card and use &ldquo;Say it simply&rdquo; to rewrite its reasoning
+          without the jargon, with an everyday example.
+        </p>
+      )}
 
+      <SectionForce.Provider value={force}>
       {(active.key === "legislation" || active.key === "geopolitics" || active.key === "financial") && (
         <>
           {ai[active.key] === undefined && !error && <p className="mt-4 text-xs text-zinc-500">Loading...</p>}
@@ -85,6 +207,7 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
           {political && <PoliticalSignals batch={political} onResearch={onResearch} />}
         </>
       )}
+      </SectionForce.Provider>
     </section>
   );
 }
@@ -107,7 +230,13 @@ function AiSignals({ batch, label, onResearch }: { batch: SignalBatch; label: st
         }
       />
       {batch.items.length === 0 && <p className="mt-3 text-xs text-zinc-500">Nothing sourced well enough to show for this window.</p>}
-      <div className="mt-3 space-y-3">
+      {batch.items.length > 0 && (
+        <p className="mt-3 text-xs text-foreground">
+          <span className="text-[10px] caps text-zinc-500">In one line · </span>
+          {batch.items.length} {batch.items.length === 1 ? "lead" : "leads"}: {batch.items.map((s) => s.ticker).join(", ")}. Newest event {fmtDate(batch.items[0].eventDate)}.
+        </p>
+      )}
+      <div className="mt-3 space-y-2">
         {batch.items.map((s) => (
           <AiSignalCard key={s.id} signal={s} label={label} onResearch={onResearch} />
         ))}
@@ -118,41 +247,33 @@ function AiSignals({ batch, label, onResearch }: { batch: SignalBatch; label: st
 
 function AiSignalCard({ signal, label, onResearch }: { signal: Signal; label: string; onResearch: (ticker: string) => void }) {
   return (
-    <Card padding="sm">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-sm">
-          <button type="button" onClick={() => onResearch(signal.ticker)} className="text-accent hover:underline" title={`Research ${signal.ticker}`}>
-            {signal.ticker}
-          </button>
-          <span className="ml-2 text-zinc-500">{signal.company}</span>
-        </h3>
-        <span className="flex items-center gap-3 text-[10px] caps text-zinc-500">
-          <span className="rounded-[var(--radius-sm)] border border-border px-1.5 py-0.5">{label}</span>
-          <span>{signal.category === "financial" ? "FY ending" : "Event"} {fmtDate(signal.eventDate)}</span>
-        </span>
-      </div>
-      {signal.title && <p className="mt-2 text-xs font-medium text-foreground">{signal.title}</p>}
-      <p className="mt-2 max-w-3xl text-xs leading-5 text-foreground">{signal.reasoning}</p>
+    <SignalShell
+      id={signal.id}
+      header={
+        <TickerHeader
+          signal={signal}
+          onResearch={onResearch}
+          right={
+            <>
+              <span className="rounded-[var(--radius-sm)] border border-border px-1.5 py-0.5">{label}</span>
+              <span>{signal.category === "financial" ? "FY ending" : "Event"} {fmtDate(signal.eventDate)}</span>
+            </>
+          }
+        />
+      }
+      summary={<JargonText text={signal.title ?? signal.reasoning.split(/(?<=\.)\s/)[0]} />}
+    >
+      <SimpleText text={signal.reasoning} context={`${label} lead on ${signal.ticker}: ${signal.title ?? ""}`} className="block max-w-3xl text-xs leading-5 text-foreground" />
       <div className="mt-3 grid grid-cols-1 gap-3 text-[11px] leading-5 md:grid-cols-2">
         <p className="text-zinc-500">
-          <span className="text-good">Bull case:</span> {signal.bullCase}
+          <span className="text-good">Bull case:</span> <JargonText text={signal.bullCase} />
         </p>
         <p className="text-zinc-500">
-          <span className="text-bad">What could go wrong:</span> {signal.risk}
+          <span className="text-bad">What could go wrong:</span> <JargonText text={signal.risk} />
         </p>
       </div>
-      <p className="mt-3 text-[10px] text-zinc-600">
-        Sources:{" "}
-        {signal.sources.map((src, i) => (
-          <span key={src.url}>
-            {i > 0 && " · "}
-            <a href={src.url} target="_blank" rel="noreferrer" className="underline decoration-border underline-offset-4 hover:text-accent">
-              {src.label}
-            </a>
-          </span>
-        ))}
-      </p>
-    </Card>
+      <Sources sources={signal.sources} />
+    </SignalShell>
   );
 }
 
@@ -368,33 +489,41 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
   const sells = trades.filter((t) => t.type === "sell").length;
   const exchanges = trades.filter((t) => t.type === "exchange").length;
 
+  const memberCount = new Set(trades.map((t) => t.member)).size;
+  const digest = [
+    `${buys} ${buys === 1 ? "buy" : "buys"}, ${sells} ${sells === 1 ? "sale" : "sales"}${exchanges ? `, ${exchanges} ${exchanges === 1 ? "exchange" : "exchanges"}` : ""}`,
+    `${memberCount} ${memberCount === 1 ? "member" : "members"}`,
+    signal.oversight && signal.oversight.length > 0 ? `sits on ${signal.oversight.map((o) => o.committee).join(" and ")}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <Card padding="sm">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-sm">
-          <button type="button" onClick={() => onResearch(signal.ticker)} className="text-accent hover:underline" title={`Research ${signal.ticker}`}>
-            {signal.ticker}
-          </button>
-          <span className="ml-2 text-zinc-500">{signal.company}</span>
-        </h3>
-        <span className="flex items-center gap-3 text-[10px] caps text-zinc-500">
-          <span className="rounded-[var(--radius-sm)] border border-border px-1.5 py-0.5">Political trades</span>
-          <span>Latest trade {fmtDate(signal.eventDate)}</span>
+    <SignalShell
+      id={signal.id}
+      header={
+        <TickerHeader
+          signal={signal}
+          onResearch={onResearch}
+          right={
+            <>
+              {signal.oversight && signal.oversight.length > 0 && (
+                <span className="rounded-[var(--radius-sm)] border border-average/60 px-1.5 py-0.5 text-average">Committee oversight overlap</span>
+              )}
+              <span>Latest trade {fmtDate(signal.eventDate)}</span>
+            </>
+          }
+        />
+      }
+      summary={
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500">
+          <StatusBadge rating="good" label={`${buys} ${buys === 1 ? "buy" : "buys"}`} />
+          <StatusBadge rating="bad" label={`${sells} ${sells === 1 ? "sale" : "sales"}`} />
+          {exchanges > 0 && <StatusBadge rating="average" label={`${exchanges} ${exchanges === 1 ? "exchange" : "exchanges"}`} />}
+          <span className="text-foreground">{digest.split(" · ").slice(1).join(" · ")}</span>
         </span>
-      </div>
-
-      <p className="mt-2 flex flex-wrap gap-3 text-[11px] text-zinc-500">
-        <StatusBadge rating="good" label={`${buys} ${buys === 1 ? "buy" : "buys"}`} />
-        <StatusBadge rating="bad" label={`${sells} ${sells === 1 ? "sale" : "sales"}`} />
-        {exchanges > 0 && <StatusBadge rating="average" label={`${exchanges} ${exchanges === 1 ? "exchange" : "exchanges"}`} />}
-        <span>{new Set(trades.map((t) => t.member)).size} {new Set(trades.map((t) => t.member)).size === 1 ? "member" : "members"}</span>
-        {signal.oversight && signal.oversight.length > 0 && (
-          <span className="rounded-[var(--radius-sm)] border border-average/60 px-1.5 py-0.5 text-[10px] caps text-average">
-            Committee oversight overlap
-          </span>
-        )}
-      </p>
-
+      }
+    >
       {signal.oversight && signal.oversight.length > 0 && (
         <ul className="mt-2 space-y-0.5 text-[11px] text-zinc-500">
           {signal.oversight.map((o) => (
@@ -405,14 +534,14 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
         </ul>
       )}
 
-      <p className="mt-2 max-w-3xl text-xs leading-5 text-foreground">{signal.reasoning}</p>
+      <SimpleText text={signal.reasoning} context={`Congressional trades in ${signal.ticker}`} className="mt-2 block max-w-3xl text-xs leading-5 text-foreground" />
 
       <div className="mt-3 grid grid-cols-1 gap-3 text-[11px] leading-5 md:grid-cols-2">
         <p className="text-zinc-500">
-          <span className="text-good">Bull case:</span> {signal.bullCase}
+          <span className="text-good">Bull case:</span> <JargonText text={signal.bullCase} />
         </p>
         <p className="text-zinc-500">
-          <span className="text-bad">What could go wrong:</span> {signal.risk}
+          <span className="text-bad">What could go wrong:</span> <JargonText text={signal.risk} />
         </p>
       </div>
 
@@ -468,17 +597,7 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
         </div>
       )}
 
-      <p className="mt-3 text-[10px] text-zinc-600">
-        Sources:{" "}
-        {signal.sources.map((src, i) => (
-          <span key={src.url}>
-            {i > 0 && " · "}
-            <a href={src.url} target="_blank" rel="noreferrer" className="underline decoration-border underline-offset-4 hover:text-accent">
-              {src.label}
-            </a>
-          </span>
-        ))}
-      </p>
-    </Card>
+      <Sources sources={signal.sources} />
+    </SignalShell>
   );
 }
