@@ -31,7 +31,7 @@ Live at https://site-theta-drab-22.vercel.app. All app code is in `site/src`; `p
 - EDGAR ratio engine (`lib/edgar.ts`): values are read by fiscal-year-end alignment (from the Assets series), flow facts must span ~a year (10-Ks also tag quarterly figures as FY), and among alternative tags the one reporting the latest year wins for every year. These three rules fixed Honeywell (+297% "growth" from a quarter), Morgan Stanley (2014 revenue shown as current), BlackRock (sub-total tag vs total). Keep them when adding tags.
 - `lib/portfolioMath.ts` — shared return/cov/Sharpe/drawdown/beta math used by risk metrics, optimizer, Monte Carlo
 - Hover glossary — `components/ui/Term` + `lib/glossary.ts`; `StatCard term="sharpe"` etc. shows a definition on hover/tap with a link to the Quant Note. Definitions come from the notes where one exists, so add new terms there first
-- Client Work (`/client-work`) — passcode-gated section for private small-business case studies. Verified via `api/client-work/auth` route setting a 30-day `httpOnly` session cookie. Protected by default with `PasscodeGate`; case studies in `site/src/data/clientWork.ts`. Passcode configured via `CLIENT_WORK_PASSCODE` in `.env.local` / Vercel (fallback: `client2026`).
+- Client Work (`/client-work`) — passcode-gated section for private small-business case studies. Verified via `api/client-work/auth` route setting a 30-day `httpOnly` session cookie. Protected by default with `PasscodeGate`; case studies in `site/src/data/clientWork.ts`. Passcode configured via `CLIENT_WORK_PASSCODE` in `.env.local` / Vercel.
 
 **In progress**
 - Strategy switch: code + docs are done; the actual trades (sell core, first rebalance) are waiting on Ethan.

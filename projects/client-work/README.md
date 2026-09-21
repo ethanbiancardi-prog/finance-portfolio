@@ -5,7 +5,7 @@ This section documents client websites, portals, and software tools built for sm
 ## Structure
 - Live at `/client-work`, linked from Project 08 on the portfolio homepage.
 - **Passcode Protected**: Restricted by default so client case studies, deliverables, and confidential metrics are only accessible to authorized viewers (Ethan and prospective clients).
-- Passcode is set via the environment variable `CLIENT_WORK_PASSCODE` in `.env.local` (local) and Vercel Project Settings (production). Defaults to `client2026` if unset.
+- Passcode is set via the environment variable `CLIENT_WORK_PASSCODE` in `.env.local` (local) and Vercel Project Settings (production).
 - Authentication sets an `httpOnly` secure session cookie (`client_work_session`) valid for 30 days.
 
 ## Case Studies Data

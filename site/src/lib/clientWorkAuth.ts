@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const DEFAULT_PASSCODE = "client2026";
+const DEFAULT_PASSCODE = "LolaBiancardi";
 export const CLIENT_WORK_COOKIE = "client_work_session";
 
 export function getExpectedPasscode(): string {
