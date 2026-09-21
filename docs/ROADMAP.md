@@ -7,7 +7,7 @@
 - [x] Deploy it (Vercel) — https://site-theta-drab-22.vercel.app
 
 ## Phase 1 — Quick wins (weeks 2–3)
-- [ ] Client-work case study pages (projects/client-work)
+- [x] Client-work case study pages (projects/client-work) — passcode-protected (`/client-work`) for private client viewing, configurable via `CLIENT_WORK_PASSCODE`, case studies in `site/src/data/clientWork.ts`
 - [x] DCF builder v1: manual inputs, live valuation, sensitivity table (full FCF build —
       revenue growth, EBIT margin, tax, D&A/capex/NWC as % of revenue — 5yr projection,
       Gordon growth terminal value, EV/equity/per-share output, WACC x terminal growth

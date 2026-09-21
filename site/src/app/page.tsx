@@ -4,7 +4,7 @@ import { Card, PageShell, SectionHeader } from "@/components/ui";
 type Project = {
   name: string;
   blurb: string;
-  status: "Live" | "In progress" | "Planned";
+  status: "Live" | "In progress" | "Planned" | "Passcode";
   href?: string;
   // Screenshot of the tool, from public/screenshots (928x464, content column only).
   screenshot?: string;
@@ -71,7 +71,8 @@ const projects: Project[] = [
     name: "Client Work",
     blurb:
       "Case studies from small-business sites I've built: the problem, what shipped, and the result.",
-    status: "Planned",
+    status: "Passcode",
+    href: "/client-work",
   },
 ];
 
@@ -88,6 +89,7 @@ export default function Home() {
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {projects.map((project, i) => {
             const live = project.status === "Live";
+            const isPasscode = project.status === "Passcode";
             const card = (
               <>
                 {project.screenshot && (
@@ -108,11 +110,15 @@ export default function Home() {
                   </span>
                   <span
                     className={`inline-flex shrink-0 items-center gap-1.5 text-[10px] caps ${
-                      live ? "text-good" : "text-zinc-600"
+                      live ? "text-good" : isPasscode ? "text-accent" : "text-zinc-600"
                     }`}
                   >
-                    <span className={`h-1.5 w-1.5 ${live ? "animate-pulse bg-good" : "bg-zinc-700"}`} />
-                    {project.status}
+                    <span
+                      className={`h-1.5 w-1.5 ${
+                        live ? "animate-pulse bg-good" : isPasscode ? "bg-accent" : "bg-zinc-700"
+                      }`}
+                    />
+                    {isPasscode ? "Passcode" : project.status}
                   </span>
                 </div>
                 <h3 className="mt-2 text-sm caps-tight text-foreground">
