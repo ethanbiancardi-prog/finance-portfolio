@@ -28,7 +28,8 @@ export type Signal = {
   category: SignalCategory;
   ticker: string;
   company: string;
-  eventDate: string; // date of the underlying event (latest trade here)
+  title?: string; // short headline (AI categories)
+  eventDate: string; // date of the underlying event
   reasoning: string;
   bullCase: string;
   risk: string;

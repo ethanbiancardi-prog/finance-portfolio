@@ -9,8 +9,8 @@ import type { Signal, SignalBatch, SignalCategory } from "@/lib/signals/types";
 
 const CATEGORIES: { key: SignalCategory; label: string; live: boolean }[] = [
   { key: "political", label: "Political trades", live: true },
-  { key: "legislation", label: "Legislation", live: false },
-  { key: "geopolitics", label: "Geopolitics", live: false },
+  { key: "legislation", label: "Legislation", live: true },
+  { key: "geopolitics", label: "Geopolitics", live: true },
   { key: "financial", label: "Financial story", live: false },
 ];
 
@@ -26,6 +26,7 @@ function fmtDate(iso: string) {
 export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => void }) {
   const [category, setCategory] = useState<SignalCategory>("political");
   const [political, setPolitical] = useState<SignalBatch | null | undefined>(undefined);
+  const [ai, setAi] = useState<Partial<Record<SignalCategory, SignalBatch | null>>>({});
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -37,7 +38,9 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
         return json;
       })
       .then((json) => {
-        if (!cancelled) setPolitical(json.political ?? null);
+        if (cancelled) return;
+        setPolitical(json.political ?? null);
+        setAi({ legislation: json.legislation ?? null, geopolitics: json.geopolitics ?? null });
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Couldn't load signals");
@@ -62,10 +65,16 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
       </div>
 
       {!active.live && (
-        <p className="mt-4 text-xs text-zinc-500">
-          {active.label} signals are coming in a later phase
-          {active.key === "financial" ? " — built from the 10-K ratio engine already on this page." : " — generated with cited, dated sources; anything without a source won't be shown."}
-        </p>
+        <p className="mt-4 text-xs text-zinc-500">{active.label} signals are coming in a later phase — built from the 10-K ratio engine already on this page.</p>
+      )}
+
+      {(active.key === "legislation" || active.key === "geopolitics") && (
+        <>
+          {ai[active.key] === undefined && !error && <p className="mt-4 text-xs text-zinc-500">Loading...</p>}
+          {error && <p className="mt-4 text-xs text-bad">{error}</p>}
+          {ai[active.key] === null && <p className="mt-4 text-xs text-zinc-500">No {active.label.toLowerCase()} signals have been generated yet — the daily refresh hasn&apos;t run.</p>}
+          {ai[active.key] && <AiSignals batch={ai[active.key]!} label={active.label} onResearch={onResearch} />}
+        </>
       )}
 
       {active.key === "political" && (
@@ -77,6 +86,68 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
         </>
       )}
     </section>
+  );
+}
+
+const AI_BLURB: Record<string, string> = {
+  legislation: "Bills, agency rules, approvals, and enforcement actions from the last few weeks, tied to the companies they hit.",
+  geopolitics: "Sanctions, trade, conflicts, central banks, and commodity decisions from the last few weeks, tied to the companies most exposed.",
+};
+
+function AiSignals({ batch, label, onResearch }: { batch: SignalBatch; label: string; onResearch: (ticker: string) => void }) {
+  return (
+    <div className="mt-4">
+      <SectionHeader
+        label={label}
+        description={`${AI_BLURB[batch.category] ?? ""} Researched with web search over the last ${batch.windowDays} days; every lead cites the specific pages it came from and leads without a source are dropped before they reach this page (${batch.stats.returned} found, ${batch.stats.kept} kept). Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`}
+      />
+      {batch.items.length === 0 && <p className="mt-3 text-xs text-zinc-500">Nothing sourced well enough to show for this window.</p>}
+      <div className="mt-3 space-y-3">
+        {batch.items.map((s) => (
+          <AiSignalCard key={s.id} signal={s} label={label} onResearch={onResearch} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AiSignalCard({ signal, label, onResearch }: { signal: Signal; label: string; onResearch: (ticker: string) => void }) {
+  return (
+    <Card padding="sm">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="text-sm">
+          <button type="button" onClick={() => onResearch(signal.ticker)} className="text-accent hover:underline" title={`Research ${signal.ticker}`}>
+            {signal.ticker}
+          </button>
+          <span className="ml-2 text-zinc-500">{signal.company}</span>
+        </h3>
+        <span className="flex items-center gap-3 text-[10px] caps text-zinc-500">
+          <span className="rounded-[var(--radius-sm)] border border-border px-1.5 py-0.5">{label}</span>
+          <span>Event {fmtDate(signal.eventDate)}</span>
+        </span>
+      </div>
+      {signal.title && <p className="mt-2 text-xs font-medium text-foreground">{signal.title}</p>}
+      <p className="mt-2 max-w-3xl text-xs leading-5 text-foreground">{signal.reasoning}</p>
+      <div className="mt-3 grid grid-cols-1 gap-3 text-[11px] leading-5 md:grid-cols-2">
+        <p className="text-zinc-500">
+          <span className="text-good">Bull case:</span> {signal.bullCase}
+        </p>
+        <p className="text-zinc-500">
+          <span className="text-bad">What could go wrong:</span> {signal.risk}
+        </p>
+      </div>
+      <p className="mt-3 text-[10px] text-zinc-600">
+        Sources:{" "}
+        {signal.sources.map((src, i) => (
+          <span key={src.url}>
+            {i > 0 && " · "}
+            <a href={src.url} target="_blank" rel="noreferrer" className="underline decoration-border underline-offset-4 hover:text-accent">
+              {src.label}
+            </a>
+          </span>
+        ))}
+      </p>
+    </Card>
   );
 }
 
