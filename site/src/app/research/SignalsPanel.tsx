@@ -11,7 +11,7 @@ const CATEGORIES: { key: SignalCategory; label: string; live: boolean }[] = [
   { key: "political", label: "Political trades", live: true },
   { key: "legislation", label: "Legislation", live: true },
   { key: "geopolitics", label: "Geopolitics", live: true },
-  { key: "financial", label: "Financial story", live: false },
+  { key: "financial", label: "Financial story", live: true },
 ];
 
 // Text cells: the shared cell class is tabular (mono) for numbers; names read better in the UI font.
@@ -40,7 +40,7 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
       .then((json) => {
         if (cancelled) return;
         setPolitical(json.political ?? null);
-        setAi({ legislation: json.legislation ?? null, geopolitics: json.geopolitics ?? null });
+        setAi({ legislation: json.legislation ?? null, geopolitics: json.geopolitics ?? null, financial: json.financial ?? null });
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Couldn't load signals");
@@ -64,11 +64,7 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
         <Tabs tabs={CATEGORIES.map((c) => ({ key: c.key, label: c.live ? c.label : `${c.label} (soon)` }))} active={category} onChange={setCategory} />
       </div>
 
-      {!active.live && (
-        <p className="mt-4 text-xs text-zinc-500">{active.label} signals are coming in a later phase — built from the 10-K ratio engine already on this page.</p>
-      )}
-
-      {(active.key === "legislation" || active.key === "geopolitics") && (
+      {(active.key === "legislation" || active.key === "geopolitics" || active.key === "financial") && (
         <>
           {ai[active.key] === undefined && !error && <p className="mt-4 text-xs text-zinc-500">Loading...</p>}
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
@@ -92,6 +88,7 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
 const AI_BLURB: Record<string, string> = {
   legislation: "Bills, agency rules, approvals, and enforcement actions from the last few weeks, tied to the companies they hit.",
   geopolitics: "Sanctions, trade, conflicts, central banks, and commodity decisions from the last few weeks, tied to the companies most exposed.",
+  financial: "Companies in the eight-sector universe whose latest 10-K tells a story — margins moving, a turnaround, unusual cash generation, leverage changing. Good and bad stories both count.",
 };
 
 function AiSignals({ batch, label, onResearch }: { batch: SignalBatch; label: string; onResearch: (ticker: string) => void }) {
@@ -99,7 +96,11 @@ function AiSignals({ batch, label, onResearch }: { batch: SignalBatch; label: st
     <div className="mt-4">
       <SectionHeader
         label={label}
-        description={`${AI_BLURB[batch.category] ?? ""} Researched with web search over the last ${batch.windowDays} days; every lead cites the specific pages it came from and leads without a source are dropped before they reach this page (${batch.stats.returned} found, ${batch.stats.kept} kept). Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`}
+        description={
+          batch.category === "financial"
+            ? `${AI_BLURB.financial} Computed from SEC filing data by the same ratio engine as the Search tab — no AI involved; ${batch.stats.companiesScreened} companies screened, ${batch.stats.withStory} with a story, top ${batch.stats.kept} shown. Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`
+            : `${AI_BLURB[batch.category] ?? ""} Researched with web search over the last ${batch.windowDays} days; every lead cites the specific pages it came from and leads without a source are dropped before they reach this page (${batch.stats.returned} found, ${batch.stats.kept} kept). Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`
+        }
       />
       {batch.items.length === 0 && <p className="mt-3 text-xs text-zinc-500">Nothing sourced well enough to show for this window.</p>}
       <div className="mt-3 space-y-3">
@@ -123,7 +124,7 @@ function AiSignalCard({ signal, label, onResearch }: { signal: Signal; label: st
         </h3>
         <span className="flex items-center gap-3 text-[10px] caps text-zinc-500">
           <span className="rounded-[var(--radius-sm)] border border-border px-1.5 py-0.5">{label}</span>
-          <span>Event {fmtDate(signal.eventDate)}</span>
+          <span>{signal.category === "financial" ? "FY ending" : "Event"} {fmtDate(signal.eventDate)}</span>
         </span>
       </div>
       {signal.title && <p className="mt-2 text-xs font-medium text-foreground">{signal.title}</p>}

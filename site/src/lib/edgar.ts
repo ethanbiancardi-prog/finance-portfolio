@@ -101,13 +101,23 @@ export async function getCompanyFacts(cik: number) {
   return res.json();
 }
 
-export type FactPoint = { end: string; val: number; fy: number; fp: string; form: string; filed: string };
+export type FactPoint = { start?: string; end: string; val: number; fy: number; fp: string; form: string; filed: string };
+
+// Flow facts (revenue, income, cash flow) carry a start date; an annual
+// figure spans roughly a year. 10-Ks also tag the year's quarterly figures
+// as form 10-K / fp FY, which would otherwise pass as "annual" and make a
+// quarter look like a prior year (Honeywell: +297% "growth").
+function isAnnualDuration(p: FactPoint): boolean {
+  if (!p.start) return true; // balance-sheet (instant) fact
+  const days = (new Date(p.end).getTime() - new Date(p.start).getTime()) / 86_400_000;
+  return days >= 350 && days <= 380;
+}
 
 // A tag can appear many times (once per filing that reports it as a
 // comparative period) — keep the most recently filed value per period-end,
 // then sort newest period first.
 function latestAnnual(points: FactPoint[]): FactPoint[] {
-  const annual = points.filter((p) => p.form === "10-K" && p.fp === "FY");
+  const annual = points.filter((p) => p.form === "10-K" && p.fp === "FY" && isAnnualDuration(p));
   const byEnd = new Map<string, FactPoint>();
   for (const p of annual) {
     const existing = byEnd.get(p.end);
@@ -164,6 +174,8 @@ const REVENUE_TAGS = [
   "RevenueFromContractWithCustomerExcludingAssessedTax",
   "RevenueFromContractWithCustomerIncludingAssessedTax",
   "SalesRevenueNet",
+  // Banks and brokers report a net figure instead (Morgan Stanley, Goldman).
+  "RevenuesNetOfInterestExpense",
 ];
 
 // Shared by computeRatios and getRedFlagNumbers — both need the same
@@ -193,21 +205,37 @@ function buildSeriesHelpers(facts: any) {
   // any data" (which returned NVIDIA's FY2022 revenue as if it were current),
   // merge every tag's points by fiscal year end, earlier tags in the list
   // winning when two report the same year.
+  // Tag priority: the tag that reports the most recent year wins for every
+  // year it covers, and the others only fill gaps. Otherwise a narrower
+  // line item that shares a tag name (BlackRock's "Revenues" is a sub-total
+  // that stops in 2024; total revenue is under RevenueFromContract...)
+  // becomes "last year" and the comparison spans two different concepts.
   function seriesAny(tags: string[]): FactPoint[] {
+    const perTag = tags.map((tag) => series(tag)).filter((pts) => pts.length > 0);
+    const latestEnd = perTag.reduce((max, pts) => (pts[0].end > max ? pts[0].end : max), "");
+    const ordered = [...perTag.filter((pts) => pts[0].end === latestEnd), ...perTag.filter((pts) => pts[0].end !== latestEnd)];
     const byEnd = new Map<string, FactPoint>();
-    for (const tag of tags) {
-      for (const p of series(tag)) {
+    for (const pts of ordered) {
+      for (const p of pts) {
         if (!byEnd.has(p.end)) byEnd.set(p.end, p);
       }
     }
     return [...byEnd.values()].sort((a, b) => b.end.localeCompare(a.end));
   }
 
+  // Every series is read relative to the company's fiscal year ends, taken
+  // from the balance sheet (Assets is reported by every filer, every year).
+  // Index 0 is the latest year end, 1 the one before. Reading by position
+  // instead would let a tag that stopped being used years ago (Morgan
+  // Stanley's "Revenues" ends in 2014) masquerade as the current year.
+  const yearEnds = series("Assets").map((p) => p.end);
   function val(points: FactPoint[], i: number): number | null {
-    return points[i]?.val ?? null;
+    const end = yearEnds[i];
+    if (!end) return points[i]?.val ?? null;
+    return points.find((p) => p.end === end)?.val ?? null;
   }
 
-  return { series, seriesAny, val, deiSeries };
+  return { series, seriesAny, val, deiSeries, yearEnds };
 }
 
 // The same helpers, for modules outside this file (lib/dcfPrefill.ts).

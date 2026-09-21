@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { refreshAiSignals } from "@/lib/signals/aiSignals";
+import { refreshFinancialSignals } from "@/lib/signals/financial";
 import { refreshPoliticalSignals } from "@/lib/signals/political";
 
 // Manual refresh, secret-gated (same secret as the crons) — for seeding
-// and testing. ?category=political|legislation|geopolitics, default all.
+// and testing. ?category=political|legislation|geopolitics|financial, default all.
 // The scheduled refresh lives in /api/cron/daily.
 export const maxDuration = 300;
 
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
     political: () => refreshPoliticalSignals(),
     legislation: () => refreshAiSignals("legislation"),
     geopolitics: () => refreshAiSignals("geopolitics"),
+    financial: () => refreshFinancialSignals(),
   };
   const keys = category ? [category] : Object.keys(jobs);
   if (keys.some((k) => !jobs[k])) return NextResponse.json({ error: "unknown category" }, { status: 400 });

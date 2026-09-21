@@ -37,11 +37,11 @@ const pct = (v: number, d = 1) => `${(v * 100).toFixed(d)}%`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function computeDcfPrefill(facts: any): DcfPrefill | null {
-  const { seriesAny, series, val, deiSeries } = getCompanyFactSeries(facts);
+  const { seriesAny, series, val, deiSeries, yearEnds } = getCompanyFactSeries(facts);
 
-  const revenue = seriesAny(["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet"]);
+  const revenue = seriesAny(["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet", "RevenuesNetOfInterestExpense"]);
   const rev0 = val(revenue, 0);
-  const end = revenue[0]?.end;
+  const end = yearEnds[0];
   if (rev0 == null || !end) return null;
 
   // Every balance-sheet figure must be as of the same fiscal year end as
@@ -71,7 +71,7 @@ export function computeDcfPrefill(facts: any): DcfPrefill | null {
       field: "growthRate",
       label: "Revenue growth",
       value: pct(cagr),
-      how: `3-year compound growth: (${fmtM(rev0)} ÷ ${fmtM(rev3)})^(1/3) − 1, from FY ending ${revenue[3].end} to ${end}.`,
+      how: `3-year compound growth: (${fmtM(rev0)} ÷ ${fmtM(rev3)})^(1/3) − 1, from FY ending ${yearEnds[3]} to ${end}.`,
       note: "This is history, not a forecast. A DCF projects it forward five years — ask whether the company can keep this up, and fade it if not.",
     });
   } else if (rev1 != null && rev1 > 0) {
