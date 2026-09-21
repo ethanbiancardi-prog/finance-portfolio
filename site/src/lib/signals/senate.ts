@@ -9,7 +9,7 @@ import type { PoliticalTrade } from "./types";
 
 const BASE = "https://efdsearch.senate.gov";
 const USER_AGENT = "finance-portfolio ethanbiancardi@gmail.com";
-const MAX_REPORTS_PER_RUN = 60;
+const MAX_REPORTS_PER_RUN = 200;
 
 // Minimal cookie jar: the site needs csrftoken + sessionid carried across
 // the agreement POST, the search POST, and each report GET.

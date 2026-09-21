@@ -21,6 +21,7 @@ export type PoliticalTrade = {
   lagDays: number;
   amountRange: string; // as filed, e.g. "$1,001 - $15,000"
   amended: boolean; // a corrected re-filing of an earlier report
+  sincePct?: number | null; // price change from the trade date to the latest close
   filingId: string;
   filingUrl: string;
 };
@@ -41,6 +42,11 @@ export type Signal = {
   // Political trades: committees whose jurisdiction plausibly covers the
   // company's sector, with the members who sit on them.
   oversight?: { committee: string; members: string[] }[];
+  // Political trades: price change since the most recent trade, and a
+  // conviction score — repeated buying by several members over the window
+  // is the actual signal in late-disclosed data; a single trade isn't.
+  sinceTrade?: { pct: number; from: string; asOf: string } | null;
+  conviction?: { score: number; label: string };
 };
 
 export type SignalBatch = {
@@ -65,6 +71,7 @@ export type PresidentialAggregate = {
   netHigh: number;
   firstTradeDate: string;
   lastTradeDate: string;
+  sinceTrade?: { pct: number; from: string; asOf: string } | null;
   sources: SignalSource[];
 };
 

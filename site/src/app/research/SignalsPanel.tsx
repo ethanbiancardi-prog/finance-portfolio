@@ -97,17 +97,33 @@ function Sources({ sources }: { sources: Signal["sources"] }) {
   );
 }
 
+// Ordered by how fresh the evidence is: legislation and geopolitics are
+// days old, the financial story is the latest 10-K, political trades arrive
+// weeks after the fact — so they come last.
 const CATEGORIES: { key: SignalCategory; label: string; live: boolean }[] = [
-  { key: "political", label: "Political trades", live: true },
   { key: "legislation", label: "Legislation", live: true },
   { key: "geopolitics", label: "Geopolitics", live: true },
   { key: "financial", label: "Financial story", live: true },
+  { key: "political", label: "Political trades", live: true },
 ];
 
 // Text cells: the shared cell class is tabular (mono) for numbers; names read better in the UI font.
 const textCell = "py-1 text-xs text-zinc-400";
 
 const OWNER_LABEL = { self: "Self", spouse: "Spouse", joint: "Joint", child: "Child" } as const;
+
+// Price change since a trade date, colored by sign. Null when Alpaca had no
+// bars for the ticker (foreign listings, very recent IPOs).
+function SincePct({ pct, title }: { pct: number | null | undefined; title?: string }) {
+  if (pct == null) return <span className="text-zinc-600">—</span>;
+  const sign = pct > 0 ? "+" : pct < 0 ? "−" : "";
+  return (
+    <span className={pct > 0 ? "text-good" : pct < 0 ? "text-bad" : ""} title={title}>
+      {sign}
+      {Math.abs(pct * 100).toFixed(1)}%
+    </span>
+  );
+}
 
 function fmtDate(iso: string) {
   return new Date(iso + (iso.length === 10 ? "T12:00:00Z" : "")).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -122,7 +138,7 @@ export function SignalsPanel({
   simple: boolean;
   onSimple: (v: boolean) => void;
 }) {
-  const [category, setCategory] = useState<SignalCategory>("political");
+  const [category, setCategory] = useState<SignalCategory>("legislation");
   const [force, setForce] = useState<{ open: boolean; seq: number } | undefined>(undefined);
   const [political, setPolitical] = useState<SignalBatch | null | undefined>(undefined);
   const [presidential, setPresidential] = useState<PresidentialBatch | null | undefined>(undefined);
@@ -299,7 +315,7 @@ function PresidentialSection({ batch, onResearch }: { batch: PresidentialBatch; 
       <Callout className="mt-3" label="read this first">
         <span className="block"><span className="text-foreground">Trustee-managed.</span> These accounts are run by trustees and outside managers; the President does not personally select these trades.</span>
         <span className="mt-1 block"><span className="text-foreground">Ranges, not figures.</span> Each trade is disclosed as a range (e.g. $1,000,001 – $5,000,000). &ldquo;Estimated&rdquo; amounts here sum the midpoints; the true totals lie somewhere in the range shown.</span>
-        <span className="mt-1 block"><span className="text-foreground">Weeks to months late.</span> This filing landed <span className="text-foreground">{batch.lagDays} days</span> after its last trade; {batch.stats.lateRows} of {batch.stats.rows} rows were filed past the 30-day deadline. The market has long since moved.</span>
+        <span className="mt-1 block"><span className="text-foreground">Weeks to months late.</span> This filing landed <span className="text-foreground">{batch.lagDays} days</span> after its last trade; {batch.stats.lateRows} of {batch.stats.rows} rows were filed past the 30-day deadline. The market has long since moved — the &ldquo;since last trade&rdquo; column shows by how much.</span>
       </Callout>
 
       <div className="mt-3 space-y-3">
@@ -334,7 +350,7 @@ function PresidentialTable({ title, rows, onResearch }: { title: string; rows: P
     <Card padding="sm">
       <p className="text-[10px] caps text-zinc-500">{title}</p>
       <div className="mt-2 overflow-x-auto">
-        <table className="w-full min-w-[520px] text-left">
+        <table className="w-full min-w-[600px] text-left">
           <thead>
             <tr className={tableHeadRowClass}>
               <th className={tableHeadCellClass}>Ticker</th>
@@ -342,6 +358,7 @@ function PresidentialTable({ title, rows, onResearch }: { title: string; rows: P
               <th className={`${tableHeadCellClass} pr-3 text-right`}>Est. net</th>
               <th className={`${tableHeadCellClass} pr-3`}>Range</th>
               <th className={`${tableHeadCellClass} pr-3`}>Trade dates</th>
+              <th className={`${tableHeadCellClass} pr-3 text-right`}>Since last trade</th>
               <th className={tableHeadCellClass}>Filing</th>
             </tr>
           </thead>
@@ -371,6 +388,9 @@ function PresidentialTable({ title, rows, onResearch }: { title: string; rows: P
                 <td className={`${tableCellClass} pr-3 whitespace-nowrap`}>
                   {r.firstTradeDate === r.lastTradeDate ? fmtDate(r.firstTradeDate) : `${fmtDate(r.firstTradeDate)} – ${fmtDate(r.lastTradeDate)}`}
                 </td>
+                <td className={`${tableCellClass} pr-3 text-right tabular-nums`}>
+                  <SincePct pct={r.sinceTrade?.pct} title={r.sinceTrade ? `${fmtDate(r.sinceTrade.from)} close to ${fmtDate(r.sinceTrade.asOf)} close` : undefined} />
+                </td>
                 <td className={tableCellClass}>
                   <a href={r.sources[0]?.url} target="_blank" rel="noreferrer" className="text-accent underline decoration-border underline-offset-4 hover:decoration-accent">
                     PDF
@@ -380,7 +400,7 @@ function PresidentialTable({ title, rows, onResearch }: { title: string; rows: P
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-3 text-xs text-zinc-500">
+                <td colSpan={7} className="py-3 text-xs text-zinc-500">
                   None in this filing.
                 </td>
               </tr>
@@ -406,11 +426,24 @@ const PARTIES: { key: PartyFilter; label: string }[] = [
   { key: "Independent", label: "Independents" },
 ];
 
+type SortKey = "conviction" | "recent" | "count";
+const SORTS: { key: SortKey; label: string; title: string }[] = [
+  { key: "conviction", label: "Conviction", title: "Several members buying the same name with nobody selling, plus a committee overlap, ranks first" },
+  { key: "recent", label: "Recently disclosed", title: "Most recently filed first" },
+  { key: "count", label: "Most traded", title: "Most trades in the window first" },
+];
+
+function latestDisclosure(s: Signal): string {
+  return (s.trades ?? []).reduce((m, t) => (t.disclosureDate > m ? t.disclosureDate : m), "");
+}
+
 function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearch: (ticker: string) => void }) {
   const [showAll, setShowAll] = useState(false);
   const [chamber, setChamber] = useState<ChamberFilter>("all");
   const [party, setParty] = useState<PartyFilter>("all");
-  const lag = Number(batch.stats.medianLagDays);
+  const [sort, setSort] = useState<SortKey>("conviction");
+  const lagHouse = Number(batch.stats.medianLagHouse ?? batch.stats.medianLagDays);
+  const lagSenate = Number(batch.stats.medianLagSenate ?? batch.stats.medianLagDays);
 
   // Filters apply to the trades inside each card; a card with no matching
   // trades disappears, and the oversight flags only keep committees that a
@@ -424,7 +457,12 @@ function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearc
       const committees = new Set(trades.flatMap((t) => t.committees ?? []));
       return { ...sig, trades, oversight: (sig.oversight ?? []).filter((o) => committees.has(o.committee)) };
     })
-    .filter((sig): sig is Signal => sig !== null);
+    .filter((sig): sig is Signal => sig !== null)
+    .sort((a, b) => {
+      if (sort === "recent") return latestDisclosure(b).localeCompare(latestDisclosure(a));
+      if (sort === "count") return (b.trades?.length ?? 0) - (a.trades?.length ?? 0) || latestDisclosure(b).localeCompare(latestDisclosure(a));
+      return (b.conviction?.score ?? 0) - (a.conviction?.score ?? 0) || latestDisclosure(b).localeCompare(latestDisclosure(a));
+    });
   const items = showAll ? filtered : filtered.slice(0, 12);
   const tradeCount = filtered.reduce((n, sig) => n + (sig.trades?.length ?? 0), 0);
 
@@ -435,10 +473,12 @@ function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearc
         description={`Periodic Transaction Reports filed in the last ${batch.windowDays} days — House reports parsed from the Clerk's official PDFs, Senate reports from the electronic filings on efdsearch.senate.gov. ${batch.stats.tradesParsed} individual-stock trades (${batch.stats.houseTrades ?? "?"} House, ${batch.stats.senateTrades ?? 0} Senate) across ${batch.stats.tickers} tickers. ETFs, funds, options and bonds are left out, as are paper filings with no text layer. Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`}
       />
 
-      <Callout className="mt-3" label="reporting lag">
-        The STOCK Act gives members up to <span className="text-foreground">45 days</span> to disclose a trade. The median lag in this batch is{" "}
-        <span className="text-foreground">{lag} days</span> — by the time a trade appears here, the price has usually already moved. Trade dates below are
-        when the trade happened; disclosed dates are when the public could first see it.
+      <Callout className="mt-3" label="how to read late data">
+        The STOCK Act gives members up to <span className="text-foreground">45 days</span> to disclose a trade; the median lag here is{" "}
+        <span className="text-foreground">{lagHouse} days</span> in the House and <span className="text-foreground">{lagSenate} days</span> in the Senate, so the
+        price has usually moved before a trade is public. Two things make it usable anyway: the <span className="text-foreground">since trade</span> figure shows
+        what the stock did from the trade date to the latest close, and the default <span className="text-foreground">conviction</span> order puts names that
+        several members bought over the {batch.windowDays}-day window, with nobody selling, at the top — one trade is noise, five in the same name is not.
       </Callout>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -453,6 +493,14 @@ function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearc
           {PARTIES.map((pt) => (
             <Chip key={pt.key} active={party === pt.key} onClick={() => setParty(pt.key)}>
               {pt.label}
+            </Chip>
+          ))}
+        </span>
+        <span className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] caps text-zinc-500">Sort</span>
+          {SORTS.map((o) => (
+            <Chip key={o.key} active={sort === o.key} onClick={() => setSort(o.key)} title={o.title}>
+              {o.label}
             </Chip>
           ))}
         </span>
@@ -490,9 +538,11 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
   const exchanges = trades.filter((t) => t.type === "exchange").length;
 
   const memberCount = new Set(trades.map((t) => t.member)).size;
+  // The conviction label ("3 members buying, none selling") already says
+  // what matters; fall back to the member count when it's plain "mixed".
+  const conviction = signal.conviction?.label.replace(" · committee overlap", "");
   const digest = [
-    `${buys} ${buys === 1 ? "buy" : "buys"}, ${sells} ${sells === 1 ? "sale" : "sales"}${exchanges ? `, ${exchanges} ${exchanges === 1 ? "exchange" : "exchanges"}` : ""}`,
-    `${memberCount} ${memberCount === 1 ? "member" : "members"}`,
+    conviction && conviction !== "mixed" ? conviction : `${memberCount} ${memberCount === 1 ? "member" : "members"}, mixed buying and selling`,
     signal.oversight && signal.oversight.length > 0 ? `sits on ${signal.oversight.map((o) => o.committee).join(" and ")}` : null,
   ]
     .filter(Boolean)
@@ -511,6 +561,11 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
                 <span className="rounded-[var(--radius-sm)] border border-average/60 px-1.5 py-0.5 text-average">Committee oversight overlap</span>
               )}
               <span>Latest trade {fmtDate(signal.eventDate)}</span>
+              {signal.sinceTrade && (
+                <span title={`${fmtDate(signal.sinceTrade.from)} close to ${fmtDate(signal.sinceTrade.asOf)} close`}>
+                  Since trade <SincePct pct={signal.sinceTrade.pct} />
+                </span>
+              )}
             </>
           }
         />
@@ -520,7 +575,7 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
           <StatusBadge rating="good" label={`${buys} ${buys === 1 ? "buy" : "buys"}`} />
           <StatusBadge rating="bad" label={`${sells} ${sells === 1 ? "sale" : "sales"}`} />
           {exchanges > 0 && <StatusBadge rating="average" label={`${exchanges} ${exchanges === 1 ? "exchange" : "exchanges"}`} />}
-          <span className="text-foreground">{digest.split(" · ").slice(1).join(" · ")}</span>
+          <span className="text-foreground">{digest}</span>
         </span>
       }
     >
@@ -550,7 +605,7 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
       </button>
       {open && (
         <div className="mt-2 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left">
+          <table className="w-full min-w-[700px] text-left">
             <thead>
               <tr className={tableHeadRowClass}>
                 <th className={tableHeadCellClass}>Member</th>
@@ -559,6 +614,7 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
                 <th className={tableHeadCellClass}>Trade date</th>
                 <th className={tableHeadCellClass}>Disclosed</th>
                 <th className={`${tableHeadCellClass} pr-4 text-right`}>Lag</th>
+                <th className={`${tableHeadCellClass} pr-4 text-right`}>Since</th>
                 <th className={tableHeadCellClass}>Amount</th>
                 <th className={tableHeadCellClass}>Source</th>
               </tr>
@@ -581,9 +637,12 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
                     {t.type === "sell" && t.partial ? "Partial sale" : t.type === "buy" ? "Buy" : t.type === "sell" ? "Sale" : "Exchange"}
                     {t.amended && <span className="ml-1.5 text-[10px] caps text-average">amended</span>}
                   </td>
-                  <td className={`${tableCellClass} pr-3 tabular-nums`}>{fmtDate(t.tradeDate)}</td>
-                  <td className={`${tableCellClass} pr-3 tabular-nums`}>{fmtDate(t.disclosureDate)}</td>
+                  <td className={`${tableCellClass} pr-3 tabular-nums whitespace-nowrap`}>{fmtDate(t.tradeDate)}</td>
+                  <td className={`${tableCellClass} pr-3 tabular-nums whitespace-nowrap`}>{fmtDate(t.disclosureDate)}</td>
                   <td className={`${tableCellClass} pr-4 text-right tabular-nums ${t.lagDays > 45 ? "text-bad" : ""}`}>{t.lagDays}d</td>
+                  <td className={`${tableCellClass} pr-4 text-right tabular-nums`}>
+                    <SincePct pct={t.sincePct} title="Price change from the trade date to the latest close" />
+                  </td>
                   <td className={`${tableCellClass} pr-3 tabular-nums`}>{t.amountRange}</td>
                   <td className={tableCellClass}>
                     <a href={t.filingUrl} target="_blank" rel="noreferrer" className="text-accent underline decoration-border underline-offset-4 hover:decoration-accent">

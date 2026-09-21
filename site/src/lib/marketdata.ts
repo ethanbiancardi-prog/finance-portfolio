@@ -29,6 +29,9 @@ export async function getDailyBars(
         start: start.toISOString().slice(0, 10),
         end: end.toISOString().slice(0, 10),
         feed: "iex",
+        // Split-adjusted: without this a 2-for-1 split reads as a 50% crash
+        // in every return, momentum score, and "since trade" figure.
+        adjustment: "split",
         limit: "10000",
         ...(pageToken ? { page_token: pageToken } : {}),
       });

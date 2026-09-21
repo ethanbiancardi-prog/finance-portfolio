@@ -15,13 +15,17 @@ import { getRedis } from "@/lib/kv";
 import { SECTOR_KEYS, SECTORS, type SectorKey } from "@/lib/sectors";
 import { loadMembers, oversightOverlap, sectorFromSic, senatorKey, type MemberInfo, type Members } from "./committees";
 import { fetchSenateTrades } from "./senate";
+import { loadBars, sinceDate } from "./performance";
 import type { PoliticalTrade, Signal, SignalBatch } from "./types";
 
 const USER_AGENT = "finance-portfolio ethanbiancardi@gmail.com";
 const CLERK = "https://disclosures-clerk.house.gov";
-export const WINDOW_DAYS = 30;
+// Three months: long enough for the same name to show up across several
+// members' filings, which is the only pattern worth reading in data that
+// arrives weeks late.
+export const WINDOW_DAYS = 90;
 // Bound the work per run: the most recent filings first.
-const MAX_FILINGS_PER_RUN = 80;
+const MAX_FILINGS_PER_RUN = 250;
 const PDF_CONCURRENCY = 6;
 const KEY = "signals:political";
 
@@ -200,18 +204,26 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
   const names = await resolveTickerNames([...byTicker.keys()]);
   const sectors = await classifySectors([...byTicker.keys()].filter((tk) => names.has(tk)));
 
-  const items: Signal[] = [...byTicker.entries()]
-    .filter(([ticker]) => names.has(ticker))
-    .map(([ticker, ts]) => buildSignal(ticker, names.get(ticker)!, ts, members, sectors.get(ticker) ?? { sector: null, industry: null }))
-    // Oversight overlaps first, then by trade count, then recency.
-    .sort(
-      (a, b) =>
-        (b.oversight?.length ? 1 : 0) - (a.oversight?.length ? 1 : 0) ||
-        (b.trades?.length ?? 0) - (a.trades?.length ?? 0) ||
-        b.eventDate.localeCompare(a.eventDate),
-    );
+  const knownTickers = [...byTicker.keys()].filter((tk) => names.has(tk));
+  const bars = await loadBars(knownTickers, WINDOW_DAYS + 20);
 
-  const lags = trades.map((t) => t.lagDays).sort((a, b) => a - b);
+  const items: Signal[] = knownTickers
+    .map((ticker) => {
+      const ts = byTicker.get(ticker)!;
+      const signal = buildSignal(ticker, names.get(ticker)!, ts, members, sectors.get(ticker) ?? { sector: null, industry: null });
+      // Price since each trade, and since the latest one for the card.
+      for (const t of signal.trades ?? []) t.sincePct = sinceDate(bars.get(ticker), t.tradeDate)?.pct ?? null;
+      const since = sinceDate(bars.get(ticker), signal.eventDate);
+      signal.sinceTrade = since ? { pct: since.pct, from: since.from, asOf: since.asOf } : null;
+      signal.conviction = scoreConviction(signal);
+      return signal;
+    })
+    // Conviction first, then most recently disclosed.
+    .sort((a, b) => (b.conviction?.score ?? 0) - (a.conviction?.score ?? 0) || latestDisclosure(b) .localeCompare(latestDisclosure(a)));
+
+  // Amended re-filings of old trades would swamp the median; measure the
+  // lag on original filings.
+  const lags = trades.filter((t) => !t.amended).map((t) => t.lagDays).sort((a, b) => a - b);
   const batch: SignalBatch = {
     category: "political",
     generatedAt: now.toISOString(),
@@ -224,6 +236,9 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
       tradesParsed: trades.length,
       tickers: items.length,
       medianLagDays: lags.length ? lags[Math.floor(lags.length / 2)] : 0,
+      medianLagHouse: medianLag(trades.filter((t) => t.chamber === "House")),
+      medianLagSenate: medianLag(trades.filter((t) => t.chamber === "Senate")),
+      tickersWithPrices: knownTickers.filter((t) => bars.has(t)).length,
       chambers: "House + Senate",
       senateReports: senate.stats.reports,
       senateElectronic: senate.stats.electronic,
@@ -242,6 +257,40 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
 
 export async function getPoliticalSignals(): Promise<SignalBatch | null> {
   return (await getRedis().get<SignalBatch>(KEY)) ?? null;
+}
+
+// Per-chamber, original filings only — one senator's 400-trade late filing
+// shouldn't read as "Congress discloses four months late".
+function medianLag(ts: PoliticalTrade[]): number {
+  const lags = ts.filter((t) => !t.amended).map((t) => t.lagDays).sort((a, b) => a - b);
+  return lags.length ? lags[Math.floor(lags.length / 2)] : 0;
+}
+
+function latestDisclosure(s: Signal): string {
+  return (s.trades ?? []).reduce((m, t) => (t.disclosureDate > m ? t.disclosureDate : m), "");
+}
+
+// Conviction: how many distinct members bought minus how many sold, with a
+// bonus for buying with no sales at all and for a committee overlap. A
+// score of 3+ means several people with some connection to the industry
+// independently bought the same name over the window.
+function scoreConviction(s: Signal): { score: number; label: string } {
+  const ts = s.trades ?? [];
+  const buyers = new Set(ts.filter((t) => t.type === "buy").map((t) => t.member));
+  const sellers = new Set(ts.filter((t) => t.type === "sell").map((t) => t.member));
+  const overlap = (s.oversight?.length ?? 0) > 0;
+  let score = buyers.size - sellers.size;
+  if (buyers.size > 0 && sellers.size === 0) score += 1;
+  if (sellers.size > 0 && buyers.size === 0) score -= 1;
+  if (overlap) score += 2;
+  const parts: string[] = [];
+  if (buyers.size >= 2 && sellers.size === 0) parts.push(`${buyers.size} members buying, none selling`);
+  else if (buyers.size >= 1 && sellers.size === 0) parts.push("buying only");
+  else if (sellers.size >= 2 && buyers.size === 0) parts.push(`${sellers.size} members selling, none buying`);
+  else if (sellers.size >= 1 && buyers.size === 0) parts.push("selling only");
+  else parts.push("mixed");
+  if (overlap) parts.push("committee overlap");
+  return { score, label: parts.join(" · ") };
 }
 
 function daysBetween(a: string, b: string): number {

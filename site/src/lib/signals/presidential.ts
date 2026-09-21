@@ -8,6 +8,7 @@
 // each disclosed range. Every aggregate links to the filing it came from.
 import { resolveTickerNames } from "@/lib/edgar";
 import { getRedis } from "@/lib/kv";
+import { loadBars, sinceDate } from "./performance";
 import type { PresidentialAggregate, PresidentialBatch } from "./types";
 
 const CSV_URL = "https://open-cabinet.org/data/all-transactions.csv";
@@ -140,6 +141,7 @@ export async function refreshPresidentialSignals(now = new Date()): Promise<Pres
   }
 
   const names = await resolveTickerNames([...byTicker.keys()]);
+  const bars = await loadBars([...byTicker.keys()], 120);
   const aggregates: PresidentialAggregate[] = [...byTicker.entries()].map(([ticker, a]) => ({
     ticker,
     company: names.get(ticker) ?? titleCase(a.description),
@@ -154,6 +156,10 @@ export async function refreshPresidentialSignals(now = new Date()): Promise<Pres
     netHigh: a.high,
     firstTradeDate: a.first,
     lastTradeDate: a.last,
+    sinceTrade: (() => {
+      const s = sinceDate(bars.get(ticker), a.last);
+      return s ? { pct: s.pct, from: s.from, asOf: s.asOf } : null;
+    })(),
     sources: filingUrls.map((url, i) => ({ label: `OGE Form 278-T, filed ${filingDate}${filingUrls.length > 1 ? ` (part ${i + 1})` : ""}`, url })),
   }));
 
