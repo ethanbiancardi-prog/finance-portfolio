@@ -7,6 +7,7 @@ import { Dashboard, RedFlagsPanel, type Company, type Dashboard as DashboardData
 import { NewsPanel } from "./NewsPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { BusinessSummary } from "./BusinessSummary";
+import { PlaybookPanel } from "./PlaybookPanel";
 import { isSectorKey, SECTOR_KEYS, SECTORS } from "@/lib/sectors";
 
 const CATEGORIES = SECTOR_KEYS.map((key) => ({ key, label: SECTORS[key].label }));
@@ -86,7 +87,7 @@ function ResearchPage() {
     <PageShell
       eyebrow="fundamentals, news, ai analysis"
       title="Stock Research"
-      description="One ticker, everything on it: what the business does, fundamentals and ratios from the latest 10-K, an AI red-flag scan, live headlines, and six AI analyst takes."
+      description="One ticker, everything on it: what the business does, what's moving it and what you could do about it, fundamentals and ratios from the latest 10-K, an AI red-flag scan, live headlines, and six AI analyst takes."
     >
       <div className="mt-4">
         <Tabs
@@ -123,6 +124,7 @@ function ResearchPage() {
           {dashboard && company && (
             <>
               <BusinessSummary key={`about-${company.ticker}`} ticker={company.ticker} name={company.title} />
+              <PlaybookPanel key={`playbook-${company.ticker}`} ticker={company.ticker} />
               <Dashboard company={company} dashboard={dashboard} />
               <RedFlagsPanel key={`flags-${company.ticker}`} ticker={company.ticker} />
               <NewsPanel key={`news-${company.ticker}`} ticker={company.ticker} />

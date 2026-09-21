@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { computeRatios, getCompanyFacts, resolveTicker, type RatioDashboard } from "@/lib/edgar";
-import { getQuote, type Quote } from "@/lib/marketdata";
-import { getNews, type NewsItem } from "@/lib/news";
-import { formatCurrencyCompact, formatPercent, formatRatio } from "@/lib/format";
+import { buildBriefing } from "@/lib/researchBriefing";
 
 const anthropic = new Anthropic();
 
@@ -65,36 +62,6 @@ const RESPONSE_SCHEMA = {
   additionalProperties: false,
 };
 
-function fundamentalsBlock(dashboard: RatioDashboard | null) {
-  if (!dashboard) return "Annual financials: not available (no SEC filing found).";
-  const lines = [
-    `Fiscal year end: ${dashboard.periodEnd ?? "not available"} (prior: ${dashboard.priorPeriodEnd ?? "n/a"})`,
-    `Revenue: ${formatCurrencyCompact(dashboard.revenue)} (prior ${formatCurrencyCompact(dashboard.revenuePrior)}, growth ${formatPercent(dashboard.revenueGrowth)})`,
-    `Net income: ${formatCurrencyCompact(dashboard.netIncome)}`,
-  ];
-  for (const r of dashboard.ratios) {
-    const fmt = (v: number | null) =>
-      r.format === "%" ? formatPercent(v) : r.format === "$" ? formatCurrencyCompact(v) : formatRatio(v);
-    lines.push(`${r.label} (${r.group}): ${fmt(r.value)} (prior ${fmt(r.prior)})`);
-  }
-  return `Annual financials from the latest 10-K:\n${lines.join("\n")}`;
-}
-
-function quoteBlock(quote: Quote | null) {
-  if (!quote) return "Current price: not available.";
-  const change =
-    quote.change == null
-      ? ""
-      : ` (${quote.change >= 0 ? "+" : ""}${quote.change.toFixed(2)}, ${formatPercent(quote.changePercent)} vs. prior close)`;
-  return `Current price: $${quote.price.toFixed(2)}${change}, as of ${quote.asOf}`;
-}
-
-function newsBlock(items: NewsItem[] | null) {
-  if (!items || items.length === 0) return "Recent headlines: not available.";
-  const lines = items.map((n) => `- [${n.publishedAt.slice(0, 10)}] ${n.headline}${n.summary ? ` — ${n.summary.slice(0, 200)}` : ""}`);
-  return `Recent headlines (newest first):\n${lines.join("\n")}`;
-}
-
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const ticker = String(body.ticker ?? "").trim().toUpperCase();
@@ -102,36 +69,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid ticker" }, { status: 400 });
   }
 
-  // Each source can fail independently (EDGAR is down, the market is closed
-  // and IEX has no trade yet, both news feeds time out) without blocking the
-  // panel — a persona working from partial data is still more useful than
-  // no panel at all.
-  const [factsResult, quoteResult, newsResult] = await Promise.allSettled([
-    resolveTicker(ticker).then(async (company) => {
-      if (!company) return null;
-      return { company, dashboard: computeRatios(await getCompanyFacts(company.cik)) };
-    }),
-    getQuote(ticker),
-    getNews(ticker, 10),
-  ]);
-
-  const facts = factsResult.status === "fulfilled" ? factsResult.value : null;
-  const quote = quoteResult.status === "fulfilled" ? quoteResult.value : null;
-  const news = newsResult.status === "fulfilled" ? newsResult.value.items : null;
-
-  const briefing = [
-    `Ticker: ${ticker}${facts ? ` — ${facts.company.title}` : ""}`,
-    `Today's date: ${new Date().toISOString().slice(0, 10)}`,
-    quoteBlock(quote),
-    fundamentalsBlock(facts?.dashboard ?? null),
-    newsBlock(news),
-  ].join("\n\n");
+  const briefing = await buildBriefing(ticker, 10);
 
   const response = await anthropic.messages.create({
     model: "claude-opus-5",
     max_tokens: 4000,
     system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: briefing }],
+    messages: [{ role: "user", content: briefing.text }],
     output_config: {
       // Six short takes over a briefing we already assembled — medium effort
       // keeps the reasoning without the wait a research-report-length answer
@@ -148,10 +92,6 @@ export async function POST(request: Request) {
   // "priced as of 3:58pm, filing FY2025, 8 headlines" next to the output.
   return NextResponse.json({
     ...parsed,
-    basedOn: {
-      priceAsOf: quote?.asOf ?? null,
-      fiscalYearEnd: facts?.dashboard.periodEnd ?? null,
-      headlines: news?.length ?? 0,
-    },
+    basedOn: briefing.basedOn,
   });
 }

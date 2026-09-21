@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
   Card,
   Field,
+  PageLoading,
   PageShell,
   SectionHeader,
   SelectField,
@@ -82,7 +84,17 @@ type RiskMetrics = {
   periodDays: number;
 };
 
+// useSearchParams needs a Suspense boundary above it for static rendering.
 export default function PaperTrading() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <PaperTradingPage />
+    </Suspense>
+  );
+}
+
+function PaperTradingPage() {
+  const params = useSearchParams();
   const [account, setAccount] = useState<Account | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -144,6 +156,28 @@ export default function PaperTrading() {
     const timer = setInterval(loadAll, 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  // Arriving from a research-page option: ?ticker=X&side=buy pre-fills the
+  // order form, ?journal=X&thesis=... pre-fills a journal entry. Deferred a
+  // tick so the state updates don't run synchronously inside the effect.
+  useEffect(() => {
+    const orderTicker = params.get("ticker")?.toUpperCase();
+    const side = params.get("side");
+    const journalFor = params.get("journal")?.toUpperCase();
+    const thesis = params.get("thesis");
+    if (!orderTicker && !journalFor) return;
+    const id = window.setTimeout(() => {
+      if (orderTicker) {
+        setSymbol(orderTicker);
+        if (side === "buy" || side === "sell") setSide(side);
+      }
+      const jt = journalFor ?? orderTicker;
+      if (jt) setJournalTicker(jt);
+      if (thesis) setJournalThesis(thesis);
+      if (journalFor) document.getElementById("journal")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [params]);
 
   async function submitOrder(e: React.FormEvent) {
     e.preventDefault();
@@ -306,7 +340,7 @@ export default function PaperTrading() {
         </div>
       </Card>
 
-      <Card as="section" className="mt-4">
+      <Card as="section" className="mt-4" id="journal">
         <SectionHeader label="trade journal" />
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[560px] text-left">
