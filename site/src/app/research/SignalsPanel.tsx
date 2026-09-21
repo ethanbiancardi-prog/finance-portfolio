@@ -280,7 +280,7 @@ function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearc
     <div className="mt-6">
       <SectionHeader
         label="section b — stock trades reported by members of congress"
-        description={`Periodic Transaction Reports filed with the House Clerk in the last ${batch.windowDays} days, parsed from the official PDFs. ${batch.stats.tradesParsed} trades across ${batch.stats.tickers} tickers from ${batch.stats.filingsScanned} filings. ${batch.stats.chambers}. Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`}
+        description={`Periodic Transaction Reports filed in the last ${batch.windowDays} days — House reports parsed from the Clerk's official PDFs, Senate reports from the electronic filings on efdsearch.senate.gov. ${batch.stats.tradesParsed} individual-stock trades (${batch.stats.houseTrades ?? "?"} House, ${batch.stats.senateTrades ?? 0} Senate) across ${batch.stats.tickers} tickers. ETFs, funds, options and bonds are left out, as are paper filings with no text layer. Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`}
       />
 
       <Callout className="mt-3" label="reporting lag">
@@ -400,7 +400,7 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
                   <td className={`${tableCellClass} pr-3 tabular-nums`}>{t.amountRange}</td>
                   <td className={tableCellClass}>
                     <a href={t.filingUrl} target="_blank" rel="noreferrer" className="text-accent underline decoration-border underline-offset-4 hover:decoration-accent">
-                      PDF
+                      {t.chamber === "Senate" ? "Filing" : "PDF"}
                     </a>
                   </td>
                 </tr>

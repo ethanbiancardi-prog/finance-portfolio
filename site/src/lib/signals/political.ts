@@ -13,7 +13,8 @@ import { unzipSync } from "fflate";
 import { getCompanyProfile, resolveTicker, resolveTickerNames } from "@/lib/edgar";
 import { getRedis } from "@/lib/kv";
 import { SECTOR_KEYS, SECTORS, type SectorKey } from "@/lib/sectors";
-import { loadHouseMembers, oversightOverlap, sectorFromSic, type MemberInfo } from "./committees";
+import { loadMembers, oversightOverlap, sectorFromSic, senatorKey, type MemberInfo, type Members } from "./committees";
+import { fetchSenateTrades } from "./senate";
 import type { PoliticalTrade, Signal, SignalBatch } from "./types";
 
 const USER_AGENT = "finance-portfolio ethanbiancardi@gmail.com";
@@ -124,11 +125,14 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
   const year = now.getUTCFullYear();
   const since = new Date(now.getTime() - WINDOW_DAYS * 86_400_000).toISOString().slice(0, 10);
 
-  const [indexAll, members] = await Promise.all([
+  const [indexAll, members, senate] = await Promise.all([
     fetchPtrIndex(year),
     // Committee data is an enrichment — if the dataset is down, still
     // publish the trades, just without it.
-    loadHouseMembers().catch((): Map<string, MemberInfo> => new Map()),
+    loadMembers().catch((): Members => ({ byDistrict: new Map(), bySenatorName: new Map() })),
+    // The Senate site is the flakier of the two; a failure there shouldn't
+    // sink the House batch.
+    fetchSenateTrades(since).catch((err: unknown) => ({ trades: [] as PoliticalTrade[], stats: { reports: 0, electronic: 0, paper: 0, failed: 0, unparseable: 0, error: err instanceof Error ? err.message : String(err) } })),
   ]);
   const index = indexAll
     .filter((r) => r.filingDate >= since)
@@ -154,7 +158,7 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
         return;
       }
       const member = `${row.prefix ? row.prefix + " " : ""}${row.first} ${row.last}`.trim();
-      const info = members.get(row.district);
+      const info = members.byDistrict.get(row.district);
       for (const t of parsed) {
         trades.push({
           ticker: t.ticker,
@@ -176,6 +180,18 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
         });
       }
     });
+  }
+
+  // Senate trades: attach party, state, committees by name, then merge.
+  for (const t of senate.trades) {
+    const parts = t.member.replace(/^Sen\. /, "").split(" ");
+    const info = members.bySenatorName.get(senatorKey(parts[0], parts[parts.length - 1]));
+    if (info) {
+      t.party = info.party;
+      t.district = info.state;
+      t.committees = info.committees.map((c) => c.name);
+    }
+    trades.push(t);
   }
 
   // Group by ticker; keep only tickers SEC knows (drops mis-parses).
@@ -208,8 +224,14 @@ export async function refreshPoliticalSignals(now = new Date()): Promise<SignalB
       tradesParsed: trades.length,
       tickers: items.length,
       medianLagDays: lags.length ? lags[Math.floor(lags.length / 2)] : 0,
-      chambers: "House only",
-      membersWithCommittees: members.size,
+      chambers: "House + Senate",
+      senateReports: senate.stats.reports,
+      senateElectronic: senate.stats.electronic,
+      senatePaperSkipped: senate.stats.paper,
+      senateTrades: senate.trades.length,
+      houseTrades: trades.length - senate.trades.length,
+      ...("error" in senate.stats ? { senateError: String(senate.stats.error) } : {}),
+      membersWithCommittees: members.byDistrict.size + members.bySenatorName.size,
       tickersWithSector: [...sectors.values()].filter((c) => c.sector).length,
       withOversightOverlap: items.filter((i) => i.oversight && i.oversight.length > 0).length,
     },
@@ -257,11 +279,10 @@ async function classifySectors(tickers: string[]): Promise<Map<string, Classifie
   return out;
 }
 
-function buildSignal(ticker: string, company: string, ts: PoliticalTrade[], houseMembers: Map<string, MemberInfo>, { sector, industry }: Classified): Signal {
+function buildSignal(ticker: string, company: string, ts: PoliticalTrade[], members: Members, { sector, industry }: Classified): Signal {
   const buys = ts.filter((t) => t.type === "buy");
   const sells = ts.filter((t) => t.type === "sell");
   const exchanges = ts.filter((t) => t.type === "exchange");
-  const members = [...new Set(ts.map((t) => t.member))];
   const latest = ts.reduce((m, t) => (t.tradeDate > m ? t.tradeDate : m), ts[0].tradeDate);
   const lead =
     buys.length === 0 && sells.length === 0
@@ -271,7 +292,8 @@ function buildSignal(ticker: string, company: string, ts: PoliticalTrade[], hous
         : sells.length > buys.length
           ? "net selling"
           : "mixed buying and selling";
-  const who = members.length === 1 ? `${members[0]} (${ts[0].district})` : `${members.length} members (${members.slice(0, 3).join(", ")}${members.length > 3 ? ", …" : ""})`;
+  const memberNames = [...new Set(ts.map((t) => t.member))];
+  const who = memberNames.length === 1 ? `${memberNames[0]}${ts[0].district ? ` (${ts[0].district})` : ""}` : `${memberNames.length} members (${memberNames.slice(0, 3).join(", ")}${memberNames.length > 3 ? ", …" : ""})`;
   // Amended re-filings of old trades would swamp the average; use the
   // original filings when there are any.
   const lagPool = ts.some((t) => !t.amended) ? ts.filter((t) => !t.amended) : ts;
@@ -280,9 +302,18 @@ function buildSignal(ticker: string, company: string, ts: PoliticalTrade[], hous
   // Committee overlap: which trading members sit on a committee that
   // oversees this company's sector.
   const overlapMap = new Map<string, Set<string>>();
-  for (const district of new Set(ts.map((t) => t.district))) {
-    const info = houseMembers.get(district);
-    if (!info) continue;
+  const memberInfos = new Map<string, MemberInfo>();
+  for (const t of ts) {
+    const info =
+      t.chamber === "House"
+        ? members.byDistrict.get(t.district)
+        : (() => {
+            const parts = t.member.replace(/^Sen\. /, "").split(" ");
+            return members.bySenatorName.get(senatorKey(parts[0], parts[parts.length - 1]));
+          })();
+    if (info) memberInfos.set(info.bioguide, info);
+  }
+  for (const info of memberInfos.values()) {
     for (const c of oversightOverlap(info.committees, sector, industry)) {
       overlapMap.set(c.name, (overlapMap.get(c.name) ?? new Set()).add(info.name));
     }
@@ -323,9 +354,10 @@ function buildSignal(ticker: string, company: string, ts: PoliticalTrade[], hous
     sources: [
       ...[...new Set(ts.map((t) => t.filingUrl))].map((url) => {
         const t = ts.find((x) => x.filingUrl === url)!;
-        return { label: `PTR — ${t.member}, filed ${t.disclosureDate} (official PDF)`, url };
+        return { label: `PTR — ${t.member}, filed ${t.disclosureDate} (${t.chamber === "Senate" ? "official filing" : "official PDF"})`, url };
       }),
       { label: "House Clerk financial disclosures", url: `${CLERK}/FinancialDisclosure` },
+      ...(ts.some((t) => t.chamber === "Senate") ? [{ label: "Senate electronic financial disclosures", url: "https://efdsearch.senate.gov/search/" }] : []),
     ],
     trades: ts.sort((a, b) => b.tradeDate.localeCompare(a.tradeDate)),
     oversight,

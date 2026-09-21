@@ -15,7 +15,13 @@ export type MemberInfo = {
   bioguide: string;
   name: string;
   party: string;
+  state: string;
   committees: Committee[]; // full committees only; subcommittees folded into their parent
+};
+
+export type Members = {
+  byDistrict: Map<string, MemberInfo>; // House: "FL18"
+  bySenatorName: Map<string, MemberInfo>; // Senate: normalised "first last"
 };
 
 // Which full committees have jurisdiction over which companies. Deliberately
@@ -45,6 +51,18 @@ const OVERSIGHT: Record<string, Rule> = {
   HSVR: { sectors: ["healthcare"], industry: /pharmaceutical|hospital|medical|surgical|drug/i },
   // Homeland Security — cybersecurity vendors
   HSHM: { sectors: ["technology"], industry: /prepackaged software|computer|security/i },
+  // --- Senate ---
+  SSAS: { sectors: ["industrials", "technology"], industry: /aircraft|aerospace|guided missile|ordnance|search, detection|ship ?building|defense|arms/i }, // Armed Services
+  SSBK: { sectors: ["financials"] }, // Banking, Housing, and Urban Affairs
+  SSHR: { sectors: ["healthcare"] }, // Health, Education, Labor, and Pensions
+  SSFI: { sectors: ["healthcare"], industry: /pharmaceutical|biological|hospital|health|medical|surgical|drug/i }, // Finance — Medicare, tax
+  SSEG: { sectors: ["energy", "industrials"], industry: /petroleum|crude|natural gas|oil|mining|coal|drilling|electric/i }, // Energy and Natural Resources
+  SSEV: { sectors: ["sustainability", "industrials"], industry: /water|refuse|sanitary|waste|environmental|chemical|highway|construction/i }, // Environment and Public Works
+  SSCM: { sectors: ["communications", "technology", "industrials"], industry: /telephone|cable|broadcast|television|radio|internet|software|computer|semiconductor|transportation|railroad|trucking|air ?line|aircraft/i }, // Commerce, Science, and Transportation
+  SSAF: { sectors: ["consumer", "industrials"], industry: /food|beverage|bottled|grocery|agricultur|farm|meat|grain|dairy|sugar|fertiliz|\btractor/i }, // Agriculture
+  SSJU: { sectors: ["technology", "communications"], industry: /prepackaged software|computer processing|data processing|information retrieval|internet|advertising|telephone|cable/i }, // Judiciary
+  SSVA: { sectors: ["healthcare"], industry: /pharmaceutical|hospital|medical|surgical|drug/i }, // Veterans' Affairs
+  SSGA: { sectors: ["technology"], industry: /prepackaged software|computer|security/i }, // Homeland Security and Governmental Affairs
 };
 
 type Legislator = {
@@ -61,8 +79,16 @@ async function getJson<T>(path: string): Promise<T> {
   return res.json();
 }
 
-// One fetch of all three files per refresh; returns a district -> member map.
-export async function loadHouseMembers(): Promise<Map<string, MemberInfo>> {
+// Senators are matched by name (the EFD site gives no state): lower-case
+// first + last, punctuation and suffixes dropped, so "Angus S King, Jr."
+// and "Angus King" meet in the middle.
+export function senatorKey(first: string, last: string): string {
+  const clean = (s: string) => s.toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\b\.?/g, "").replace(/[^a-z ]/g, "").trim();
+  return `${clean(first).split(" ")[0]} ${clean(last).split(" ").pop()}`;
+}
+
+// One fetch of all three files per refresh; returns member maps for both chambers.
+export async function loadMembers(): Promise<Members> {
   const [legislators, committees, membership] = await Promise.all([
     getJson<Legislator[]>("legislators-current.json"),
     getJson<CommitteeRec[]>("committees-current.json"),
@@ -71,17 +97,18 @@ export async function loadHouseMembers(): Promise<Map<string, MemberInfo>> {
 
   const committeeName = new Map<string, Committee>();
   for (const c of committees) {
-    if (c.type !== "house") continue;
-    committeeName.set(c.thomas_id, { id: c.thomas_id, name: c.name.replace(/^House Committee on (the )?/, "") });
+    if (c.type !== "house" && c.type !== "senate") continue;
+    const name = c.name.replace(/^(House|Senate) Committee on (the )?/, "");
+    committeeName.set(c.thomas_id, { id: c.thomas_id, name });
     for (const s of c.subcommittees ?? []) {
-      committeeName.set(c.thomas_id + s.thomas_id, { id: c.thomas_id, name: c.name.replace(/^House Committee on (the )?/, ""), parent: c.thomas_id });
+      committeeName.set(c.thomas_id + s.thomas_id, { id: c.thomas_id, name, parent: c.thomas_id });
     }
   }
 
   const byBioguide = new Map<string, Committee[]>();
   for (const [id, members] of Object.entries(membership)) {
     const c = committeeName.get(id);
-    if (!c) continue; // Senate or joint committee
+    if (!c) continue; // joint committee
     for (const m of members) {
       const list = byBioguide.get(m.bioguide) ?? [];
       if (!list.some((x) => x.id === c.id)) list.push({ id: c.id, name: c.name });
@@ -90,17 +117,20 @@ export async function loadHouseMembers(): Promise<Map<string, MemberInfo>> {
   }
 
   const byDistrict = new Map<string, MemberInfo>();
+  const bySenatorName = new Map<string, MemberInfo>();
   for (const l of legislators) {
     const term = l.terms[l.terms.length - 1];
-    if (term.type !== "rep" || term.district == null) continue;
-    byDistrict.set(`${term.state}${String(term.district).padStart(2, "0")}`, {
+    const info: MemberInfo = {
       bioguide: l.id.bioguide,
       name: l.name.official_full ?? `${l.name.first} ${l.name.last}`,
       party: term.party,
+      state: term.state,
       committees: byBioguide.get(l.id.bioguide) ?? [],
-    });
+    };
+    if (term.type === "rep" && term.district != null) byDistrict.set(`${term.state}${String(term.district).padStart(2, "0")}`, info);
+    else if (term.type === "sen") bySenatorName.set(senatorKey(l.name.first, l.name.last), info);
   }
-  return byDistrict;
+  return { byDistrict, bySenatorName };
 }
 
 // Committees (by id) that plausibly oversee this company.
