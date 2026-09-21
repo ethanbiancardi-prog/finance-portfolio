@@ -4,9 +4,10 @@
 // now (from the headlines), how it's doing (from the 10-K ratios), and 2-3
 // concrete options — each with a button that carries the reader straight
 // to the action on this site (paper trade, journal entry, DCF).
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Card, SectionHeader, StatusBadge, type Rating } from "@/components/ui";
+import { Card, Section, StatusBadge, type Rating } from "@/components/ui";
+import { JargonText, SimpleText } from "./SimpleMode";
 
 type Catalyst = {
   type: "product" | "earnings" | "guidance" | "deal" | "regulatory" | "management" | "macro" | "other";
@@ -59,9 +60,14 @@ function actionLink(o: Option, ticker: string): { href: string; label: string } 
   }
 }
 
-export function PlaybookPanel({ ticker }: { ticker: string }) {
+export function PlaybookPanel({ ticker, onLoaded }: { ticker: string; onLoaded?: (summary: string) => void }) {
   const [data, setData] = useState<Playbook | null>(null);
   const [error, setError] = useState("");
+  // Latest callback without re-running the fetch when the parent re-renders.
+  const onLoadedRef = useRef(onLoaded);
+  useEffect(() => {
+    onLoadedRef.current = onLoaded;
+  }, [onLoaded]);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,8 +81,10 @@ export function PlaybookPanel({ ticker }: { ticker: string }) {
         if (!res.ok) throw new Error(json.error ?? "Couldn't build the playbook");
         return json;
       })
-      .then((json) => {
-        if (!cancelled) setData(json);
+      .then((json: Playbook) => {
+        if (cancelled) return;
+        setData(json);
+        onLoadedRef.current?.(glance(json));
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Couldn't build the playbook");
@@ -87,14 +95,17 @@ export function PlaybookPanel({ ticker }: { ticker: string }) {
   }, [ticker]);
 
   return (
-    <Card as="section" className="mt-4">
-      <SectionHeader
-        label="catalysts & what you could do"
-        description="What's moving the company right now, how it's doing financially, and concrete next steps for the paper account. AI-generated from the same filing, price, and headlines shown on this page — a starting point, not advice."
-      />
-
+    <Section
+      id="whats-happening"
+      label="What's happening & what you could do"
+      status={error ? "error" : data ? "ready" : "loading"}
+      summary={error ? error : data ? <JargonText text={glance(data)} /> : undefined}
+    >
+      <p className="text-[11px] leading-5 text-zinc-500">
+        What&apos;s moving the company right now, how it&apos;s doing financially, and concrete next steps for the paper account. AI-generated from the
+        same filing, price, and headlines shown on this page — a starting point, not advice.
+      </p>
       {!data && !error && <p className="mt-3 text-xs text-zinc-500">Reading the headlines and the numbers...</p>}
-      {error && <p className="mt-3 text-xs text-bad">{error}</p>}
 
       {data && (
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr]">
@@ -111,7 +122,7 @@ export function PlaybookPanel({ ticker }: { ticker: string }) {
                       <StatusBadge rating={DIRECTION_RATING[c.direction]} label={c.direction} />
                     </span>
                     <span className="mt-1 block text-foreground">{c.headline}</span>
-                    <span className="block text-zinc-500">{c.why}</span>
+                    <span className="block text-zinc-500"><JargonText text={c.why} /></span>
                   </li>
                 ))}
               </ul>
@@ -127,7 +138,7 @@ export function PlaybookPanel({ ticker }: { ticker: string }) {
               {data.financialHealth.points.map((pt, i) => (
                 <li key={i} className="text-xs leading-5 text-zinc-500">
                   <span className="mr-1.5 text-accent">•</span>
-                  {pt}
+                  <JargonText text={pt} />
                 </li>
               ))}
             </ul>
@@ -147,9 +158,9 @@ export function PlaybookPanel({ ticker }: { ticker: string }) {
                         <span className="ml-1.5 text-[10px] caps text-zinc-500">starter {o.starterSizePct}% of account</span>
                       )}
                     </p>
-                    <p className="mt-1.5 flex-1 text-[11px] leading-5 text-zinc-500">{o.rationale}</p>
+                    <SimpleText text={o.rationale} context={`Why this option for ${ticker}: ${o.title}`} className="mt-1.5 flex-1 block text-[11px] leading-5 text-zinc-500" />
                     <p className="mt-2 text-[11px] leading-5 text-zinc-500">
-                      <span className="text-average">Wrong if:</span> {o.invalidation}
+                      <span className="text-average">Wrong if:</span> <JargonText text={o.invalidation} />
                     </p>
                     {link ? (
                       <Link
@@ -178,6 +189,14 @@ export function PlaybookPanel({ ticker }: { ticker: string }) {
           {data.basedOn.priceAsOf ? `, price as of ${new Date(data.basedOn.priceAsOf).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : ""}
         </p>
       )}
-    </Card>
+    </Section>
   );
+}
+
+// One line for the section header and the page's overview strip.
+function glance(d: Playbook): string {
+  const health = `Financials look ${d.financialHealth.verdict}`;
+  const catalyst = d.catalysts[0] ? `Latest: ${d.catalysts[0].headline}` : "No material catalysts in recent news";
+  const top = d.options[0] ? `Top option: ${d.options[0].title.toLowerCase()}` : "";
+  return [health, catalyst, top].filter(Boolean).join(" · ");
 }

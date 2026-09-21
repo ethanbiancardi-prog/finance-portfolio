@@ -9,7 +9,10 @@ import { AnalysisPanel } from "./AnalysisPanel";
 import { BusinessSummary } from "./BusinessSummary";
 import { PlaybookPanel } from "./PlaybookPanel";
 import { SignalsPanel } from "./SignalsPanel";
+import { Overview } from "./Overview";
+import { SimpleProvider } from "./SimpleMode";
 import { isSectorKey, SECTOR_KEYS, SECTORS } from "@/lib/sectors";
+import { SectionForce } from "@/components/ui/Section";
 
 const CATEGORIES = SECTOR_KEYS.map((key) => ({ key, label: SECTORS[key].label }));
 
@@ -31,6 +34,10 @@ function ResearchPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Reading controls for a result: plain-English mode and expand/collapse all.
+  const [simple, setSimple] = useState(false);
+  const [force, setForce] = useState<{ open: boolean; seq: number } | undefined>(undefined);
+  const [glance, setGlance] = useState<string | null>(null);
 
   const [category, setCategory] = useState<string>(CATEGORIES[0].key);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -41,6 +48,8 @@ function ResearchPage() {
     setError("");
     setDashboard(null);
     setCompany(null);
+    setGlance(null);
+    setForce(undefined);
 
     const res = await fetch(`/api/statement-analyzer/lookup?ticker=${encodeURIComponent(symbol)}`);
     const data = await res.json();
@@ -124,14 +133,24 @@ function ResearchPage() {
           )}
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
           {dashboard && company && (
-            <>
-              <BusinessSummary key={`about-${company.ticker}`} ticker={company.ticker} name={company.title} />
-              <PlaybookPanel key={`playbook-${company.ticker}`} ticker={company.ticker} />
-              <Dashboard company={company} dashboard={dashboard} />
-              <RedFlagsPanel key={`flags-${company.ticker}`} ticker={company.ticker} />
-              <NewsPanel key={`news-${company.ticker}`} ticker={company.ticker} />
-              <AnalysisPanel key={`ai-${company.ticker}`} ticker={company.ticker} />
-            </>
+            <SimpleProvider value={simple}>
+              <Overview
+                company={company}
+                glance={glance}
+                simple={simple}
+                onSimple={setSimple}
+                onExpandAll={() => setForce({ open: true, seq: (force?.seq ?? 0) + 1 })}
+                onCollapseAll={() => setForce({ open: false, seq: (force?.seq ?? 0) + 1 })}
+              />
+              <SectionForce.Provider value={force}>
+                <BusinessSummary key={`about-${company.ticker}`} ticker={company.ticker} name={company.title} />
+                <PlaybookPanel key={`playbook-${company.ticker}`} ticker={company.ticker} onLoaded={setGlance} />
+                <Dashboard company={company} dashboard={dashboard} />
+                <RedFlagsPanel key={`flags-${company.ticker}`} ticker={company.ticker} />
+                <NewsPanel key={`news-${company.ticker}`} ticker={company.ticker} />
+                <AnalysisPanel key={`ai-${company.ticker}`} ticker={company.ticker} />
+              </SectionForce.Provider>
+            </SimpleProvider>
           )}
         </section>
       )}

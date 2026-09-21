@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, SectionHeader } from "@/components/ui";
+import { Section } from "@/components/ui";
 
 type NewsItem = {
   id: string;
@@ -50,21 +50,25 @@ export function NewsPanel({ ticker }: { ticker: string }) {
     };
   }, [ticker]);
 
+  const summary = error
+    ? error
+    : items === null
+      ? undefined
+      : items.length === 0
+        ? "No recent headlines"
+        : `${items.length} headlines · latest ${timeAgo(items[0].publishedAt)} ago: "${items[0].headline}"`;
+
   return (
-    <Card as="section" className="mt-4">
-      <SectionHeader
-        label={`news: ${ticker}`}
-        description={
-          sources.length ? `Merged from ${sources.join(" + ")}, newest first, duplicates removed.` : "Yahoo Finance RSS + Alpaca (Benzinga)."
-        }
-      />
+    <Section id="news" label="News" status={error ? "error" : items === null ? "loading" : "ready"} summary={summary}>
+      <p className="text-[11px] text-zinc-500">
+        {sources.length ? `Merged from ${sources.join(" + ")}, newest first, duplicates removed.` : "Yahoo Finance RSS + Alpaca (Benzinga)."}
+      </p>
 
       {items === null && (
         <p className="mt-3 text-xs text-zinc-500">
           Fetching headlines...
         </p>
       )}
-      {error && <p className="mt-3 text-xs text-bad">{error}</p>}
       {items && items.length === 0 && !error && <p className="mt-3 text-xs text-zinc-500">No recent headlines</p>}
 
       {items && items.length > 0 && (
@@ -90,6 +94,6 @@ export function NewsPanel({ ticker }: { ticker: string }) {
           ))}
         </ul>
       )}
-    </Card>
+    </Section>
   );
 }

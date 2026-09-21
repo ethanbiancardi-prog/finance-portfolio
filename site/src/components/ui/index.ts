@@ -14,3 +14,4 @@ export { tableHeadRowClass, tableHeadCellClass, tableRowClass, tableCellClass, t
 export { chartAxisProps, chartGridProps, chartTooltipStyle, chartLegendStyle } from "./charts";
 export { Icon, type IconName } from "./icons";
 export { Term } from "./Term";
+export { Section } from "./Section";

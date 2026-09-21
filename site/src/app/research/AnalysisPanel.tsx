@@ -4,7 +4,8 @@
 // latest 10-K ratios, current price, and headlines before it writes, and
 // reports back what it used so we can show it under the takes.
 import { useState } from "react";
-import { Button, Callout, Card, SectionHeader } from "@/components/ui";
+import { Button, Callout, Card, Section } from "@/components/ui";
+import { JargonText, SimpleText } from "./SimpleMode";
 
 type PersonaTake = { name: string; take: string };
 type Analysis = {
@@ -54,12 +55,18 @@ export function AnalysisPanel({ ticker }: { ticker: string }) {
 
   const stale = analysis && analyzedTicker !== ticker;
 
+  const summary = analysis
+    ? <><span className="text-zinc-500">Key disagreement: </span><JargonText text={analysis.key_disagreement.split(/(?<=\.)\s/)[0]} /></>
+    : loading
+      ? undefined
+      : "Six analysts argue it out — open and run to see where they disagree";
+
   return (
-    <Card as="section" className="mt-4">
-      <SectionHeader
-        label="ai analysis"
-        description="Six takes on the ticker, each grounded in the latest filing, current price, and headlines, then the sharpest disagreement between them. AI-generated — a starting point for your own thesis, not a recommendation."
-      />
+    <Section id="analysts" label="Six AI analysts" status={loading ? "loading" : analysis ? "ready" : "idle"} summary={summary}>
+      <p className="text-[11px] leading-5 text-zinc-500">
+        Six takes on the ticker, each grounded in the latest filing, current price, and headlines, then the sharpest disagreement between them.
+        AI-generated — a starting point for your own thesis, not a recommendation.
+      </p>
       <div className="mt-3 flex items-center gap-3">
         <Button onClick={run} loading={loading} loadingLabel="Analyzing...">
           Analyze {ticker}
@@ -75,16 +82,16 @@ export function AnalysisPanel({ ticker }: { ticker: string }) {
             {analysis.personas.map((p) => (
               <Card key={p.name} padding="sm">
                 <p className="text-[10px] caps text-accent">{p.name}</p>
-                <p className="mt-1.5 text-xs leading-5 text-zinc-400">{p.take}</p>
+                <SimpleText text={p.take} context={`${p.name}'s view of ${ticker}`} className="mt-1.5 block text-xs leading-5 text-zinc-400" />
               </Card>
             ))}
           </div>
           <Callout label="key disagreement" className="mt-3">
-            {analysis.key_disagreement}
+            <SimpleText text={analysis.key_disagreement} context={`Where the analysts disagree on ${ticker}`} />
           </Callout>
           <p className="mt-2 text-[10px] caps text-zinc-600">{basedOnLabel(analysis.basedOn)}</p>
         </div>
       )}
-    </Card>
+    </Section>
   );
 }

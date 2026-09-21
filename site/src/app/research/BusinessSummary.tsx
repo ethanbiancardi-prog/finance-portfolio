@@ -6,7 +6,8 @@
 // description rather than the model's memory. Keyed by ticker where it's
 // rendered so a new search remounts it with fresh state.
 import { useEffect, useState } from "react";
-import { Card, SectionHeader } from "@/components/ui";
+import { Section } from "@/components/ui";
+import { JargonText, SimpleText } from "./SimpleMode";
 
 type Summary = {
   summary: string;
@@ -47,19 +48,26 @@ export function BusinessSummary({ ticker, name }: { ticker: string; name: string
     ? [data.profile.sicDescription, data.profile.headquarters, data.profile.exchange].filter(Boolean)
     : [];
 
-  return (
-    <Card as="section" className="mt-4">
-      <SectionHeader label={`about ${name}`} />
+  // First sentence of the summary is the header line.
+  const firstSentence = data ? data.summary.split(/(?<=\.)\s/)[0] : undefined;
 
-      {!data && !error && <p className="mt-3 text-xs text-zinc-500">Reading the latest 10-K...</p>}
-      {error && <p className="mt-3 text-xs text-zinc-500">Summary unavailable: {error}</p>}
+  return (
+    <Section
+      id="about"
+      label={`About ${name}`}
+      status={error ? "error" : data ? "ready" : "loading"}
+      summary={error ? `Summary unavailable: ${error}` : firstSentence ? <JargonText text={firstSentence} /> : undefined}
+      defaultOpen
+      hideSummaryWhenOpen
+    >
+      {!data && !error && <p className="text-xs text-zinc-500">Reading the latest 10-K...</p>}
 
       {data && (
         <>
           {facts.length > 0 && (
-            <p className="mt-2 text-[10px] caps text-zinc-500">{facts.join(" · ")}</p>
+            <p className="text-[10px] caps text-zinc-500">{facts.join(" · ")}</p>
           )}
-          <p className="mt-3 max-w-3xl text-xs leading-6 text-foreground">{data.summary}</p>
+          <SimpleText text={data.summary} context={`Company overview of ${name}`} className="mt-3 block max-w-3xl text-xs leading-6 text-foreground" />
           {data.segments.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {data.segments.map((s) => (
@@ -74,6 +82,6 @@ export function BusinessSummary({ ticker, name }: { ticker: string; name: string
           </p>
         </>
       )}
-    </Card>
+    </Section>
   );
 }

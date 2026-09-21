@@ -9,12 +9,13 @@ import { formatCurrencyCompact, formatPercent, formatRatio } from "@/lib/format"
 import {
   Button,
   Callout,
-  Card,
+  Section,
   SectionHeader,
   StatCard,
   StatusBadge,
   type Rating,
 } from "@/components/ui";
+import { JargonText, SimpleText } from "./SimpleMode";
 
 export type Company = { cik: number; ticker: string; title: string };
 
@@ -116,7 +117,7 @@ function RatioGroup({ group, ratios }: { group: string; ratios: Ratio[] }) {
               <tr key={ratio.label} className="border-b border-border/50 align-top last:border-b-0 hover:bg-accent/[0.06]">
                 <td className="py-1.5 pr-3">
                   <p className="text-xs text-foreground">{ratio.label}</p>
-                  <p className="mt-0.5 max-w-md text-[10px] leading-4 text-zinc-600">{ratio.description}</p>
+                  <p className="mt-0.5 max-w-md text-[10px] leading-4 text-zinc-600"><JargonText text={ratio.description} /></p>
                 </td>
                 <td
                   className="py-1.5 text-right text-xs tabular-nums"
@@ -144,7 +145,7 @@ type Quote = { price: number; change: number | null; changePercent: number | nul
 // Latest trade next to the annual numbers, with its timestamp, so it's
 // obvious which figures are live and which are from the last 10-K. Keyed by
 // ticker where it's rendered, so a new ticker remounts it with fresh state.
-function QuoteBadge({ ticker }: { ticker: string }) {
+export function QuoteBadge({ ticker }: { ticker: string }) {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -183,16 +184,14 @@ function QuoteBadge({ ticker }: { ticker: string }) {
 }
 
 export function Dashboard({ company, dashboard }: { company: Company; dashboard: Dashboard }) {
+  // Header line: the three headline numbers and how the 17 ratios score.
+  const ratings = dashboard.ratios.map((r) => rateRatio(r.label, r.value)).filter((r): r is Rating => r !== null);
+  const count = (k: Rating) => ratings.filter((r) => r === k).length;
+  const summary = `Revenue ${formatCurrencyCompact(dashboard.revenue)}${dashboard.revenueGrowth != null ? ` (${dashboard.revenueGrowth >= 0 ? "+" : ""}${formatPercent(dashboard.revenueGrowth)} YoY)` : ""} · Net income ${formatCurrencyCompact(dashboard.netIncome)} · Ratios: ${count("good")} good, ${count("average")} average, ${count("bad")} weak`;
+
   return (
-    <Card className="mt-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-sm text-foreground">
-          <span className="text-accent">{company.ticker}</span>
-          <span className="ml-2 text-zinc-500">{company.title}</span>
-        </h3>
-        <QuoteBadge key={company.ticker} ticker={company.ticker} />
-      </div>
-      <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] caps text-zinc-500">
+    <Section id="fundamentals" label="Fundamentals from the 10-K" status="ready" summary={summary}>
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] caps text-zinc-500">
         <span>Annual figures from the 10-K for the fiscal year ending {dashboard.periodEnd ?? "N/A"}</span>
         <Link
           href={`/dcf-builder?ticker=${company.ticker}`}
@@ -215,7 +214,7 @@ export function Dashboard({ company, dashboard }: { company: Company; dashboard:
           ratios={dashboard.ratios.filter((r) => r.group === group)}
         />
       ))}
-    </Card>
+    </Section>
   );
 }
 
@@ -248,12 +247,20 @@ export function RedFlagsPanel({ ticker }: { ticker: string }) {
     setLoading(false);
   }
 
+  const summary = flags
+    ? flags.length === 0
+      ? "No red flags against the five accounting checks"
+      : `${flags.length} red ${flags.length === 1 ? "flag" : "flags"}: ${flags.map((f) => f.pattern).join("; ")}`
+    : loading
+      ? undefined
+      : "Not scanned yet — open to run five accounting checks against the 10-K";
+
   return (
-    <Card className="mt-4">
-      <SectionHeader
-        label="red flags"
-        description="Checks for revenue up while cash flow is down, rising debt with falling interest coverage, inventory outpacing revenue, heavy reliance on non-GAAP figures, and going-concern language."
-      />
+    <Section id="red-flags" label="Red-flag scan" status={loading ? "loading" : flags ? "ready" : "idle"} summary={summary}>
+      <p className="text-[11px] leading-5 text-zinc-500">
+        Checks for revenue up while cash flow is down, rising debt with falling interest coverage, inventory outpacing revenue, heavy reliance on
+        non-GAAP figures, and going-concern language.
+      </p>
       <Button onClick={scan} loading={loading} loadingLabel="Scanning..." className="mt-3">
         Scan for Red Flags
       </Button>
@@ -268,7 +275,7 @@ export function RedFlagsPanel({ ticker }: { ticker: string }) {
             <div className="space-y-2">
               {flags.map((flag, i) => (
                 <Callout key={i} title={flag.pattern}>
-                  {flag.why}
+                  <SimpleText text={flag.why} context={`Accounting red flag: ${flag.pattern}`} />
                 </Callout>
               ))}
             </div>
@@ -278,7 +285,7 @@ export function RedFlagsPanel({ ticker }: { ticker: string }) {
           </p>
         </div>
       )}
-    </Card>
+    </Section>
   );
 }
 
