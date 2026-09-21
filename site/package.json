@@ -11,7 +11,9 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.3",
     "@upstash/redis": "^1.38.4",
+    "fflate": "^0.8.2",
     "next": "16.2.10",
+    "pdf-parse": "^1.1.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.9.2"

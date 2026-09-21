@@ -8,6 +8,7 @@ import { NewsPanel } from "./NewsPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { BusinessSummary } from "./BusinessSummary";
 import { PlaybookPanel } from "./PlaybookPanel";
+import { SignalsPanel } from "./SignalsPanel";
 import { isSectorKey, SECTOR_KEYS, SECTORS } from "@/lib/sectors";
 
 const CATEGORIES = SECTOR_KEYS.map((key) => ({ key, label: SECTORS[key].label }));
@@ -23,7 +24,7 @@ export default function Research() {
 
 function ResearchPage() {
   const initialTicker = useSearchParams().get("ticker")?.toUpperCase() ?? null;
-  const [tab, setTab] = useState<"search" | "browse">("search");
+  const [tab, setTab] = useState<"search" | "browse" | "signals">("search");
 
   const [ticker, setTicker] = useState("");
   const [company, setCompany] = useState<Company | null>(null);
@@ -94,6 +95,7 @@ function ResearchPage() {
           tabs={[
             { key: "search", label: "Search" },
             { key: "browse", label: "Browse by Sector" },
+            { key: "signals", label: "Research Signals" },
           ]}
           active={tab}
           onChange={setTab}
@@ -132,6 +134,16 @@ function ResearchPage() {
             </>
           )}
         </section>
+      )}
+
+      {tab === "signals" && (
+        <SignalsPanel
+          onResearch={(symbol) => {
+            setTab("search");
+            setTicker(symbol);
+            lookup(symbol);
+          }}
+        />
       )}
 
       {tab === "browse" && (
