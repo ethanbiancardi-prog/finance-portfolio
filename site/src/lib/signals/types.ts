@@ -50,3 +50,34 @@ export type SignalBatch = {
   items: Signal[];
   stats: Record<string, number | string>;
 };
+
+// --- Presidential trades (aggregated, not per-signal) ------------------------
+export type PresidentialAggregate = {
+  ticker: string;
+  company: string;
+  transactions: number;
+  buys: number;
+  sells: number;
+  netMid: number; // sum of buy midpoints − sum of sale midpoints
+  grossBuyMid: number;
+  grossSellMid: number;
+  netLow: number; // net of the disclosed range bounds
+  netHigh: number;
+  firstTradeDate: string;
+  lastTradeDate: string;
+  sources: SignalSource[];
+};
+
+export type PresidentialBatch = {
+  generatedAt: string;
+  official: string;
+  filingDate: string;
+  filingUrls: string[];
+  firstTradeDate: string;
+  lastTradeDate: string;
+  lagDays: number; // filing date − last trade date
+  netPurchases: PresidentialAggregate[];
+  netSales: PresidentialAggregate[];
+  stats: Record<string, number | string>;
+  credit: SignalSource;
+};

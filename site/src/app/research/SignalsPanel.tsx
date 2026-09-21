@@ -4,8 +4,8 @@
 // evidence, each with a sourced reason. Served from the daily cache only —
 // this component never triggers a refresh. Research leads, not advice.
 import { useEffect, useState } from "react";
-import { Callout, Card, SectionHeader, StatusBadge, Tabs, tableCellClass, tableHeadCellClass, tableHeadRowClass, tableRowClass } from "@/components/ui";
-import type { Signal, SignalBatch, SignalCategory } from "@/lib/signals/types";
+import { Callout, Card, SectionHeader, StatusBadge, Tabs, tableCellClass, tableCellStrongClass, tableHeadCellClass, tableHeadRowClass, tableRowClass } from "@/components/ui";
+import type { PresidentialAggregate, PresidentialBatch, Signal, SignalBatch, SignalCategory } from "@/lib/signals/types";
 
 const CATEGORIES: { key: SignalCategory; label: string; live: boolean }[] = [
   { key: "political", label: "Political trades", live: true },
@@ -26,6 +26,7 @@ function fmtDate(iso: string) {
 export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => void }) {
   const [category, setCategory] = useState<SignalCategory>("political");
   const [political, setPolitical] = useState<SignalBatch | null | undefined>(undefined);
+  const [presidential, setPresidential] = useState<PresidentialBatch | null | undefined>(undefined);
   const [ai, setAi] = useState<Partial<Record<SignalCategory, SignalBatch | null>>>({});
   const [error, setError] = useState("");
 
@@ -40,6 +41,7 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
       .then((json) => {
         if (cancelled) return;
         setPolitical(json.political ?? null);
+        setPresidential(json.presidential ?? null);
         setAi({ legislation: json.legislation ?? null, geopolitics: json.geopolitics ?? null, financial: json.financial ?? null });
       })
       .catch((err) => {
@@ -77,7 +79,9 @@ export function SignalsPanel({ onResearch }: { onResearch: (ticker: string) => v
         <>
           {political === undefined && !error && <p className="mt-4 text-xs text-zinc-500">Loading...</p>}
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
-          {political === null && <p className="mt-4 text-xs text-zinc-500">No political-trade signals have been generated yet — the daily refresh hasn&apos;t run.</p>}
+          {presidential && <PresidentialSection batch={presidential} onResearch={onResearch} />}
+          {presidential === null && <p className="mt-4 text-xs text-zinc-500">Presidential trades haven&apos;t been generated yet — the daily refresh hasn&apos;t run.</p>}
+          {political === null && <p className="mt-4 text-xs text-zinc-500">No congressional-trade signals have been generated yet — the daily refresh hasn&apos;t run.</p>}
           {political && <PoliticalSignals batch={political} onResearch={onResearch} />}
         </>
       )}
@@ -152,15 +156,130 @@ function AiSignalCard({ signal, label, onResearch }: { signal: Signal; label: st
   );
 }
 
+const fmtUsd = (v: number) => `${v < 0 ? "−" : ""}${Math.round(Math.abs(v)).toLocaleString()}`;
+const fmtCompact = (v: number) => {
+  const a = Math.abs(v);
+  const s = a >= 1e6 ? `${(a / 1e6).toFixed(a >= 1e7 ? 0 : 1)}M` : a >= 1e3 ? `${Math.round(a / 1e3)}K` : `${Math.round(a)}`;
+  return (v < 0 ? "−" : "") + "$" + s;
+};
+
+// Section A: the President's 278-T trades, aggregated per ticker from the
+// most recent filing. Aggregates, not raw rows — the filings run to
+// thousands of trustee-managed transactions.
+function PresidentialSection({ batch, onResearch }: { batch: PresidentialBatch; onResearch: (ticker: string) => void }) {
+  const filingLabel = new Date(batch.filingDate + "T12:00:00Z").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return (
+    <div className="mt-4">
+      <SectionHeader
+        label="section a — presidential trades"
+        description={`Securities transactions disclosed by ${batch.official.split(", ").reverse().join(" ")} on OGE Form 278-T, filed ${filingLabel}, covering trades from ${fmtDate(batch.firstTradeDate)} to ${fmtDate(batch.lastTradeDate)}. ${batch.stats.rows} transactions, ${batch.stats.rowsWithTicker} matched to a ticker across ${batch.stats.tickers} names (the rest are mostly municipal bonds). Ranked by estimated net dollars using the midpoint of each disclosed range.`}
+      />
+
+      <Callout className="mt-3" label="read this first">
+        <span className="block"><span className="text-foreground">Trustee-managed.</span> These accounts are run by trustees and outside managers; the President does not personally select these trades.</span>
+        <span className="mt-1 block"><span className="text-foreground">Ranges, not figures.</span> Each trade is disclosed as a range (e.g. $1,000,001 – $5,000,000). &ldquo;Estimated&rdquo; amounts here sum the midpoints; the true totals lie somewhere in the range shown.</span>
+        <span className="mt-1 block"><span className="text-foreground">Weeks to months late.</span> This filing landed <span className="text-foreground">{batch.lagDays} days</span> after its last trade; {batch.stats.lateRows} of {batch.stats.rows} rows were filed past the 30-day deadline. The market has long since moved.</span>
+      </Callout>
+
+      <div className="mt-3 space-y-3">
+        <PresidentialTable title="Top net purchases" rows={batch.netPurchases} onResearch={onResearch} />
+        <PresidentialTable title="Top net sales" rows={batch.netSales} onResearch={onResearch} />
+      </div>
+
+      <p className="mt-3 text-[10px] text-zinc-600">
+        Sources:{" "}
+        {batch.filingUrls.map((u, i) => (
+          <span key={u}>
+            {i > 0 && " · "}
+            <a href={u} target="_blank" rel="noreferrer" className="underline decoration-border underline-offset-4 hover:text-accent">
+              OGE Form 278-T filed {batch.filingDate}{batch.filingUrls.length > 1 ? ` (part ${i + 1})` : ""} (official PDF)
+            </a>
+          </span>
+        ))}
+        {" · "}
+        Data:{" "}
+        <a href={batch.credit.url} target="_blank" rel="noreferrer" className="underline decoration-border underline-offset-4 hover:text-accent">
+          {batch.credit.label}
+        </a>{" "}
+        ({batch.stats.machineChecked} rows machine-checked, {batch.stats.verifiedByHuman} human-verified against the PDF). Updated{" "}
+        {new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.
+      </p>
+    </div>
+  );
+}
+
+function PresidentialTable({ title, rows, onResearch }: { title: string; rows: PresidentialAggregate[]; onResearch: (ticker: string) => void }) {
+  return (
+    <Card padding="sm">
+      <p className="text-[10px] caps text-zinc-500">{title}</p>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full min-w-[520px] text-left">
+          <thead>
+            <tr className={tableHeadRowClass}>
+              <th className={tableHeadCellClass}>Ticker</th>
+              <th className={`${tableHeadCellClass} pr-3 text-right`}>Trades</th>
+              <th className={`${tableHeadCellClass} pr-3 text-right`}>Est. net</th>
+              <th className={`${tableHeadCellClass} pr-3`}>Range</th>
+              <th className={`${tableHeadCellClass} pr-3`}>Trade dates</th>
+              <th className={tableHeadCellClass}>Filing</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.ticker} className={tableRowClass}>
+                <td className={`${textCell} pr-3`}>
+                  <button type="button" onClick={() => onResearch(r.ticker)} className="text-accent hover:underline" title={`Research ${r.ticker}`}>
+                    {r.ticker}
+                  </button>
+                  <span className="block max-w-[11rem] truncate text-[10px] text-zinc-600" title={r.company}>
+                    {r.company}
+                  </span>
+                </td>
+                <td className={`${tableCellClass} pr-3 text-right`} title={`${r.buys} buys, ${r.sells} sales`}>
+                  {r.transactions}
+                  <span className="block text-[10px] text-zinc-600">
+                    {r.buys}b / {r.sells}s
+                  </span>
+                </td>
+                <td className={`${tableCellStrongClass} pr-3 text-right ${r.netMid > 0 ? "text-good" : "text-bad"}`} title={fmtUsd(r.netMid)}>
+                  {fmtCompact(r.netMid)}
+                </td>
+                <td className={`${tableCellClass} pr-3 whitespace-nowrap`}>
+                  {fmtCompact(r.netLow)} – {fmtCompact(r.netHigh)}
+                </td>
+                <td className={`${tableCellClass} pr-3 whitespace-nowrap`}>
+                  {r.firstTradeDate === r.lastTradeDate ? fmtDate(r.firstTradeDate) : `${fmtDate(r.firstTradeDate)} – ${fmtDate(r.lastTradeDate)}`}
+                </td>
+                <td className={tableCellClass}>
+                  <a href={r.sources[0]?.url} target="_blank" rel="noreferrer" className="text-accent underline decoration-border underline-offset-4 hover:decoration-accent">
+                    PDF
+                  </a>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-3 text-xs text-zinc-500">
+                  None in this filing.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearch: (ticker: string) => void }) {
   const [showAll, setShowAll] = useState(false);
   const items = showAll ? batch.items : batch.items.slice(0, 12);
   const lag = Number(batch.stats.medianLagDays);
 
   return (
-    <div className="mt-4">
+    <div className="mt-6">
       <SectionHeader
-        label="stock trades reported by members of congress"
+        label="section b — stock trades reported by members of congress"
         description={`Periodic Transaction Reports filed with the House Clerk in the last ${batch.windowDays} days, parsed from the official PDFs. ${batch.stats.tradesParsed} trades across ${batch.stats.tickers} tickers from ${batch.stats.filingsScanned} filings. ${batch.stats.chambers}. Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`}
       />
 
