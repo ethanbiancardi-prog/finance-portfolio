@@ -101,7 +101,7 @@ export async function getCompanyFacts(cik: number) {
   return res.json();
 }
 
-type FactPoint = { end: string; val: number; fy: number; fp: string; form: string; filed: string };
+export type FactPoint = { end: string; val: number; fy: number; fp: string; form: string; filed: string };
 
 // A tag can appear many times (once per filing that reports it as a
 // comparative period) — keep the most recently filed value per period-end,
@@ -172,9 +172,18 @@ const REVENUE_TAGS = [
 function buildSeriesHelpers(facts: any) {
   const gaap = facts.facts?.["us-gaap"] ?? {};
 
-  function series(tag: string): FactPoint[] {
-    const unit = gaap[tag]?.units?.USD;
-    return unit ? latestAnnual(unit) : [];
+  function series(tag: string, unit: "USD" | "shares" = "USD"): FactPoint[] {
+    const points = gaap[tag]?.units?.[unit];
+    return points ? latestAnnual(points) : [];
+  }
+
+  // Cover-page facts (dei namespace) aren't tied to a fiscal period the way
+  // financial statement lines are — shares outstanding is "as of" a date a
+  // few weeks after year end — so take them newest-first without the
+  // 10-K/FY filter.
+  function deiSeries(tag: string): FactPoint[] {
+    const points: FactPoint[] = facts.facts?.dei?.[tag]?.units?.shares ?? [];
+    return [...points].sort((a, b) => b.end.localeCompare(a.end) || b.filed.localeCompare(a.filed));
   }
 
   // Different filers tag the same line item differently (e.g. older vs.
@@ -198,7 +207,13 @@ function buildSeriesHelpers(facts: any) {
     return points[i]?.val ?? null;
   }
 
-  return { series, seriesAny, val };
+  return { series, seriesAny, val, deiSeries };
+}
+
+// The same helpers, for modules outside this file (lib/dcfPrefill.ts).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getCompanyFactSeries(facts: any) {
+  return buildSeriesHelpers(facts);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

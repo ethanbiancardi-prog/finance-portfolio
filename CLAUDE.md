@@ -22,7 +22,8 @@ Live at https://site-theta-drab-22.vercel.app. All app code is in `site/src`; `p
 - Paper trading (`/paper-trading`) — Alpaca paper account: equity, positions, buy/sell, auto-refresh every 60s with an "updated" stamp; trade journal (thesis + exit condition per trade, `site/data/journal.json`); Sharpe / vol / max drawdown / beta risk metrics
 - Strategy doc (`projects/paper-trading/STRATEGY.md`) — rewritten Sep 2026 for the Momentum + Leverage strategy; no TODOs left
 - 10-K analyzer, now inside Stock Research (`/research`; `/statement-analyzer` redirects) — ticker/company search, auto-loaded "About the business" summary (AI-written from the 10-K's Item 1, cached in Redis per filing — `api/research/summary`), live quote with timestamp, 17-ratio EDGAR dashboard with color flags, AI red-flag scan, merged news feed (Yahoo RSS + Alpaca), six-persona AI takes (`api/research/analysis` briefs the model with the ratios, price, and headlines and shows "based on" under the output)
-- DCF builder, portfolio optimizer (efficient frontier), Monte Carlo simulator, Quant Notes (7 concepts w/ detail pages)
+- DCF builder — "Load from a 10-K" fills every assumption from a real filing (`api/dcf/prefill` + `lib/dcfPrefill.ts`, pure XBRL arithmetic, no AI) and shows a "where these numbers come from" panel with the formula and caveats per field; WACC/terminal growth stay the user's; `?ticker=` deep link from the research dashboard ("Build a DCF from this filing") and back
+- Portfolio optimizer (efficient frontier), Monte Carlo simulator, Quant Notes (7 concepts w/ detail pages)
 - Momentum + Leverage strategy (`/rotation`, was "Sector Rotation") — aggressive rule-based book: 60% top-10 risk-adjusted momentum across the 8 curated sectors (max 3/sector), 30% TQQQ+SOXL, 10% cash; SPY-below-200-day circuit breaker checked every weekday after the close (`api/rotation/check`, rebalances only on a flip); monthly Vercel Cron (1st); refuses to buy on margin. Trade execution lives in `lib/rotationRun.ts`. Designed Sep 17 2026 at Ethan's request for high risk/high reward; NOT yet executed — the old passive ETF core (VOO/BND/VEA/VXF/VWO/VNQ/GLD, ~$80k) must be sold first (`site/scripts/sell-core.js --execute`), then Run Rebalance. Universe in `lib/sectors.ts` (Sustainability = BIG fund holdings, keep in sync). Full write-up: `projects/paper-trading/STRATEGY.md`
 - `lib/portfolioMath.ts` — shared return/cov/Sharpe/drawdown/beta math used by risk metrics, optimizer, Monte Carlo
 - Hover glossary — `components/ui/Term` + `lib/glossary.ts`; `StatCard term="sharpe"` etc. shows a definition on hover/tap with a link to the Quant Note. Definitions come from the notes where one exists, so add new terms there first
@@ -32,7 +33,6 @@ Live at https://site-theta-drab-22.vercel.app. All app code is in `site/src`; `p
 - Persona names/character are staying as-is (Ethan's call, Sep 2026); the stale-data problem was fixed by briefing the model, not by rewording.
 
 **Planned next**
-- DCF "AI assumptions mode" (pre-fill from a filing)
 - Client-work case study pages (`projects/client-work` is a README placeholder)
 - Stream the AI takes in as they generate — the panel takes ~30s and only shows "Analyzing..." meanwhile
 - Later: weekly full-portfolio review, strategy backtester (stretch)

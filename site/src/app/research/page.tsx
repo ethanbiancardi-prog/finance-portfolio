@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Card, Chip, PageShell, Tabs, TickerSearch } from "@/components/ui";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Button, Card, Chip, PageLoading, PageShell, Tabs, TickerSearch } from "@/components/ui";
 import { Dashboard, RedFlagsPanel, type Company, type Dashboard as DashboardData } from "./Fundamentals";
 import { NewsPanel } from "./NewsPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
@@ -10,7 +11,17 @@ import { isSectorKey, SECTOR_KEYS, SECTORS } from "@/lib/sectors";
 
 const CATEGORIES = SECTOR_KEYS.map((key) => ({ key, label: SECTORS[key].label }));
 
+// useSearchParams needs a Suspense boundary above it for static rendering.
 export default function Research() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <ResearchPage />
+    </Suspense>
+  );
+}
+
+function ResearchPage() {
+  const initialTicker = useSearchParams().get("ticker")?.toUpperCase() ?? null;
   const [tab, setTab] = useState<"search" | "browse">("search");
 
   const [ticker, setTicker] = useState("");
@@ -42,6 +53,18 @@ export default function Research() {
     setDashboard(data.dashboard);
     setLoading(false);
   }
+
+  // ?ticker=NVDA (the link back from the DCF builder) — look it up on
+  // arrival, deferred a tick so the lookup's state updates don't run
+  // synchronously inside the effect.
+  useEffect(() => {
+    if (!initialTicker) return;
+    const id = window.setTimeout(() => {
+      setTicker(initialTicker);
+      lookup(initialTicker);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [initialTicker]);
 
   async function submitSearch(e: React.FormEvent) {
     e.preventDefault();

@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
+import { FilingLoader, FilingSources, type LoadedFiling } from "./FilingLoader";
 import { runDcf, sensitivityGrid, stepsAround, type DcfInputs } from "@/lib/dcf";
 import { formatCurrency, formatMoneyMillions, formatPercent } from "@/lib/format";
 import {
   Card,
   Field,
+  PageLoading,
   PageShell,
   SectionHeader,
   StatusBadge,
@@ -93,8 +96,25 @@ function heatStyle(value: number | null, reference: number | null) {
   return { backgroundColor: `color-mix(in srgb, ${color} ${Math.round(intensity * 38)}%, transparent)` };
 }
 
+// useSearchParams needs a Suspense boundary above it for static rendering.
 export default function DcfBuilder() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <DcfBuilderPage />
+    </Suspense>
+  );
+}
+
+function DcfBuilderPage() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
+  const [filing, setFiling] = useState<LoadedFiling | null>(null);
+  // ?ticker=NVDA — the link from the research page.
+  const initialTicker = useSearchParams().get("ticker")?.toUpperCase() ?? null;
+
+  function applyFiling(values: Record<string, string>, loaded: LoadedFiling) {
+    setForm((f) => ({ ...f, ...values }));
+    setFiling(loaded);
+  }
 
   function set<K extends keyof FormState>(key: K) {
     return (value: string) => setForm((f) => ({ ...f, [key]: value }));
@@ -170,10 +190,19 @@ export default function DcfBuilder() {
     <PageShell
       eyebrow="valuation"
       title="DCF Builder"
-      description="A 5-year unlevered discounted cash flow model. Edit any assumption below — everything recalculates live, including the WACC x terminal growth sensitivity table."
+      description="A 5-year unlevered discounted cash flow model. Load a real company's numbers from its 10-K or type your own — everything recalculates live, including the WACC x terminal growth sensitivity table."
     >
+      <FilingLoader initialTicker={initialTicker} onLoaded={applyFiling} />
+
       <Card as="section" className="mt-4">
-        <SectionHeader label="assumptions" />
+        <SectionHeader
+          label="assumptions"
+          description={
+            filing
+              ? `Loaded from ${filing.company.title}'s 10-K (FY ending ${filing.fiscalYearEnd}). Edit anything — the filing is a starting point, not the answer.`
+              : undefined
+          }
+        />
         <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
           <Field label="Revenue" suffix="$M" type="number" step="any" value={form.revenue} onChange={(e) => set("revenue")(e.target.value)} />
           <Field
@@ -252,6 +281,8 @@ export default function DcfBuilder() {
           />
         </div>
       </Card>
+
+      {filing && <FilingSources filing={filing} wacc={form.wacc} terminalGrowth={form.terminalGrowth} />}
 
       <section className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard card size="lg" label="Enterprise Value" value={formatMoneyMillions(result.enterpriseValue)} />

@@ -37,6 +37,9 @@ export function TickerSearch({
   const [error, setError] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
   const skipNextSearch = useRef(false);
+  // Only a keystroke should open the dropdown — a value set programmatically
+  // (a ?ticker= param, or the parent echoing back a loaded symbol) must not.
+  const typed = useRef(false);
   const listId = useId();
 
   // Debounced search: wait 200ms after the last keystroke, and drop responses
@@ -46,6 +49,8 @@ export function TickerSearch({
       skipNextSearch.current = false;
       return;
     }
+    if (!typed.current) return;
+    typed.current = false;
     const q = value.trim();
     if (!q) {
       setMatches([]);
@@ -123,7 +128,10 @@ export function TickerSearch({
         <input
           className={`${inputClasses} ${className ?? "w-full"}`}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            typed.current = true;
+            onChange(e.target.value);
+          }}
           onFocus={() => matches.length > 0 && setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder={placeholder}

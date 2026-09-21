@@ -4,6 +4,7 @@
 // old /statement-analyzer page so the research tab can compose it with news
 // and the persona panel.
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { formatCurrencyCompact, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
@@ -191,8 +192,14 @@ export function Dashboard({ company, dashboard }: { company: Company; dashboard:
         </h3>
         <QuoteBadge key={company.ticker} ticker={company.ticker} />
       </div>
-      <p className="mt-1 text-[10px] caps text-zinc-500">
-        Annual figures from the 10-K for the fiscal year ending {dashboard.periodEnd ?? "N/A"}
+      <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] caps text-zinc-500">
+        <span>Annual figures from the 10-K for the fiscal year ending {dashboard.periodEnd ?? "N/A"}</span>
+        <Link
+          href={`/dcf-builder?ticker=${company.ticker}`}
+          className="text-accent underline decoration-border underline-offset-4 hover:decoration-accent"
+        >
+          Build a DCF from this filing →
+        </Link>
       </p>
 
       <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 sm:grid-cols-3">
