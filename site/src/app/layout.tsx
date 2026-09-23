@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { EB_Garamond, Fraunces, Geist, Geist_Mono, Newsreader } from "next/font/google";
 import Nav from "@/components/Nav";
 import "./globals.css";
 
@@ -30,6 +30,16 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
+// Body and prose face. Garamond has a small x-height, so it is set a couple
+// of pixels larger than the sans it replaced (see body in globals.css).
+const ebGaramond = EB_Garamond({
+  variable: "--font-eb-garamond",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Ethan Biancardi — Finance x AI",
   description:
@@ -53,7 +63,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} ${fraunces.variable} ${ebGaramond.variable} h-full antialiased`}
       // The inline script below sets data-mode/data-accent on this element
       // before hydration runs, so its attributes intentionally differ from
       // what was server-rendered — the standard, documented fix for this

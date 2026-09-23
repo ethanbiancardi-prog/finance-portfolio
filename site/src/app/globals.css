@@ -109,7 +109,13 @@
 
 :root {
   --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
-  --font-ui: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Body and prose. */
+  --font-ui: var(--font-eb-garamond), Garamond, Georgia, serif;
+  /* Small uppercase labels, chips and buttons. Kept on the monospace face:
+     Garamond's light strokes and small x-height fall apart at the 9-11px
+     tracked-uppercase sizes these labels use. Point this at var(--font-ui)
+     to put the labels in Garamond too. */
+  --font-label: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-num: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --caps-transform: uppercase;
   --caps-tracking: 0.14em;
@@ -120,7 +126,8 @@
   --card-shadow: none;
 }
 :root[data-style="modern"] {
-  --font-ui: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Body stays Garamond in both styles; only the label face differs. */
+  --font-label: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   --caps-transform: none;
   --caps-tracking: 0;
   --caps-tracking-wide: 0.01em;
@@ -143,21 +150,26 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-ui);
-  font-size: 13px;
+  /* Garamond has a small x-height, so 15px here reads about the same size as
+     the 13px sans it replaced. */
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Small-caps labels (stat labels, table headers, eyebrows, chips, buttons).
    Terminal: uppercase + tracked. Modern: sentence case, a touch larger. */
 .caps {
+  font-family: var(--font-label);
   text-transform: var(--caps-transform);
   letter-spacing: var(--caps-tracking);
 }
 .caps-wide {
+  font-family: var(--font-label);
   text-transform: var(--caps-transform);
   letter-spacing: var(--caps-tracking-wide);
 }
 .caps-tight {
+  font-family: var(--font-label);
   text-transform: var(--caps-transform);
   letter-spacing: var(--caps-tracking-tight);
 }
