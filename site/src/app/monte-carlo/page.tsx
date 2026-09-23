@@ -3,12 +3,12 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { formatCurrency, formatPercent } from "@/lib/format";
-import { Button, Callout, Card, Field, PageShell, SectionHeader, StatCard } from "@/components/ui";
+import { Button, Callout, Card, ChartLoading, Field, PageShell, SectionHeader, StatCard } from "@/components/ui";
 import { QuantHubHeader } from "@/components/QuantHubHeader";
 
 const Chart = dynamic(() => import("./Chart"), {
   ssr: false,
-  loading: () => <div className="mt-4 h-72 animate-pulse bg-border" />,
+  loading: () => <ChartLoading className="h-72" />,
 });
 
 type YearlyBand = { year: number; p10: number; p50: number; p90: number };

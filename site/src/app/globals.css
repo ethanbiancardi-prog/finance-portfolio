@@ -234,6 +234,123 @@ body {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
+/* ---------------------------------------------------------------------------
+   Loading animations. Two of them, for two different waits:
+
+   1. The route loader (PageLoading) — a whole page is coming. An equity
+      curve draws itself across a grid while a scan line sweeps over it.
+      Long enough to be worth watching, since this wait can run a second
+      or two on a cold chunk.
+   2. The geometric loader (GeometricLoader) — something inline is working:
+      an AI scan, a filing lookup, a rebalance. Nested shapes counter-rotate
+      at different speeds. Small, quiet, and it never finishes a "cycle", so
+      there is no false progress signal.
+
+   Everything here is transform/opacity only, so it composites on the GPU
+   and stays smooth. All of it stops under prefers-reduced-motion (below).
+   --------------------------------------------------------------------------- */
+
+/* The path carries pathLength="1", so dash units are fractions of the whole
+   curve regardless of its real geometry. */
+@keyframes curve-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0.9;
+  }
+  55% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  80% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+.curve-draw {
+  stroke-dasharray: 1;
+  animation: curve-draw 2.6s ease-in-out infinite;
+}
+
+/* A soft vertical band that travels with the curve head. */
+@keyframes curve-sweep {
+  0% {
+    transform: translateX(-8%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  55% {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+.curve-sweep {
+  animation: curve-sweep 2.6s ease-in-out infinite;
+}
+
+/* Grid lines fade up under the curve so the frame does not just pop in. */
+@keyframes grid-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.grid-in {
+  animation: grid-in 600ms ease-out both;
+}
+
+/* Nested shapes, counter-rotating. transform-box: fill-box makes the SVG
+   element rotate about its own centre rather than the viewport origin. */
+@keyframes geo-cw {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes geo-ccw {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes geo-breathe {
+  0%,
+  100% {
+    transform: scale(0.75);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+.geo-shape {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.geo-outer {
+  animation: geo-ccw 4.5s linear infinite;
+}
+.geo-inner {
+  animation: geo-cw 2.4s linear infinite;
+}
+.geo-core {
+  animation: geo-breathe 1.8s ease-in-out infinite;
+}
+
 /* Page content fades up on navigation so route changes feel continuous
    rather than popping in after the loading skeleton. */
 @keyframes page-in {
@@ -250,8 +367,20 @@ body {
   animation: page-in 180ms ease-out both;
 }
 @media (prefers-reduced-motion: reduce) {
-  .page-enter {
+  .page-enter,
+  .curve-sweep,
+  .grid-in,
+  .geo-outer,
+  .geo-inner,
+  .geo-core {
     animation: none;
+  }
+  /* The curve still needs to be visible, just not drawn — hold it complete
+     instead of leaving a dash offset that would hide it entirely. */
+  .curve-draw {
+    animation: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
   }
 }
 

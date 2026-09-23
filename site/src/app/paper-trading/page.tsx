@@ -7,6 +7,8 @@ import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
   Card,
+  ChartLoading,
+  GeometricLoader,
   Field,
   PageLoading,
   PageShell,
@@ -27,7 +29,7 @@ import {
 
 const Chart = dynamic(() => import("./Chart"), {
   ssr: false,
-  loading: () => <div className="mt-4 h-64 animate-pulse bg-border" />,
+  loading: () => <ChartLoading className="h-64" />,
 });
 
 type Account = {
@@ -229,7 +231,13 @@ function PaperTradingPage() {
       description="Live fake-money account via Alpaca's paper trading API."
     >
       <div className="mt-3 flex items-center gap-3 text-[10px] caps text-zinc-500">
-        <span>{updatedAt ? `Updated ${updatedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : "Loading..."}</span>
+        <span>
+          {updatedAt ? (
+            `Updated ${updatedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+          ) : (
+            <GeometricLoader size={11} label="Loading" />
+          )}
+        </span>
         <span>Refreshes every minute</span>
         <Button variant="outline" onClick={loadAll} loading={refreshing} loadingLabel="Refreshing">
           Refresh

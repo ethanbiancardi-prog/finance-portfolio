@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { GeometricLoader } from "./GeometricLoader";
 
 type ButtonProps = {
   variant?: "solid" | "outline";
@@ -12,7 +13,9 @@ type ButtonProps = {
 export function Button({
   variant = "solid",
   loading = false,
-  loadingLabel = "...",
+  // No default text: the loader mark alone is enough unless a caller wants
+  // to name what is happening ("Analyzing", "Scanning").
+  loadingLabel,
   disabled,
   children,
   className,
@@ -31,7 +34,7 @@ export function Button({
       disabled={disabled || loading}
       {...rest}
     >
-      {loading ? loadingLabel : children}
+      {loading ? <GeometricLoader size={13} label={loadingLabel} /> : children}
     </button>
   );
 }

@@ -7,6 +7,7 @@ import { formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
   Card,
+  ChartLoading,
   Field,
   PageShell,
   SectionHeader,
@@ -20,7 +21,7 @@ import {
 
 const Chart = dynamic(() => import("./Chart"), {
   ssr: false,
-  loading: () => <div className="mt-4 h-80 animate-pulse bg-border" />,
+  loading: () => <ChartLoading className="h-80" />,
 });
 
 type SampledPortfolio = { weights: number[]; return: number; volatility: number; sharpe: number };

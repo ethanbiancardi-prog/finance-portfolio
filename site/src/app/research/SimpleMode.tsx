@@ -7,6 +7,7 @@
 //      everyday analogy, on demand, via /api/research/simplify (cached).
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { JARGON, splitJargon, type JargonKey } from "@/lib/jargon";
+import { GeometricLoader } from "@/components/ui";
 
 const SimpleContext = createContext(false);
 export const SimpleProvider = SimpleContext.Provider;
@@ -149,7 +150,9 @@ export function SimpleText({ text, context, className }: { text: string; context
               Say it simply
             </button>
           )}
-          {state === "loading" && <span className="text-zinc-500">Rewriting...</span>}
+          {state === "loading" && (
+            <GeometricLoader size={12} label="Rewriting" className="text-zinc-500" />
+          )}
           {state === "error" && (
             <button type="button" onClick={simplify} className="text-bad hover:underline">
               Couldn&apos;t rewrite — try again

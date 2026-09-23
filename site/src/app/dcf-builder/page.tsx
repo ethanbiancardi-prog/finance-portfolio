@@ -9,6 +9,7 @@ import { formatCurrency, formatMoneyMillions, formatPercent } from "@/lib/format
 import {
   Card,
   Field,
+  ChartLoading,
   PageLoading,
   PageShell,
   SectionHeader,
@@ -22,9 +23,7 @@ import {
   type Rating,
 } from "@/components/ui";
 
-const chartLoading = (heightClass: string) => (
-  <div className={`mt-4 ${heightClass} animate-pulse bg-border`} />
-);
+const chartLoading = (heightClass: string) => <ChartLoading className={heightClass} />;
 const FcfChart = dynamic(() => import("./Charts").then((m) => m.FcfChart), {
   ssr: false,
   loading: () => chartLoading("h-64"),
