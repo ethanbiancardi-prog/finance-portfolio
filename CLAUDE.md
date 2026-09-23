@@ -1,45 +1,152 @@
 # CLAUDE.md
 
-## Project
-Finance + AI portfolio for a Bentley University student (Finance major, AI secondary major).
-Goal: land finance/fintech internships by showcasing working tools.
+## The project
 
-## Stack
-Next.js + Tailwind + Recharts. Python/FastAPI only for heavy analysis. Deployed on Vercel.
+A Finance × AI portfolio site for **Ethan Biancardi**, a Bentley University
+student double-majoring in Finance and Artificial Intelligence. The goal is
+landing finance/fintech internships by showing *working tools* instead of a
+resume bullet — real market data, real filings, real AI.
 
-## Conventions
-- Each project lives in projects/<name>, self-contained
-- Prefer simple, readable code over clever code — I'm learning
-- Explain financial formulas in comments (I want to be able to defend every line in an interview)
-- Mobile-friendly is required
-- Never commit API keys; use .env.local
+Every feature has to survive the question "explain how this works." Favour
+simple, readable code and comment the financial formulas.
 
-## Current Status
-Live at https://site-theta-drab-22.vercel.app. All app code is in `site/src`; `projects/` holds docs only.
+## How Ethan wants to work
 
-**Built & working**
-- Homepage — project cards with screenshot thumbnails (`public/screenshots/`, regenerate with `site/scripts/screenshots.js` when pages change; thumbnails hidden on phones), contact links. **Two visual styles**, switchable next to Theme: Modern (default — Geist sans, sentence case, 10px radius, soft panels) and Terminal (the original all-mono uppercase look). Both are CSS variables on `<html data-style>` in `globals.css`; components use `.caps` / `.section-title` / `.page-title` / `rounded-[var(--radius)]` instead of hard-coding either look — keep it that way when adding UI. Nav is Home · Tools ▾ · Research · Quant Notes · About; pages fade in via `.page-enter`
-- Paper trading (`/paper-trading`) — Alpaca paper account: equity, positions, buy/sell, auto-refresh every 60s with an "updated" stamp; trade journal (thesis + exit condition per trade, `site/data/journal.json`); Sharpe / vol / max drawdown / beta risk metrics
-- Strategy doc (`projects/paper-trading/STRATEGY.md`) — rewritten Sep 2026 for the Momentum + Leverage strategy; no TODOs left
-- Stock Research results layout (Sep 2026): an Overview strip (ticker, live quote, "at a glance" line from the playbook, section jump links, Expand/Collapse all, **Explain simply** toggle, Build a DCF) followed by collapsible `Section`s (`components/ui/Section.tsx`) whose headers carry a one-line summary computed from each section's own data. "Explain simply" (`app/research/SimpleMode.tsx`): jargon in AI text gets hover definitions from `lib/jargon.ts` (`JargonText`), and any AI passage gets a "Say it simply" link that calls `api/research/simplify` (plain rewrite + everyday analogy, cached 7 days by text hash; `SimpleText`). Wrap new AI text in `SimpleText`/`JargonText` so it participates. The Research Signals tab uses the same pattern: `SignalShell` digest cards (header + one line, click to open), Expand/Collapse all via the shared `SectionForce` context, and the same Explain simply toggle (state lives on the page, shared with the Search results).
-- 10-K analyzer, now inside Stock Research (`/research`; `/statement-analyzer` redirects) — ticker/company search, auto-loaded "About the business" summary (AI-written from the 10-K's Item 1, cached in Redis per filing — `api/research/summary`), "Catalysts & what you could do" (`api/research/playbook`, auto-loads, 3h Redis cache): catalysts from the headlines, a financial-health verdict from the ratios, and 2-3 options each with an action button that pre-fills the paper-trading order/journal (`/paper-trading?ticker=&side=&thesis=` or `?journal=&thesis=`) or opens the DCF; live quote with timestamp, 17-ratio EDGAR dashboard with color flags, AI red-flag scan, merged news feed (Yahoo RSS + Alpaca), six-persona AI takes (`api/research/analysis`). Both AI features share `lib/researchBriefing.ts` — ratios, price + market cap/P-E from the cover-page share count, headlines — and show "based on" under the output
-- DCF builder — "Load from a 10-K" fills every assumption from a real filing (`api/dcf/prefill` + `lib/dcfPrefill.ts`, pure XBRL arithmetic, no AI) and shows a "where these numbers come from" panel with the formula and caveats per field; WACC/terminal growth stay the user's; `?ticker=` deep link from the research dashboard ("Build a DCF from this filing") and back
-- Portfolio optimizer (efficient frontier), Monte Carlo simulator, Quant Notes (7 concepts w/ detail pages)
-- Quant tools hub (Sep 21 2026) — `components/QuantHubHeader.tsx` is a sticky sub-nav (sliding accent underline, short labels below `lg`, scrolls on phones) shown on five pages: Regime Backtester `/quant/backtester`, Optimizer, Factor Risk `/quant/factor-risk`, Monte Carlo, Vol Smile `/quant/vol-smile` (`app/quant/layout.tsx` renders it for the three new pages; Optimizer/Monte Carlo render it themselves; `/quant` redirects to the backtester). All three new tools are pure client math with no APIs: *Regime Backtester* (`lib/regimeBacktest.ts`) runs the live strategy's trend rule (risk-on 1.3x above a 40-week average, else cash at rf) through four regimes whose paths are **synthetic** — scripted weekly drift/vol phases shaped after 2008, 2020, 2022 and a bull run, seeded, noise demeaned per phase so totals track the real episodes; the UI says so. Metrics: CAGR, Sharpe, Sortino (downside deviation), max drawdown + underwater duration, beta, time in market. *Factor Risk Attribution* (`lib/factorRisk.ts`): linear factor model with stylised loadings for equities/bonds/commodities on market, rates, inflation; variance attribution β_i(Σβ)_i, R², alpha = E[r] − Σβλ; sliders rescale to 100%. *Volatility Smile* (`lib/volSmile.ts`): Gatheral SVI smile (b scaled by √T), Black-Scholes price/delta at the hovered strike, ITM/ATM/OTM for puts or calls. Shared `components/ui/Slider.tsx` (custom thumb, token colours); glossary gained factorRegression/alpha/systemicBeta/rSquared/impliedVol/volSkew/moneyness. Homepage cards + `scripts/screenshots.js` entries added (script needs `playwright-core` on NODE_PATH).
-- Momentum + Leverage strategy (`/rotation`, was "Sector Rotation") — aggressive rule-based book: 60% top-10 risk-adjusted momentum across the 8 curated sectors (max 3/sector), 30% TQQQ+SOXL, 10% cash; SPY-below-200-day circuit breaker checked every weekday after the close (`api/cron/daily` → `lib/regimeCheck.ts`, rebalances only on a flip); monthly Vercel Cron (1st); refuses to buy on margin. Trade execution lives in `lib/rotationRun.ts`. Designed Sep 17 2026 at Ethan's request for high risk/high reward; NOT yet executed — the old passive ETF core (VOO/BND/VEA/VXF/VWO/VNQ/GLD, ~$80k) must be sold first (`site/scripts/sell-core.js --execute`), then Run Rebalance. Universe in `lib/sectors.ts` (Sustainability = BIG fund holdings, keep in sync). Full write-up: `projects/paper-trading/STRATEGY.md`
-- Research Signals (`/research` → Research Signals tab) — watchlist of tickers surfaced by evidence, framed as research leads with a visible not-advice disclaimer. **Phase 1 (done): Political trades**, two sections. *Section A — Presidential*: `lib/signals/presidential.ts` downloads Open Cabinet's CSV extraction of the President's OGE 278-T filings (open-cabinet.org, public-domain filings, credit + link required, research use only; single volunteer maintainer — an outage just leaves the last batch in Redis), takes the most recent filing, aggregates per ticker by range-midpoint, stores top-15 net purchases and net sales (`signals:presidential`) with the three caveats (trustee-managed, ranges, lag) shown first. *Section B — Congressional*: House PTRs parsed from the Clerk's official PDFs plus Senate PTRs from efdsearch.senate.gov (`lib/signals/senate.ts`: accept the access agreement for a session cookie, query the site's DataTables search endpoint, parse each electronic report's HTML table; paper filings skipped) — `lib/signals/political.ts` merges both (deterministic, no AI; ETFs/funds/options/bonds and scanned PTRs skipped), grouped per ticker with member/party/committees/owner/type/trade date/disclosed date/lag/amount and links to each PDF. Committees come from the public-domain congress-legislators dataset (`lib/signals/committees.ts`; House matched by state+district, senators by normalised name; Senate committee IDs SS* have their own oversight rules); an "oversight overlap" is flagged when a trading member sits on a committee whose jurisdiction covers the company (sector from `lib/sectors.ts` or SEC's SIC description, with per-committee industry filters so Armed Services only matches defence, etc.). Because the data is weeks late by law, three things make it usable (Sep 21 2026): a **90-day window** (`WINDOW_DAYS`) so the same name can recur across members, a **conviction score** per ticker (`scoreConviction`: distinct buyers minus sellers, +1 for buying-only, +2 for a committee overlap — the default sort; chips for Recently disclosed / Most traded), and **since-trade performance** from split-adjusted Alpaca bars (`lib/signals/performance.ts`; per trade, per card, and per presidential aggregate). Median lag is reported per chamber (House ~3 weeks; Senate ~110 days because one senator filed hundreds of trades late). Category tabs are ordered freshest first — Legislation, Geopolitics, Financial story, Political trades. Refreshed by the daily cron and cached in Redis (`signals:political`); `/api/signals` serves cache only, `/api/signals/refresh` (POST, CRON_SECRET) forces one. **Phase 2 (done): Legislation + Geopolitics** — `lib/signals/aiSignals.ts`, claude-opus-5 with `web_search_20260209` (max 10 searches, ~40-110s, ~$0.50/run each); code enforces that every source URL appeared in that run's search results, the event is dated inside the 21-day window, and the ticker resolves at SEC — otherwise dropped (counts in `stats`). Cached at `signals:legislation` / `signals:geopolitics`. **Phase 3 (done): Financial story** — `lib/signals/financial.ts` screens the 8-sector universe through `computeRatios` (no AI, ~15s) for margin expansion/compression, turnaround, cash machine (non-financials only), deleveraging/releveraging, fortress, hypergrowth; one story per company, top 12 by score, sourced to the EDGAR filing index + company-facts JSON. All four categories done.
-- Cron budget: Vercel free tier = 2 crons. `/api/rotation/run` monthly + `/api/cron/daily` (weekdays 22:00 UTC: regime check + political + presidential + legislation + geopolitics + financial refreshes, `maxDuration = 300` — needs Fluid Compute). Add new daily jobs to `api/cron/daily`, not as new crons.
-- EDGAR ratio engine (`lib/edgar.ts`): values are read by fiscal-year-end alignment (from the Assets series), flow facts must span ~a year (10-Ks also tag quarterly figures as FY), and among alternative tags the one reporting the latest year wins for every year. These three rules fixed Honeywell (+297% "growth" from a quarter), Morgan Stanley (2014 revenue shown as current), BlackRock (sub-total tag vs total). Keep them when adding tags.
-- `lib/portfolioMath.ts` — shared return/cov/Sharpe/drawdown/beta math used by risk metrics, optimizer, Monte Carlo
-- Hover glossary — `components/ui/Term` + `lib/glossary.ts`; `StatCard term="sharpe"` etc. shows a definition on hover/tap with a link to the Quant Note. Definitions come from the notes where one exists, so add new terms there first
-- Client Work (`/client-work`) — passcode-gated section for private small-business case studies. Verified via `api/client-work/auth` route setting a 30-day `httpOnly` session cookie. Protected by default with `PasscodeGate`; case studies in `site/src/data/clientWork.ts`. Passcode configured via `CLIENT_WORK_PASSCODE` in `.env.local` / Vercel.
+- **He is a beginner.** Explain things simply and skip the jargon. If a term is
+  unavoidable, define it once in a few words.
+- **Be concise.** Short answers, no preamble, no restating the task.
+- **Stop after each phase so he can test.** Don't chain three features
+  together — build one, say what to check, wait.
+- Say plainly when something is broken, unverified, or skipped.
 
-**In progress**
-- Strategy switch: code + docs are done; the actual trades (sell core, first rebalance) are waiting on Ethan.
-- Persona names/character are staying as-is (Ethan's call, Sep 2026); the stale-data problem was fixed by briefing the model, not by rewording.
+## Live site & deploy
 
-**Planned next**
-- Stream the AI takes in as they generate — the panel takes ~30s and only shows "Analyzing..." meanwhile
-- Later: weekly full-portfolio review, strategy backtester (stretch)
+- **Live:** https://site-theta-drab-22.vercel.app
+- **Deploy:** push to `main` on `github.com/ethanbiancardi-prog/finance-portfolio`
+  → Vercel auto-deploys to production. No manual step.
+- Vercel project `site`, root directory `site/`, Next.js preset, Node 24.
 
-Full phase breakdown in `docs/ROADMAP.md`.
+## Where things are
+
+The repo is **nested**: `finance-portfolio/finance-portfolio/` — the outer
+folder is not the repo. Inside it:
+
+- `site/` — **the entire app.** `src/app` (pages + `/api` routes),
+  `src/components`, `src/lib` (all finance logic).
+- `projects/` — markdown only, no code. `projects/paper-trading/STRATEGY.md` is
+  the live strategy write-up.
+- `docs/` — the long-form documentation listed at the bottom of this file.
+
+Stack: Next.js 16 App Router · React 19 · TypeScript · Tailwind v4 · Recharts ·
+`@anthropic-ai/sdk` · Upstash Redis. No database, no Python.
+
+## Every route
+
+**Pages**
+- `/` — homepage, project cards with screenshot thumbnails and contact links
+- `/about` — bio, coursework, skills
+- `/research` — Stock Research: Search · Browse by Sector · Research Signals
+- `/paper-trading` — live Alpaca paper account: equity, positions, buy/sell, journal, risk metrics
+- `/rotation` — Momentum + Leverage strategy: current picks, regime state, rebalance
+- `/dcf-builder` — interactive DCF with sensitivity grid and 10-K prefill
+- `/optimizer` — efficient frontier across user-entered tickers
+- `/monte-carlo` — 10,000 simulated portfolio paths and goal probability
+- `/quant/backtester` — the live strategy run through four synthetic regimes
+- `/quant/factor-risk` — market/rates/inflation variance attribution
+- `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta
+- `/quant-notes` and `/quant-notes/[slug]` — 7 plain-language quant explainers
+- `/client-work` — passcode-gated private client case studies
+- Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`
+
+**API** (all server-side; no key ever reaches the browser)
+- `/api/paper-trading/*` — `account`, `positions`, `orders`, `history`, `risk-metrics`, `search`, `journal`
+- `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI panel), `simplify` (AI)
+- `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `industry`, `red-flags` (AI)
+- `/api/dcf/prefill` — DCF assumptions from a 10-K, pure XBRL math
+- `/api/optimizer/frontier`, `/api/monte-carlo/simulate` — the two solvers
+- `/api/rotation/status` — recomputes picks, places no orders; `/api/rotation/check` — manual regime check, secret-gated
+- `/api/rotation/run` — **executes trades**; `CRON_SECRET`-gated on GET, open on POST for the demo button
+- `/api/signals` — read-only, serves the Redis cache; `/api/signals/refresh` — forces a refresh, secret-gated
+- `/api/cron/daily` — weekday regime check + all five signal refreshes
+- `/api/client-work/auth` — passcode → 30-day httpOnly session cookie
+
+## Data sources
+
+**Alpaca paper API** (account, quotes, bars) · **SEC EDGAR** (filings, XBRL
+facts, ratios) · **Anthropic API** (all AI features, the only paid one) ·
+**political trade sources** — House Clerk PTR PDFs, efdsearch.senate.gov,
+open-cabinet.org's OGE 278-T extraction, and the congress-legislators dataset
+for committee overlap. Plus Yahoo Finance RSS for headlines.
+
+Full table with licences and caveats: `docs/DATA_AND_ENV.md`.
+
+## Project rules
+
+1. **Keys stay server-side.** Everything external goes through an API route.
+   No key in a client component, ever.
+2. **Cache external data. Never call a paid API on page load.** `/api/signals`
+   reads cache only; refreshes run on the cron or a secret-gated route. Redis
+   via `lib/kv.ts` (`getRedis()`, guarded by `kvConfigured()`).
+3. **Cron budget is 2 on Vercel's free tier and both are used** — monthly
+   rebalance and `api/cron/daily`. Add new daily work *inside* `api/cron/daily`.
+4. **Every AI claim needs a source and a date.** AI features are grounded on
+   `lib/researchBriefing.ts` and must cite it; unfetchable data is labelled
+   "not available" rather than invented. AI signals are dropped unless the
+   source URL appeared in that run's search results, the event is inside the
+   window, and the ticker resolves at SEC.
+5. **Disclaimers stay on research features.** "Educational, not investment
+   advice" / "research leads, not advice" is visible on the signals panel and
+   the quant tools. Don't remove or bury them.
+6. **Frame research as signals, not recommendations.** No buy/sell language.
+   These are leads worth reading about, with the evidence shown.
+7. Never commit secrets. `site/.env.local` is gitignored.
+8. Mobile-friendly is required, not optional.
+9. Use the UI kit in `src/components/ui` and the style tokens (`.caps`,
+   `.section-title`, `rounded-[var(--radius)]`) — the site has two visual
+   styles (Modern and Terminal) and hard-coding either one breaks the other.
+
+## Windows setup — already solved, don't re-litigate
+
+- **Run Claude Code from PowerShell, not Git Bash.**
+- **Restart the dev server after changing `.env.local`** — Next.js reads it at
+  startup only.
+- **The nested folder:** repo root is `finance-portfolio/finance-portfolio`,
+  and the app is one level deeper in `site/`.
+- The working copy is `C:\Users\ethan\Downloads\finance-portfolio\finance-portfolio`.
+  Other `finance-portfolio` folders exist on this machine — the one under
+  `.gemini/antigravity/scratch` is Gemini Antigravity's clone, not yours.
+
+## Off-limits
+
+`/client-work`, `src/components/client-work/`, `src/data/clientWork.ts` and
+`api/client-work/` are built by **Gemini Antigravity** as a separate,
+non-finance project. Don't edit them — rebase over its commits instead.
+
+## Status (as of Sep 22 2026)
+
+**Built and working** — homepage, About, Stock Research (search, sector browse,
+10-K ratio dashboard, AI summary/playbook/red-flags/persona panel, "Explain
+simply"), all four Research Signals categories, paper trading with journal and
+risk metrics, DCF builder with 10-K prefill, optimizer, Monte Carlo, the three
+`/quant/*` tools, Quant Notes, the Momentum + Leverage dashboard and its crons.
+
+**In progress** — the strategy switch: code and docs are done, but the actual
+trades are waiting on Ethan. The old passive ETF core (~$80k) must be sold via
+`site/scripts/sell-core.js --execute` before the first rebalance.
+
+**Next up** — stream the six-persona AI takes in as they generate (the panel
+takes ~30s and shows only "Analyzing..."). Later: weekly full-portfolio review,
+then a real strategy backtester (stretch).
+
+**Known issue, parked** — `/client-work` falls back to a passcode hard-coded in
+a public repo because `CLIENT_WORK_PASSCODE` is set neither locally nor in
+Vercel. Ethan hasn't decided what the section becomes, so don't fix it or
+redesign it unless he raises it. Details in `docs/DATA_AND_ENV.md`.
+
+## Longer docs
+
+- `docs/ARCHITECTURE.md` — repo shape, every route and API, key libraries, UI conventions
+- `docs/FEATURES.md` — what each feature does in depth, including the EDGAR rules that must not be broken
+- `docs/DATA_AND_ENV.md` — data sources, caching and TTLs, cron budget, env var names, local setup, Windows notes
+- `docs/ROADMAP.md` — phase-by-phase build plan; `docs/PROJECT_IDEAS.md` — the backlog
+- `projects/paper-trading/STRATEGY.md` — the live strategy write-up
