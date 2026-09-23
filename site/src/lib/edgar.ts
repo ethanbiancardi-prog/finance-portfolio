@@ -325,7 +325,7 @@ export function computeRatios(facts: any): RatioDashboard {
         label: "Quick Ratio",
         group: "Liquidity",
         description:
-          "Same test, excluding inventory — the current asset that's slowest to turn into cash.",
+          "Same test, excluding inventory, the current asset that's slowest to turn into cash.",
         format: "x",
         // (Current assets − inventory) / current liabilities.
         value: safeDiv(safeSub(val(assetsCurrent, 0), val(inventory, 0)), val(liabilitiesCurrent, 0)),
@@ -402,7 +402,7 @@ export function computeRatios(facts: any): RatioDashboard {
       {
         label: "ROE",
         group: "Profitability",
-        description: "Profit per dollar shareholders invested — how well management uses owners' capital.",
+        description: "Profit per dollar shareholders invested, how well management uses owners' capital.",
         format: "%",
         // Net income / equity.
         value: safeDiv(val(netIncome, 0), val(equity, 0)),
@@ -421,7 +421,7 @@ export function computeRatios(facts: any): RatioDashboard {
         label: "ROIC",
         group: "Profitability",
         description:
-          "After-tax operating profit per dollar of capital tied up in the business — the return that matters most for judging if a company creates value.",
+          "After-tax operating profit per dollar of capital tied up in the business, the return that matters most for judging if a company creates value.",
         format: "%",
         // NOPAT / invested capital.
         value: safeDiv(nopat(0), investedCapital(0)),
@@ -432,7 +432,7 @@ export function computeRatios(facts: any): RatioDashboard {
       {
         label: "Asset Turnover",
         group: "Efficiency",
-        description: "Revenue generated per dollar of assets — how efficiently assets are used.",
+        description: "Revenue generated per dollar of assets, how efficiently assets are used.",
         format: "x",
         // Revenue / assets.
         value: safeDiv(revenueNow, val(assets, 0)),
@@ -441,7 +441,7 @@ export function computeRatios(facts: any): RatioDashboard {
       {
         label: "Inventory Turnover",
         group: "Efficiency",
-        description: "How many times inventory is sold and replaced per year — higher means less cash sitting on shelves.",
+        description: "How many times inventory is sold and replaced per year, higher means less cash sitting on shelves.",
         format: "x",
         // Cost of revenue / inventory.
         value: safeDiv(val(costOfRevenue, 0), val(inventory, 0)),
@@ -450,7 +450,7 @@ export function computeRatios(facts: any): RatioDashboard {
       {
         label: "Receivables Turnover",
         group: "Efficiency",
-        description: "How many times per year receivables are collected — higher means getting paid faster.",
+        description: "How many times per year receivables are collected, higher means getting paid faster.",
         format: "x",
         // Revenue / accounts receivable.
         value: safeDiv(revenueNow, val(receivables, 0)),

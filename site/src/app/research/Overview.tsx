@@ -82,7 +82,7 @@ export function Overview({
       </div>
       {simple && (
         <p className="mt-2 text-[11px] leading-5 text-zinc-500">
-          Jargon is underlined — hover or tap for a plain definition. Any AI-written passage has a &ldquo;Say it simply&rdquo; link that rewrites it
+          Jargon is underlined, hover or tap for a plain definition. Any AI-written passage has a &ldquo;Say it simply&rdquo; link that rewrites it
           without the jargon and adds an everyday example.
         </p>
       )}

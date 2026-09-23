@@ -56,7 +56,7 @@ export const SECTORS = {
   sustainability: {
     label: "Sustainability",
     description:
-      "ESG leaders across industries — the current holdings of Bentley Investment Group's Sustainability Fund: renewable energy, clean tech, resource efficiency, and strong governance.",
+      "ESG leaders across industries, the current holdings of Bentley Investment Group's Sustainability Fund: renewable energy, clean tech, resource efficiency, and strong governance.",
     tickers: [
       "GOOGL", "META", // interactive media
       "AMAT", "KEYS", // semiconductors, tech hardware

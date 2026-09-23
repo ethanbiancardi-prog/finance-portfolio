@@ -253,7 +253,7 @@ export function RedFlagsPanel({ ticker }: { ticker: string }) {
       : `${flags.length} red ${flags.length === 1 ? "flag" : "flags"}: ${flags.map((f) => f.pattern).join("; ")}`
     : loading
       ? undefined
-      : "Not scanned yet — open to run five accounting checks against the 10-K";
+      : "Not scanned yet, open to run five accounting checks against the 10-K";
 
   return (
     <Section id="red-flags" label="Red-flag scan" status={loading ? "loading" : flags ? "ready" : "idle"} summary={summary}>
@@ -281,7 +281,7 @@ export function RedFlagsPanel({ ticker }: { ticker: string }) {
             </div>
           )}
           <p className="mt-3 text-[10px] caps text-zinc-600">
-            AI-generated — verify against the actual filing before relying on it.
+            AI-generated, verify against the actual filing before relying on it.
           </p>
         </div>
       )}

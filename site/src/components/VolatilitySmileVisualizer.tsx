@@ -99,7 +99,7 @@ export function VolatilitySmileVisualizer() {
               onChange={(v) => set({ fear: v / 100 })}
               display={pct(p.fear, 0)}
               color={CURVE.from}
-              hint="At-the-money implied vol — the VIX dial. Lifts the whole curve."
+              hint="At-the-money implied vol, the VIX dial. Lifts the whole curve."
             />
             <Slider
               label="Skew steepness"
@@ -118,7 +118,7 @@ export function VolatilitySmileVisualizer() {
               max={15}
               onChange={(v) => set({ wings: v / 100 })}
               display={p.wings.toFixed(2)}
-              hint="How fast vol climbs away from the money on both sides — the market paying extra for big moves either way."
+              hint="How fast vol climbs away from the money on both sides, the market paying extra for big moves either way."
             />
             <Slider
               label="Days to expiry"
@@ -160,7 +160,7 @@ export function VolatilitySmileVisualizer() {
             <p className="text-foreground">Black-Scholes says it should be.</p>
             <p className="mt-1">
               The model assumes one volatility for the stock, so every strike should imply the same number. Before October 1987 index options roughly
-              did. Since then the left side has sat permanently higher — the model is missing something the market prices.
+              did. Since then the left side has sat permanently higher; the model is missing something the market prices.
             </p>
           </div>
           <div>
@@ -168,7 +168,7 @@ export function VolatilitySmileVisualizer() {
             <p className="mt-1">
               Almost everyone who owns stocks wants insurance against a crash, so there is steady buying of out-of-the-money puts. Nobody needs
               insurance against a rally, and many holders sell calls above the market for income. Heavy bid on the left, steady offer on the right: the
-              price of low-strike options — and so their implied vol — is pushed up, and high strikes are pushed down. That is the{" "}
+              price of low-strike options (and so their implied vol) is pushed up, and high strikes are pushed down. That is the{" "}
               <Term term="volSkew">skew</Term>.
             </p>
           </div>
@@ -176,13 +176,13 @@ export function VolatilitySmileVisualizer() {
             <p className="text-foreground">Crashes really are fatter than the model.</p>
             <p className="mt-1">
               Markets fall faster than they rise, and volatility spikes as they fall. A lognormal world gives a 20% drop in a month almost no chance;
-              history gives it a real one. Dealers who sell those puts charge for the gap, so the skew persists even in calm markets — and steepens the
+              history gives it a real one. Dealers who sell those puts charge for the gap, so the skew persists even in calm markets, and steepens the
               moment fear picks up, which is what the two dials above are doing together.
             </p>
           </div>
         </div>
         <p className="mt-3 border-t border-border pt-2 text-[10px] leading-4 text-zinc-500">
-          Model: SVI (Gatheral), the parameterisation desks fit to listed options — total variance w(k) = a + b[ρ(k − m) + √((k − m)² + s²)], k = ln(K/S),
+          Model: SVI (Gatheral), the parameterisation desks fit to listed options, total variance w(k) = a + b[ρ(k − m) + √((k − m)² + s²)], k = ln(K/S),
           IV = √(w/T). The fear dial sets a, skew sets ρ, wing steepness sets b; m and s are fixed. A teaching approximation, not a market feed.
           Educational, not investment advice.
         </p>

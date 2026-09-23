@@ -17,7 +17,7 @@ export type AssetKey = "equities" | "bonds" | "commodities";
 export type FactorKey = "market" | "rates" | "inflation";
 
 export const FACTORS: { key: FactorKey; label: string; short: string; color: string; describe: string }[] = [
-  { key: "market", label: "Market beta", short: "Equity", color: "#a5b4fc", describe: "Global equity market moves — the growth / risk-appetite factor." },
+  { key: "market", label: "Market beta", short: "Equity", color: "#a5b4fc", describe: "Global equity market moves, the growth / risk-appetite factor." },
   { key: "rates", label: "Interest rate duration", short: "Rates", color: "#7dd3fc", describe: "Parallel shifts in real interest rates. Long-duration assets fall when rates rise." },
   { key: "inflation", label: "Macro inflation shock", short: "Inflation", color: "#fcd34d", describe: "Surprise inflation. Hurts nominal bonds, helps real assets like commodities." },
 ];

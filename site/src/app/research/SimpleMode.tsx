@@ -162,7 +162,7 @@ export function SimpleText({ text, context, className }: { text: string; context
           )}
           {state === "error" && (
             <button type="button" onClick={simplify} className="text-bad hover:underline">
-              Couldn&apos;t rewrite — try again
+              Couldn&apos;t rewrite, try again
             </button>
           )}
           {state === "simple" && (

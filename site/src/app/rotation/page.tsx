@@ -146,7 +146,7 @@ export default function SectorRotation() {
     <PageShell
       eyebrow="automated strategy"
       title="Momentum + Leverage"
-      description="An aggressive, rule-based book. 60% of equity goes to the 10 strongest stocks by risk-adjusted momentum across eight sectors (max 3 per sector); 30% to 3x leveraged index ETFs (TQQQ, SOXL); 10% stays in cash. Circuit breaker: if SPY is below its 200-day average, the leveraged sleeve goes to cash and momentum shrinks to 5 names. Rebalanced monthly by a scheduled job on the Alpaca paper account — never on margin."
+      description="An aggressive, rule-based book. 60% of equity goes to the 10 strongest stocks by risk-adjusted momentum across eight sectors (max 3 per sector); 30% to 3x leveraged index ETFs (TQQQ, SOXL); 10% stays in cash. Circuit breaker: if SPY is below its 200-day average, the leveraged sleeve goes to cash and momentum shrinks to 5 names. Rebalanced monthly by a scheduled job on the Alpaca paper account, never on margin."
     >
       {/* Stays mounted after loading ends so the mark can reassemble; the
           loader removes itself once the reconstruct finishes. */}
@@ -209,7 +209,7 @@ export default function SectorRotation() {
           <section className="mt-4">
             <SectionHeader
               label="current picks"
-              description="Top 10 across every sector by momentum score = trailing return ÷ volatility over the lookback window — a risk-adjusted rank, not a raw return. Each pick is 6% of equity; the leveraged ETFs are 20% and 10%."
+              description="Top 10 across every sector by momentum score = trailing return ÷ volatility over the lookback window, a risk-adjusted rank, not a raw return. Each pick is 6% of equity; the leveraged ETFs are 20% and 10%."
             />
             <div className="mt-3 space-y-2">
               {status.leveraged.length > 0 && (
@@ -320,7 +320,7 @@ export default function SectorRotation() {
           <section className="mt-4">
             <SectionHeader
               label="run rebalance"
-              description="Manually trigger the same rebalance the scheduled job runs monthly. It refuses to place anything that would need margin — sell positions outside the strategy first."
+              description="Manually trigger the same rebalance the scheduled job runs monthly. It refuses to place anything that would need margin, sell positions outside the strategy first."
             />
             <Button className="mt-3" loading={running} loadingLabel="Running..." onClick={runNow}>
               Run Rebalance Now

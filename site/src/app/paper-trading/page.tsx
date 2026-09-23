@@ -248,7 +248,7 @@ function PaperTradingPage() {
         </Button>
       </div>
       {/* Equity is total account value (cash + position value). Buying power is
-          how much you can spend right now — it can exceed cash on hand because
+          how much you can spend right now; it can exceed cash on hand because
           a margin account lets you borrow against your equity. */}
       <section className="mt-4 grid grid-cols-2 gap-3">
         <StatCard card size="lg" label="Equity" term="equity" value={account ? formatCurrency(account.equity) : "..."} />
@@ -266,7 +266,7 @@ function PaperTradingPage() {
           label="risk metrics"
           description={
             riskMetrics
-              ? `Based on ~${riskMetrics.periodDays} trading days — Sharpe/beta on this short a window are noisy, treat as directional, not precise.`
+              ? `Based on ~${riskMetrics.periodDays} trading days, Sharpe/beta on this short a window are noisy, treat as directional, not precise.`
               : undefined
           }
         />
@@ -462,7 +462,7 @@ function PaperTradingPage() {
 
       <div className="mt-4">
         <Card as="section">
-          <SectionHeader label="place order" description="Market order — fills immediately at the current price." />
+          <SectionHeader label="place order" description="Market order, fills immediately at the current price." />
           {/* Market order = buy/sell immediately at the current price. A limit order
               (not implemented in Phase 1) only fills at a price you set or better. */}
           <form onSubmit={submitOrder} className="mt-3 flex flex-wrap items-end gap-3">

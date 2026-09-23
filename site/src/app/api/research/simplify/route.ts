@@ -17,7 +17,9 @@ Rules:
 - Then give ONE analogy from everyday life (a household budget, a shop, a car, a sports team...) that makes the
   main point click. One or two sentences. It must map onto the actual point of the passage, not be generic.
 
-Reply with ONLY a JSON object: {"simple": "...", "analogy": "..."}`;
+Reply with ONLY a JSON object: {"simple": "...", "analogy": "..."}
+
+Never use em dashes or en dashes (— or –) anywhere in your output. Use a comma, colon, semicolon, full stop, or parentheses instead. A hyphen inside a compound word is fine.`;
 
 const RESPONSE_SCHEMA = {
   type: "object",
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: `${context ? `Context: ${context}\n\n` : ""}Passage:\n${text}` }],
     output_config: {
-      effort: "low", // a rewrite, not analysis — fast and cheap
+      effort: "low", // a rewrite, not analysis, fast and cheap
       format: { type: "json_schema", schema: RESPONSE_SCHEMA },
     },
   });

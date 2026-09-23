@@ -64,7 +64,7 @@ function findStories(d: RatioDashboard, ticker: string): Story[] {
         key: "margin-expansion",
         title: "Operating margin expanding",
         score: 2 + delta * 20,
-        reasoning: `Operating margin rose from ${formatPercent(op.prior)} to ${formatPercent(op.now)} (+${pp(delta)}) on revenue of ${formatCurrencyCompact(rev)}${g != null ? ` (${g >= 0 ? "+" : ""}${formatPercent(g)} year over year)` : ""}. Margins expanding faster than revenue means the company is getting more profit out of each dollar of sales — pricing power, cost discipline, or operating leverage from scale${gross.now != null && gross.prior != null ? `; gross margin went ${formatPercent(gross.prior)} → ${formatPercent(gross.now)}, which says whether it came from the product itself or from below the line` : ""}.`,
+        reasoning: `Operating margin rose from ${formatPercent(op.prior)} to ${formatPercent(op.now)} (+${pp(delta)}) on revenue of ${formatCurrencyCompact(rev)}${g != null ? ` (${g >= 0 ? "+" : ""}${formatPercent(g)} year over year)` : ""}. Margins expanding faster than revenue means the company is getting more profit out of each dollar of sales, pricing power, cost discipline, or operating leverage from scale${gross.now != null && gross.prior != null ? `; gross margin went ${formatPercent(gross.prior)} → ${formatPercent(gross.now)}, which says whether it came from the product itself or from below the line` : ""}.`,
         bullCase: "If the expansion is structural rather than a one-year cost cut, earnings can grow well ahead of revenue for several years and the market often re-rates the multiple as it notices.",
         risk: "One year of margin gains can come from deferred spending, a favourable input-cost swing, or an accounting change; check the 10-K's MD&A for what management says drove it, and whether the prior year was simply depressed.",
       });
@@ -73,8 +73,8 @@ function findStories(d: RatioDashboard, ticker: string): Story[] {
         key: "margin-compression",
         title: "Operating margin compressing",
         score: 2 + Math.abs(delta) * 20,
-        reasoning: `Operating margin fell from ${formatPercent(op.prior)} to ${formatPercent(op.now)} (${pp(delta)}) on revenue of ${formatCurrencyCompact(rev)}${g != null ? ` (${g >= 0 ? "+" : ""}${formatPercent(g)} year over year)` : ""}. ${g != null && g > 0.05 ? "Revenue is still growing, so the company is spending more to get each sale — the question is whether that's investment or erosion." : "With revenue flat or falling too, this is a business under pressure on both lines."}${gross.now != null && gross.prior != null ? ` Gross margin went ${formatPercent(gross.prior)} → ${formatPercent(gross.now)}.` : ""}`,
-        bullCase: "If the compression is deliberate investment — capacity, R&D, a new product line — and management can point to when it pays back, the stock may be cheap on trough margins.",
+        reasoning: `Operating margin fell from ${formatPercent(op.prior)} to ${formatPercent(op.now)} (${pp(delta)}) on revenue of ${formatCurrencyCompact(rev)}${g != null ? ` (${g >= 0 ? "+" : ""}${formatPercent(g)} year over year)` : ""}. ${g != null && g > 0.05 ? "Revenue is still growing, so the company is spending more to get each sale; the question is whether that's investment or erosion." : "With revenue flat or falling too, this is a business under pressure on both lines."}${gross.now != null && gross.prior != null ? ` Gross margin went ${formatPercent(gross.prior)} → ${formatPercent(gross.now)}.` : ""}`,
+        bullCase: "If the compression is deliberate investment (capacity, R&D, a new product line) and management can point to when it pays back, the stock may be cheap on trough margins.",
         risk: "Margin compression that comes from competition or input costs rarely reverses on its own; if the company has no pricing power the decline can continue for years.",
       });
     }
@@ -86,7 +86,7 @@ function findStories(d: RatioDashboard, ticker: string): Story[] {
       key: "turnaround",
       title: "Turned profitable",
       score: 3 + net.now * 10,
-      reasoning: `Net margin went from ${formatPercent(net.prior)} to ${formatPercent(net.now)} — the company crossed from a loss to a profit on revenue of ${formatCurrencyCompact(rev)}${g != null ? ` (${g >= 0 ? "+" : ""}${formatPercent(g)})` : ""}. Net income of ${formatCurrencyCompact(d.netIncome)}${ocfm.now != null ? `, operating cash flow margin ${formatPercent(ocfm.now)}` : ""}.`,
+      reasoning: `Net margin went from ${formatPercent(net.prior)} to ${formatPercent(net.now)}, the company crossed from a loss to a profit on revenue of ${formatCurrencyCompact(rev)}${g != null ? ` (${g >= 0 ? "+" : ""}${formatPercent(g)})` : ""}. Net income of ${formatCurrencyCompact(d.netIncome)}${ocfm.now != null ? `, operating cash flow margin ${formatPercent(ocfm.now)}` : ""}.`,
       bullCase: "The first profitable year is often when a company becomes investable for funds that screen on earnings, and if the loss years were investment, incremental margins from here can be high.",
       risk: "A single profitable year can come from a one-off gain, a tax benefit, or cutting the spending that produced the growth; confirm operating income and cash flow turned as well, not just the net line.",
     });
@@ -100,7 +100,7 @@ function findStories(d: RatioDashboard, ticker: string): Story[] {
       score: 1.5 + fcfMargin * 5,
       reasoning: `Free cash flow of ${formatCurrencyCompact(fcf.now)} is ${formatPercent(fcfMargin)} of revenue (${formatCurrencyCompact(rev)}), up from ${formatCurrencyCompact(fcf.prior)} the year before${ocfm.now != null ? `; operating cash flow margin ${formatPercent(ocfm.now)}` : ""}${roic.now != null ? `, ROIC ${formatPercent(roic.now)}` : ""}. Few businesses convert a fifth of every sales dollar into cash left over after investment.`,
       bullCase: "Cash at this rate funds buybacks, dividends, and acquisitions without debt, and gives the company a wide margin of safety if growth slows.",
-      risk: "Very high free cash flow can mean under-investment — check whether capex is falling as a share of revenue, and whether the cash is actually being returned or piling up.",
+      risk: "Very high free cash flow can mean under-investment, check whether capex is falling as a share of revenue, and whether the cash is actually being returned or piling up.",
     });
   }
 
@@ -114,7 +114,7 @@ function findStories(d: RatioDashboard, ticker: string): Story[] {
         score: 1.5 + Math.abs(rel) * 2,
         reasoning: `Debt-to-equity fell from ${formatRatio(de.prior)}x to ${formatRatio(de.now)}x (${formatPercent(rel)})${cov.now != null && cov.prior != null ? `, and interest coverage moved from ${formatRatio(cov.prior)}x to ${formatRatio(cov.now)}x` : ""}. Balance-sheet repair on this scale usually shows up in the equity before it shows up in earnings, because less of each dollar of operating profit goes to lenders.`,
         bullCase: "As leverage falls the equity's share of enterprise value rises mechanically, and credit-rating upgrades lower the cost of the remaining debt.",
-        risk: "Debt can fall because the company shrank, sold assets, or issued equity — each of which dilutes the story; check the cash flow statement for what actually paid it down.",
+        risk: "Debt can fall because the company shrank, sold assets, or issued equity, each of which dilutes the story; check the cash flow statement for what actually paid it down.",
       });
     } else if (rel >= 0.4 && cov.now != null && cov.prior != null && cov.now < cov.prior) {
       stories.push({
@@ -122,7 +122,7 @@ function findStories(d: RatioDashboard, ticker: string): Story[] {
         title: "Leverage rising, coverage falling",
         score: 2 + rel,
         reasoning: `Debt-to-equity rose from ${formatRatio(de.prior)}x to ${formatRatio(de.now)}x (+${formatPercent(rel)}) while interest coverage fell from ${formatRatio(cov.prior)}x to ${formatRatio(cov.now)}x. More borrowing and less profit to service it is the combination lenders watch most closely.`,
-        bullCase: "If the debt funded an acquisition or expansion with a clear payback, coverage recovers as the new assets produce earnings — the 10-K will say what it was for.",
+        bullCase: "If the debt funded an acquisition or expansion with a clear payback, coverage recovers as the new assets produce earnings; the 10-K will say what it was for.",
         risk: "Rising leverage into falling coverage is how covenant pressure and dilutive equity raises start; a downturn hits levered companies first and hardest.",
       });
     }
@@ -136,7 +136,7 @@ function findStories(d: RatioDashboard, ticker: string): Story[] {
       score: 1 + roic.now * 3,
       reasoning: `Current ratio ${formatRatio(cur.now)}x, debt-to-equity ${formatRatio(de.now)}x, and ROIC of ${formatPercent(roic.now)} on revenue growth of ${formatPercent(g)}. High returns on capital with almost no leverage is the profile of a business that can fund its own growth and survive a bad cycle without help.`,
       bullCase: "Companies like this compound quietly: reinvestment at high returns plus no interest burden means earnings growth tracks revenue growth or better.",
-      risk: "Quality is rarely a secret — the risk is paying too much for it; the same profile has often traded at multiples that assume the returns last forever.",
+      risk: "Quality is rarely a secret, the risk is paying too much for it; the same profile has often traded at multiples that assume the returns last forever.",
     });
   }
 
@@ -148,7 +148,7 @@ function findStories(d: RatioDashboard, ticker: string): Story[] {
       score: 1 + g * 3,
       reasoning: `Revenue grew ${formatPercent(g)} to ${formatCurrencyCompact(rev)}${op.now != null ? ` with an operating margin of ${formatPercent(op.now)}${op.prior != null ? ` (${formatPercent(op.prior)} the year before)` : ""}` : ""}. Growth at this rate on a base over a billion dollars is rare and is usually the whole story for the stock.`,
       bullCase: "If the market the company sells into is still early, a year of 30%+ growth is often followed by more; operating leverage at this scale can make earnings grow even faster.",
-      risk: "Growth rates fall as bases get bigger, and the valuation almost certainly assumes several more years of it — a single deceleration quarter can cut the stock sharply.",
+      risk: "Growth rates fall as bases get bigger, and the valuation almost certainly assumes several more years of it; a single deceleration quarter can cut the stock sharply.",
     });
   }
 
@@ -205,7 +205,7 @@ export async function refreshFinancialSignals(now = new Date()): Promise<SignalB
           risk: lead.risk,
           sources: [
             {
-              label: `SEC EDGAR — ${company.title} 10-K filings`,
+              label: `SEC EDGAR, ${company.title} 10-K filings`,
               url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${String(company.cik).padStart(10, "0")}&type=10-K&dateb=&owner=include&count=10`,
             },
             {

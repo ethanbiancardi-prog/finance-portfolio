@@ -369,11 +369,11 @@ function buildSignal(ticker: string, company: string, ts: PoliticalTrade[], memb
   }
   const oversight = [...overlapMap.entries()].map(([committee, ms]) => ({ committee, members: [...ms] }));
   const committeeNote = oversight.length
-    ? ` Oversight overlap: ${oversight.map((o) => `${o.members.join(" and ")} ${o.members.length === 1 ? "sits" : "sit"} on ${o.committee}`).join("; ")} — the committee whose jurisdiction covers ${SECTORS[sector!].label.toLowerCase()}.`
+    ? ` Oversight overlap: ${oversight.map((o) => `${o.members.join(" and ")} ${o.members.length === 1 ? "sits" : "sit"} on ${o.committee}`).join("; ")}, the committee whose jurisdiction covers ${SECTORS[sector!].label.toLowerCase()}.`
     : "";
 
   const reasoning =
-    `${who} reported ${ts.length} ${ts.length === 1 ? "transaction" : "transactions"} in ${company} (${ticker}) — ` +
+    `${who} reported ${ts.length} ${ts.length === 1 ? "transaction" : "transactions"} in ${company} (${ticker}), ` +
     `${buys.length} ${buys.length === 1 ? "buy" : "buys"}, ${sells.length} ${sells.length === 1 ? "sale" : "sales"}${exchanges.length ? `, ${exchanges.length} ${exchanges.length === 1 ? "exchange" : "exchanges"}` : ""}, ${lead}. ` +
     `Trades were made between ${ts.map((t) => t.tradeDate).sort()[0]} and ${latest} and disclosed an average of ${lag} days later${ts.some((t) => t.amended) ? " (one or more are amended re-filings of earlier reports)" : ""}. ` +
     `Amounts are reported in ranges (${[...new Set(ts.map((t) => t.amountRange))].join("; ")}); ` +
@@ -403,7 +403,7 @@ function buildSignal(ticker: string, company: string, ts: PoliticalTrade[], memb
     sources: [
       ...[...new Set(ts.map((t) => t.filingUrl))].map((url) => {
         const t = ts.find((x) => x.filingUrl === url)!;
-        return { label: `PTR — ${t.member}, filed ${t.disclosureDate} (${t.chamber === "Senate" ? "official filing" : "official PDF"})`, url };
+        return { label: `PTR, ${t.member}, filed ${t.disclosureDate} (${t.chamber === "Senate" ? "official filing" : "official PDF"})`, url };
       }),
       { label: "House Clerk financial disclosures", url: `${CLERK}/FinancialDisclosure` },
       ...(ts.some((t) => t.chamber === "Senate") ? [{ label: "Senate electronic financial disclosures", url: "https://efdsearch.senate.gov/search/" }] : []),

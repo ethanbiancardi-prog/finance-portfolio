@@ -103,7 +103,7 @@ export function PlaybookPanel({ ticker, onLoaded }: { ticker: string; onLoaded?:
     >
       <p className="text-[11px] leading-5 text-zinc-500">
         What&apos;s moving the company right now, how it&apos;s doing financially, and concrete next steps for the paper account. AI-generated from the
-        same filing, price, and headlines shown on this page — a starting point, not advice.
+        same filing, price, and headlines shown on this page, a starting point, not advice.
       </p>
       {!data && !error && <p className="mt-3 text-xs text-zinc-500">Reading the headlines and the numbers...</p>}
 
@@ -112,7 +112,7 @@ export function PlaybookPanel({ ticker, onLoaded }: { ticker: string; onLoaded?:
           <div>
             <p className="text-[10px] caps text-zinc-500">Catalysts in the news</p>
             {data.catalysts.length === 0 ? (
-              <p className="mt-2 text-xs text-zinc-500">Nothing material in the recent headlines — no launches, deals, or guidance changes.</p>
+              <p className="mt-2 text-xs text-zinc-500">Nothing material in the recent headlines, no launches, deals, or guidance changes.</p>
             ) : (
               <ul className="mt-2 space-y-2.5">
                 {data.catalysts.map((c, i) => (

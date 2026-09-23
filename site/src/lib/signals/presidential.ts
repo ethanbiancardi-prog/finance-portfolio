@@ -74,7 +74,7 @@ export async function refreshPresidentialSignals(now = new Date()): Promise<Pres
   const header = rows[0];
   const col = (name: string) => {
     const i = header.indexOf(name);
-    if (i < 0) throw new Error(`Open Cabinet CSV has no "${name}" column — format changed`);
+    if (i < 0) throw new Error(`Open Cabinet CSV has no "${name}" column, format changed`);
     return i;
   };
   const C = {

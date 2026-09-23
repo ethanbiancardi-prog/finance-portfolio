@@ -189,7 +189,7 @@ function DcfBuilderPage() {
     <PageShell
       eyebrow="valuation"
       title="DCF Builder"
-      description="A 5-year unlevered discounted cash flow model. Load a real company's numbers from its 10-K or type your own — everything recalculates live, including the WACC x terminal growth sensitivity table."
+      description="A 5-year unlevered discounted cash flow model. Load a real company's numbers from its 10-K or type your own; everything recalculates live, including the WACC x terminal growth sensitivity table."
     >
       <FilingLoader initialTicker={initialTicker} onLoaded={applyFiling} />
 
@@ -198,7 +198,7 @@ function DcfBuilderPage() {
           label="assumptions"
           description={
             filing
-              ? `Loaded from ${filing.company.title}'s 10-K (FY ending ${filing.fiscalYearEnd}). Edit anything — the filing is a starting point, not the answer.`
+              ? `Loaded from ${filing.company.title}'s 10-K (FY ending ${filing.fiscalYearEnd}). Edit anything; the filing is a starting point, not the answer.`
               : undefined
           }
         />

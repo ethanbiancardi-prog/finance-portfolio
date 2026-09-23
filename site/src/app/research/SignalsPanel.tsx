@@ -115,7 +115,7 @@ const OWNER_LABEL = { self: "Self", spouse: "Spouse", joint: "Joint", child: "Ch
 // Price change since a trade date, colored by sign. Null when Alpaca had no
 // bars for the ticker (foreign listings, very recent IPOs).
 function SincePct({ pct, title }: { pct: number | null | undefined; title?: string }) {
-  if (pct == null) return <span className="text-zinc-600">—</span>;
+  if (pct == null) return <span className="text-zinc-600">n/a</span>;
   const sign = pct > 0 ? "+" : pct < 0 ? "−" : "";
   return (
     <span className={pct > 0 ? "text-good" : pct < 0 ? "text-bad" : ""} title={title}>
@@ -198,7 +198,7 @@ export function SignalsPanel({
       </div>
       {simple && (
         <p className="mt-2 text-[11px] leading-5 text-zinc-500">
-          Jargon is underlined — hover or tap for a plain definition. Open a card and use &ldquo;Say it simply&rdquo; to rewrite its reasoning
+          Jargon is underlined, hover or tap for a plain definition. Open a card and use &ldquo;Say it simply&rdquo; to rewrite its reasoning
           without the jargon, with an everyday example.
         </p>
       )}
@@ -216,7 +216,7 @@ export function SignalsPanel({
             />
           </div>
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
-          {ai[active.key] === null && <p className="mt-4 text-xs text-zinc-500">No {active.label.toLowerCase()} signals have been generated yet — the daily refresh hasn&apos;t run.</p>}
+          {ai[active.key] === null && <p className="mt-4 text-xs text-zinc-500">No {active.label.toLowerCase()} signals have been generated yet; the daily refresh hasn&apos;t run.</p>}
           {ai[active.key] && <AiSignals batch={ai[active.key]!} label={active.label} onResearch={onResearch} />}
         </>
       )}
@@ -232,8 +232,8 @@ export function SignalsPanel({
           </div>
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
           {presidential && <PresidentialSection batch={presidential} onResearch={onResearch} />}
-          {presidential === null && <p className="mt-4 text-xs text-zinc-500">Presidential trades haven&apos;t been generated yet — the daily refresh hasn&apos;t run.</p>}
-          {political === null && <p className="mt-4 text-xs text-zinc-500">No congressional-trade signals have been generated yet — the daily refresh hasn&apos;t run.</p>}
+          {presidential === null && <p className="mt-4 text-xs text-zinc-500">Presidential trades haven&apos;t been generated yet; the daily refresh hasn&apos;t run.</p>}
+          {political === null && <p className="mt-4 text-xs text-zinc-500">No congressional-trade signals have been generated yet; the daily refresh hasn&apos;t run.</p>}
           {political && <PoliticalSignals batch={political} onResearch={onResearch} />}
         </>
       )}
@@ -245,7 +245,7 @@ export function SignalsPanel({
 const AI_BLURB: Record<string, string> = {
   legislation: "Bills, agency rules, approvals, and enforcement actions from the last few weeks, tied to the companies they hit.",
   geopolitics: "Sanctions, trade, conflicts, central banks, and commodity decisions from the last few weeks, tied to the companies most exposed.",
-  financial: "Companies in the eight-sector universe whose latest 10-K tells a story — margins moving, a turnaround, unusual cash generation, leverage changing. Good and bad stories both count.",
+  financial: "Companies in the eight-sector universe whose latest 10-K tells a story: margins moving, a turnaround, unusual cash generation, leverage changing. Good and bad stories both count.",
 };
 
 function AiSignals({ batch, label, onResearch }: { batch: SignalBatch; label: string; onResearch: (ticker: string) => void }) {
@@ -255,7 +255,7 @@ function AiSignals({ batch, label, onResearch }: { batch: SignalBatch; label: st
         label={label}
         description={
           batch.category === "financial"
-            ? `${AI_BLURB.financial} Computed from SEC filing data by the same ratio engine as the Search tab — no AI involved; ${batch.stats.companiesScreened} companies screened, ${batch.stats.withStory} with a story, top ${batch.stats.kept} shown. Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`
+            ? `${AI_BLURB.financial} Computed from SEC filing data by the same ratio engine as the Search tab, no AI involved; ${batch.stats.companiesScreened} companies screened, ${batch.stats.withStory} with a story, top ${batch.stats.kept} shown. Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`
             : `${AI_BLURB[batch.category] ?? ""} Researched with web search over the last ${batch.windowDays} days; every lead cites the specific pages it came from and leads without a source are dropped before they reach this page (${batch.stats.returned} found, ${batch.stats.kept} kept). Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`
         }
       />
@@ -322,14 +322,14 @@ function PresidentialSection({ batch, onResearch }: { batch: PresidentialBatch; 
   return (
     <div className="mt-4">
       <SectionHeader
-        label="section a — presidential trades"
+        label="section a, presidential trades"
         description={`Securities transactions disclosed by ${batch.official.split(", ").reverse().join(" ")} on OGE Form 278-T, filed ${filingLabel}, covering trades from ${fmtDate(batch.firstTradeDate)} to ${fmtDate(batch.lastTradeDate)}. ${batch.stats.rows} transactions, ${batch.stats.rowsWithTicker} matched to a ticker across ${batch.stats.tickers} names (the rest are mostly municipal bonds). Ranked by estimated net dollars using the midpoint of each disclosed range.`}
       />
 
       <Callout className="mt-3" label="read this first">
         <span className="block"><span className="text-foreground">Trustee-managed.</span> These accounts are run by trustees and outside managers; the President does not personally select these trades.</span>
         <span className="mt-1 block"><span className="text-foreground">Ranges, not figures.</span> Each trade is disclosed as a range (e.g. $1,000,001 – $5,000,000). &ldquo;Estimated&rdquo; amounts here sum the midpoints; the true totals lie somewhere in the range shown.</span>
-        <span className="mt-1 block"><span className="text-foreground">Weeks to months late.</span> This filing landed <span className="text-foreground">{batch.lagDays} days</span> after its last trade; {batch.stats.lateRows} of {batch.stats.rows} rows were filed past the 30-day deadline. The market has long since moved — the &ldquo;since last trade&rdquo; column shows by how much.</span>
+        <span className="mt-1 block"><span className="text-foreground">Weeks to months late.</span> This filing landed <span className="text-foreground">{batch.lagDays} days</span> after its last trade; {batch.stats.lateRows} of {batch.stats.rows} rows were filed past the 30-day deadline. The market has long since moved, the &ldquo;since last trade&rdquo; column shows by how much.</span>
       </Callout>
 
       <div className="mt-3 space-y-3">
@@ -483,8 +483,8 @@ function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearc
   return (
     <div className="mt-6">
       <SectionHeader
-        label="section b — stock trades reported by members of congress"
-        description={`Periodic Transaction Reports filed in the last ${batch.windowDays} days — House reports parsed from the Clerk's official PDFs, Senate reports from the electronic filings on efdsearch.senate.gov. ${batch.stats.tradesParsed} individual-stock trades (${batch.stats.houseTrades ?? "?"} House, ${batch.stats.senateTrades ?? 0} Senate) across ${batch.stats.tickers} tickers. ETFs, funds, options and bonds are left out, as are paper filings with no text layer. Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`}
+        label="section b, stock trades reported by members of congress"
+        description={`Periodic Transaction Reports filed in the last ${batch.windowDays} days, House reports parsed from the Clerk's official PDFs, Senate reports from the electronic filings on efdsearch.senate.gov. ${batch.stats.tradesParsed} individual-stock trades (${batch.stats.houseTrades ?? "?"} House, ${batch.stats.senateTrades ?? 0} Senate) across ${batch.stats.tickers} tickers. ETFs, funds, options and bonds are left out, as are paper filings with no text layer. Updated ${new Date(batch.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.`}
       />
 
       <Callout className="mt-3" label="how to read late data">
@@ -492,7 +492,7 @@ function PoliticalSignals({ batch, onResearch }: { batch: SignalBatch; onResearc
         <span className="text-foreground">{lagHouse} days</span> in the House and <span className="text-foreground">{lagSenate} days</span> in the Senate, so the
         price has usually moved before a trade is public. Two things make it usable anyway: the <span className="text-foreground">since trade</span> figure shows
         what the stock did from the trade date to the latest close, and the default <span className="text-foreground">conviction</span> order puts names that
-        several members bought over the {batch.windowDays}-day window, with nobody selling, at the top — one trade is noise, five in the same name is not.
+        several members bought over the {batch.windowDays}-day window, with nobody selling, at the top, one trade is noise, five in the same name is not.
       </Callout>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -597,7 +597,7 @@ function SignalCard({ signal, onResearch }: { signal: Signal; onResearch: (ticke
         <ul className="mt-2 space-y-0.5 text-[11px] text-zinc-500">
           {signal.oversight.map((o) => (
             <li key={o.committee}>
-              <span className="text-foreground">{o.committee}</span> — {o.members.join(", ")}
+              <span className="text-foreground">{o.committee}</span>, {o.members.join(", ")}
             </li>
           ))}
         </ul>

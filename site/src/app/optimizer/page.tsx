@@ -99,7 +99,7 @@ export default function Optimizer() {
     <PageShell
       eyebrow="portfolio construction"
       title="Portfolio Optimizer"
-      description="Samples thousands of random portfolio weightings across your tickers and plots return vs. volatility — the top-left edge of the cloud approximates the efficient frontier."
+      description="Samples thousands of random portfolio weightings across your tickers and plots return vs. volatility; the top-left edge of the cloud approximates the efficient frontier."
     >
       <Card as="section" className="mt-4">
         <SectionHeader

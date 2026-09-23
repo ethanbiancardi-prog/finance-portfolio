@@ -55,7 +55,7 @@ const OVERSIGHT: Record<string, Rule> = {
   SSAS: { sectors: ["industrials", "technology"], industry: /aircraft|aerospace|guided missile|ordnance|search, detection|ship ?building|defense|arms/i }, // Armed Services
   SSBK: { sectors: ["financials"] }, // Banking, Housing, and Urban Affairs
   SSHR: { sectors: ["healthcare"] }, // Health, Education, Labor, and Pensions
-  SSFI: { sectors: ["healthcare"], industry: /pharmaceutical|biological|hospital|health|medical|surgical|drug/i }, // Finance — Medicare, tax
+  SSFI: { sectors: ["healthcare"], industry: /pharmaceutical|biological|hospital|health|medical|surgical|drug/i }, // Finance, Medicare, tax
   SSEG: { sectors: ["energy", "industrials"], industry: /petroleum|crude|natural gas|oil|mining|coal|drilling|electric/i }, // Energy and Natural Resources
   SSEV: { sectors: ["sustainability", "industrials"], industry: /water|refuse|sanitary|waste|environmental|chemical|highway|construction/i }, // Environment and Public Works
   SSCM: { sectors: ["communications", "technology", "industrials"], industry: /telephone|cable|broadcast|television|radio|internet|software|computer|semiconductor|transportation|railroad|trucking|air ?line|aircraft/i }, // Commerce, Science, and Transportation

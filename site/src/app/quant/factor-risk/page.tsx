@@ -9,7 +9,7 @@ export default function Page() {
     <PageShell
       eyebrow="quant tools"
       title="Factor Risk Attribution"
-      description="Where a multi-asset portfolio's risk actually comes from. Set the stock / bond / commodity mix and see it broken into equity beta, interest-rate duration and inflation shock — a 60/40 is mostly one bet."
+      description="Where a multi-asset portfolio's risk actually comes from. Set the stock / bond / commodity mix and see it broken into equity beta, interest-rate duration and inflation shock. A 60/40 is mostly one bet."
     >
       <FactorRiskAttribution />
     </PageShell>

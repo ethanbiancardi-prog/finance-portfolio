@@ -32,24 +32,26 @@ affects that company's revenue, costs, or valuation, a one-sentence bull case, a
 Rules: at most ${MAX_ITEMS} leads; aim for at least 4, and keep searching (you have the budget) if your first
 searches turn up fewer. One ticker per lead; if several companies are affected, pick the most exposed and mention
 the others in the reasoning. Every source URL must be a page you saw in search results, and it must be the specific
-article or press release about the event — not a newsroom index, section page, or search page. Do not include
-leads you cannot source. This is research, not advice — no "buy"/"sell" language.
+article or press release about the event, not a newsroom index, section page, or search page. Do not include
+leads you cannot source. This is research, not advice, no "buy"/"sell" language.
 
 When you are done, reply with ONLY a JSON object, no prose before or after, in exactly this shape:
 {"items":[{"ticker":"NVDA","title":"...","eventDate":"YYYY-MM-DD","reasoning":"...","bullCase":"...","risk":"...",
-"sources":[{"label":"Reuters, YYYY-MM-DD","url":"https://..."}]}]}`;
+"sources":[{"label":"Reuters, YYYY-MM-DD","url":"https://..."}]}]}
+
+Never use em dashes or en dashes (— or –) anywhere in your output. Use a comma, colon, semicolon, full stop, or parentheses instead. A hyphen inside a compound word is fine.`;
 
 const PROMPTS: Record<"legislation" | "geopolitics", string> = {
   legislation: `${COMMON_RULES}
 
 Category: LEGISLATION AND REGULATION. Look for: bills advancing in Congress (committee markups, floor votes, signed
 laws), federal agency rules and enforcement actions (FDA approvals or rejections, FTC/DOJ antitrust, FCC, EPA, SEC,
-Treasury/OFAC, USTR tariffs), executive orders, and major state laws — each tied to the specific companies it hits.`,
+Treasury/OFAC, USTR tariffs), executive orders, and major state laws, each tied to the specific companies it hits.`,
   geopolitics: `${COMMON_RULES}
 
 Category: GEOPOLITICS AND MACRO EVENTS. Look for: sanctions and export controls, trade negotiations and tariffs,
 conflicts and ceasefires affecting supply chains or commodity prices, elections with policy consequences, central bank
-decisions, OPEC output changes, and major international deals — each tied to the specific companies most exposed.`,
+decisions, OPEC output changes, and major international deals, each tied to the specific companies most exposed.`,
 };
 
 type RawItem = {

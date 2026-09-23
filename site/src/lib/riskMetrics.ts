@@ -9,7 +9,7 @@ export type RiskMetrics = {
   annualizedVolatility: number;
   maxDrawdown: number;
   beta: number;
-  periodDays: number; // sample size — shown in the UI as a noise caveat
+  periodDays: number; // sample size, shown in the UI as a noise caveat
 };
 
 export function computeRiskMetrics(equityHistory: EquityPoint[], spyBars: DailyBar[]): RiskMetrics {

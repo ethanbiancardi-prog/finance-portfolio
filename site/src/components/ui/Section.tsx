@@ -59,7 +59,7 @@ export function Section({
               {heldLoader ? (
                 <GeometricLoader loading={busy} size={13} className="text-zinc-500" />
               ) : (
-                summary ?? <span className="text-zinc-500">—</span>
+                summary ?? <span className="text-zinc-500">n/a</span>
               )}
             </span>
           )}

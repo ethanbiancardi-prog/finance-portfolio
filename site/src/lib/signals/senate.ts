@@ -140,7 +140,7 @@ export async function fetchSenateTrades(since: string): Promise<SenateResult> {
 
   for (const r of reports) {
     if (!r.href.includes("/ptr/")) {
-      stats.paper++; // /search/view/paper/... — scanned, no table
+      stats.paper++; // /search/view/paper/..., scanned, no table
       continue;
     }
     stats.electronic++;

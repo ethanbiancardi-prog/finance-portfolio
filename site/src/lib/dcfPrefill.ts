@@ -72,19 +72,19 @@ export function computeDcfPrefill(facts: any): DcfPrefill | null {
       label: "Revenue growth",
       value: pct(cagr),
       how: `3-year compound growth: (${fmtM(rev0)} ÷ ${fmtM(rev3)})^(1/3) − 1, from FY ending ${yearEnds[3]} to ${end}.`,
-      note: "This is history, not a forecast. A DCF projects it forward five years — ask whether the company can keep this up, and fade it if not.",
+      note: "This is history, not a forecast. A DCF projects it forward five years, ask whether the company can keep this up, and fade it if not.",
     });
   } else if (rev1 != null && rev1 > 0) {
     const g = rev0 / rev1 - 1;
     form.growthRate = (g * 100).toFixed(1);
-    sources.push({ field: "growthRate", label: "Revenue growth", value: pct(g), how: `Last year's growth: ${fmtM(rev0)} ÷ ${fmtM(rev1)} − 1.`, note: "Only one prior year on file, so this is a single year's growth — noisier than a multi-year average." });
+    sources.push({ field: "growthRate", label: "Revenue growth", value: pct(g), how: `Last year's growth: ${fmtM(rev0)} ÷ ${fmtM(rev1)} − 1.`, note: "Only one prior year on file, so this is a single year's growth, noisier than a multi-year average." });
   } else missing.push("growthRate");
 
   // --- EBIT margin ---
   const ebit = atEnd(series("OperatingIncomeLoss"));
   if (ebit != null) {
     form.ebitMargin = ((ebit / rev0) * 100).toFixed(1);
-    sources.push({ field: "ebitMargin", label: "EBIT margin", value: pct(ebit / rev0), how: `Operating income ${fmtM(ebit)} ÷ revenue ${fmtM(rev0)}. EBIT is profit before interest and tax — what the business earns before financing and the taxman.` });
+    sources.push({ field: "ebitMargin", label: "EBIT margin", value: pct(ebit / rev0), how: `Operating income ${fmtM(ebit)} ÷ revenue ${fmtM(rev0)}. EBIT is profit before interest and tax, what the business earns before financing and the taxman.` });
   } else missing.push("ebitMargin");
 
   // --- Tax rate ---
@@ -104,7 +104,7 @@ export function computeDcfPrefill(facts: any): DcfPrefill | null {
       label: "Tax rate",
       value: pct(rate),
       how: `Effective rate: income tax ${fmtM(tax)} ÷ pre-tax income ${fmtM(pretax)}.`,
-      note: raw !== rate ? `The raw figure was ${pct(raw)}, clamped to a sensible range — one-off items distort a single year's effective rate.` : undefined,
+      note: raw !== rate ? `The raw figure was ${pct(raw)}, clamped to a sensible range, one-off items distort a single year's effective rate.` : undefined,
     });
   } else missing.push("taxRate");
 
@@ -136,7 +136,7 @@ export function computeDcfPrefill(facts: any): DcfPrefill | null {
       how: `${capexHit[1]} ${fmtM(capex)} ÷ revenue, from the cash flow statement. Real cash out the door, so the DCF subtracts it.`,
       note:
         capex / rev0 > 0.3
-          ? "Unusually high for one year — this probably includes a big acquisition or build-out. A DCF assumes it every year, so consider a more typical figure."
+          ? "Unusually high for one year, this probably includes a big acquisition or build-out. A DCF assumes it every year, so consider a more typical figure."
           : undefined,
     });
   } else missing.push("capexPct");
@@ -202,7 +202,7 @@ export function computeDcfPrefill(facts: any): DcfPrefill | null {
       label: "Net debt",
       value: fmtM(netDebt),
       how: `Total debt ${fmtM(debtAll)} − cash & investments ${fmtM(cash)}. Enterprise value belongs to lenders and shareholders together; subtracting net debt leaves the shareholders' part.`,
-      note: netDebt < 0 ? "Negative means net cash — more cash than debt, which gets added to equity value." : undefined,
+      note: netDebt < 0 ? "Negative means net cash, more cash than debt, which gets added to equity value." : undefined,
     });
   } else missing.push("netDebt");
 

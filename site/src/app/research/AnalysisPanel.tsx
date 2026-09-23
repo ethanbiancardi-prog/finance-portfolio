@@ -59,13 +59,13 @@ export function AnalysisPanel({ ticker }: { ticker: string }) {
     ? <><span className="text-zinc-500">Key disagreement: </span><JargonText text={analysis.key_disagreement.split(/(?<=\.)\s/)[0]} /></>
     : loading
       ? undefined
-      : "Six analysts argue it out — open and run to see where they disagree";
+      : "Six analysts argue it out, open and run to see where they disagree";
 
   return (
     <Section id="analysts" label="Six AI analysts" status={loading ? "loading" : analysis ? "ready" : "idle"} summary={summary}>
       <p className="text-[11px] leading-5 text-zinc-500">
         Six takes on the ticker, each grounded in the latest filing, current price, and headlines, then the sharpest disagreement between them.
-        AI-generated — a starting point for your own thesis, not a recommendation.
+        AI-generated, a starting point for your own thesis, not a recommendation.
       </p>
       <div className="mt-3 flex items-center gap-3">
         <Button onClick={run} loading={loading} loadingLabel="Analyzing...">

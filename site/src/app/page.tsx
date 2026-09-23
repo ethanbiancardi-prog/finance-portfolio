@@ -16,7 +16,7 @@ type Project = {
 const projects: Project[] = [
   {
     name: "Paper Trading",
-    blurb: "Real Alpaca account — trade journal, Sharpe, drawdown, beta.",
+    blurb: "Real Alpaca account, trade journal, Sharpe, drawdown, beta.",
     href: "/paper-trading",
     status: "Live",
   },
@@ -109,7 +109,7 @@ export default async function Home() {
             </h1>
             <p className="mt-5 max-w-md text-[13px] leading-6 text-zinc-500 dark:text-zinc-400">
               Eleven of them, on live market data, SEC filings and a funded paper
-              account. Not screenshots of projects — things you can open and use.
+              account. Not screenshots of projects. Things you can open and use.
             </p>
           </div>
 
@@ -156,7 +156,7 @@ export default async function Home() {
               </svg>
 
               <p className="mt-3 border-t border-border pt-2.5 text-[10px] leading-4 text-zinc-500">
-                Three months, straight from the account. Paper money — the
+                Three months, straight from the account. Paper money: the
                 strategy is real, the dollars are not.
               </p>
             </div>

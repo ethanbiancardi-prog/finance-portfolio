@@ -110,7 +110,7 @@ export default function Nav() {
         ))}
         <ThemeSwitcher />
       </div>
-      {/* Status line — desktop only; on a phone the nav should be one row. */}
+      {/* Status line, desktop only; on a phone the nav should be one row. */}
       <div className="hidden border-t border-border/60 bg-panel sm:block">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 py-1 text-[10px] caps text-zinc-500 sm:px-6">
           <span className="truncate">

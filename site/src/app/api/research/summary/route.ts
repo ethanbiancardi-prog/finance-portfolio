@@ -22,12 +22,14 @@ the numbers.
 You will be given the "Business" section of the company's latest annual report (10-K). Using only
 that text:
 - Write a 3-4 sentence summary: what the company sells or does, who its customers are, and how it
-  makes money. Write like a knowledgeable friend, not a press release — no marketing adjectives, no
+  makes money. Write like a knowledgeable friend, not a press release, no marketing adjectives, no
   "leading provider of innovative solutions".
 - List the company's main products, services, or reportable segments (2-5 items, each a few words).
   If the filing names reportable segments, use those.
-If the text is too thin or garbled to answer confidently, say what you can and keep it short —
-never invent products or customers that aren't in the text.`;
+If the text is too thin or garbled to answer confidently, say what you can and keep it short, and
+never invent products or customers that aren't in the text.
+
+Never use em dashes or en dashes (— or –) anywhere in your output. Use a comma, colon, semicolon, full stop, or parentheses instead. A hyphen inside a compound word is fine.`;
 
 const RESPONSE_SCHEMA = {
   type: "object",

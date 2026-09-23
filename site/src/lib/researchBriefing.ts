@@ -51,7 +51,7 @@ function quoteBlock(quote: Quote | null, shares: number | null, netIncome: numbe
 
 function newsBlock(items: NewsItem[] | null) {
   if (!items || items.length === 0) return "Recent headlines: not available.";
-  const lines = items.map((n) => `- [${n.publishedAt.slice(0, 10)}] ${n.headline}${n.summary ? ` — ${n.summary.slice(0, 200)}` : ""}`);
+  const lines = items.map((n) => `- [${n.publishedAt.slice(0, 10)}] ${n.headline}${n.summary ? `, ${n.summary.slice(0, 200)}` : ""}`);
   return `Recent headlines (newest first):\n${lines.join("\n")}`;
 }
 
@@ -77,7 +77,7 @@ export async function buildBriefing(ticker: string, headlineCount = 10): Promise
   const dashboard = facts?.dashboard ?? null;
 
   const text = [
-    `Ticker: ${ticker}${facts ? ` — ${facts.company.title}` : ""}`,
+    `Ticker: ${ticker}${facts ? `, ${facts.company.title}` : ""}`,
     `Today's date: ${new Date().toISOString().slice(0, 10)}`,
     quoteBlock(quote, facts?.shares ?? null, dashboard?.netIncome ?? null),
     fundamentalsBlock(dashboard),

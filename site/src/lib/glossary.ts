@@ -40,7 +40,7 @@ export const GLOSSARY = {
   pnl: {
     term: "P&L",
     definition:
-      "Profit and loss on an open position: current value minus what you paid. Unrealized until you sell — it can still change.",
+      "Profit and loss on an open position: current value minus what you paid. Unrealized until you sell, it can still change.",
   },
   avgEntry: {
     term: "Average entry",

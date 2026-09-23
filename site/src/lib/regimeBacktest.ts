@@ -35,7 +35,7 @@ export const REGIMES: Regime[] = [
     short: "2008 GFC",
     start: "2007-10-08",
     riskFree: 0.02,
-    summary: "A slow grind lower, a credit-market crash, then a V-shaped recovery once the Fed and Treasury stepped in. The market spent months below its long-term average before the worst of it, which is the setup a trend rule is built for — the cost is re-entering late in the recovery.",
+    summary: "A slow grind lower, a credit-market crash, then a V-shaped recovery once the Fed and Treasury stepped in. The market spent months below its long-term average before the worst of it, which is the setup a trend rule is built for; the cost is re-entering late in the recovery.",
     phases: [
       { weeks: 34, drift: -0.006, vol: 0.028 }, // Oct 07 – Jun 08: grinding down, Bear Stearns
       { weeks: 14, drift: -0.030, vol: 0.055 }, // Sep – Dec 08: Lehman, panic
@@ -49,7 +49,7 @@ export const REGIMES: Regime[] = [
     short: "2020 Covid",
     start: "2019-11-04",
     riskFree: 0.005,
-    summary: "The fastest 30% drop in history — five weeks — and one of the fastest recoveries. A slow trend rule sells partway into the crash and buys back only once the rebound has crossed the average, so most of the edge comes from the leveraged months after re-entry.",
+    summary: "The fastest 30% drop in history (five weeks) and one of the fastest recoveries. A slow trend rule sells partway into the crash and buys back only once the rebound has crossed the average, so most of the edge comes from the leveraged months after re-entry.",
     phases: [
       { weeks: 15, drift: 0.004, vol: 0.014 }, // Nov 19 – Feb 20: calm melt-up
       { weeks: 5, drift: -0.070, vol: 0.070 }, // late Feb – Mar 23: crash
@@ -63,7 +63,7 @@ export const REGIMES: Regime[] = [
     short: "2022 Bear",
     start: "2022-01-03",
     riskFree: 0.02,
-    summary: "No crash, just a year of lower highs and lower lows as the Fed hiked, with three sharp bear-market rallies. Rallies that fail are the trend rule's weak spot: it sells near a low, buys back into a bounce, then sells again — small losses that add up.",
+    summary: "No crash, just a year of lower highs and lower lows as the Fed hiked, with three sharp bear-market rallies. Rallies that fail are the trend rule's weak spot: it sells near a low, buys back into a bounce, then sells again, small losses that add up.",
     phases: [
       { weeks: 10, drift: -0.012, vol: 0.028 }, // Jan – Mar: first leg down
       { weeks: 4, drift: 0.020, vol: 0.020 }, // late Mar rally
@@ -79,7 +79,7 @@ export const REGIMES: Regime[] = [
     short: "Bull run",
     start: "2023-01-02",
     riskFree: 0.045,
-    summary: "Steady uptrend with shallow dips that never break the long-term average. The trend rule stays fully invested and leverage compounds — the environment this strategy was designed for, and the one where it looks best.",
+    summary: "Steady uptrend with shallow dips that never break the long-term average. The trend rule stays fully invested and leverage compounds, the environment this strategy was designed for, and the one where it looks best.",
     phases: [
       { weeks: 30, drift: 0.006, vol: 0.018 },
       { weeks: 12, drift: -0.004, vol: 0.020 }, // an autumn correction

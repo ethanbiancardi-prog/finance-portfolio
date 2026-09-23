@@ -153,7 +153,7 @@ export default function MonteCarlo() {
             Assumed {formatPercent(result.assumptions.annualReturn)} annual return and{" "}
             {formatPercent(result.assumptions.annualVolatility)} annual volatility, blended from
             ~5 years of real SPY/AGG history at your chosen allocation. Each simulated year draws
-            a random return from a normal distribution around these numbers — real returns have
+            a random return from a normal distribution around these numbers, real returns have
             fatter tails than normal predicts, so this likely understates how bad a truly bad
             stretch could be.
           </Callout>

@@ -150,9 +150,9 @@ export function FilingSources({ filing, wacc, terminalGrowth }: { filing: Loaded
             <span className="ml-2 tabular-nums text-accent">{wacc}%</span>
           </dt>
           <dd className="text-[11px] leading-5 text-zinc-500">
-            Not in the filing — this is your assumption (left as it was). The weighted average cost of capital is the return investors demand
+            Not in the filing; this is your assumption (left as it was). The weighted average cost of capital is the return investors demand
             for the company&apos;s risk: roughly 7-9% for a steady large-cap, 10-12% for something riskier. Nudge it and watch the sensitivity
-            table — it&apos;s usually the input the valuation is most sensitive to.
+            table; it&apos;s usually the input the valuation is most sensitive to.
           </dd>
         </div>
         <div className="grid grid-cols-1 gap-x-4 gap-y-1 py-2.5 sm:grid-cols-[11rem_1fr]">
@@ -161,14 +161,14 @@ export function FilingSources({ filing, wacc, terminalGrowth }: { filing: Loaded
             <span className="ml-2 tabular-nums text-accent">{terminalGrowth}%</span>
           </dt>
           <dd className="text-[11px] leading-5 text-zinc-500">
-            Also your assumption. The growth rate assumed forever after year 5 — it can&apos;t sensibly exceed long-run GDP growth (2-3%),
+            Also your assumption. The growth rate assumed forever after year 5; it can&apos;t sensibly exceed long-run GDP growth (2-3%),
             because a company growing faster than the economy forever would eventually be the economy.
           </dd>
         </div>
       </dl>
       {filing.missing.length > 0 && (
         <Callout className="mt-3" label="not found in this filing">
-          {filing.missing.map((m) => MISSING_LABEL[m] ?? m).join(", ")} — kept the value already in the form. Some filers tag these lines
+          {filing.missing.map((m) => MISSING_LABEL[m] ?? m).join(", ")}, kept the value already in the form. Some filers tag these lines
           differently or not at all.
         </Callout>
       )}

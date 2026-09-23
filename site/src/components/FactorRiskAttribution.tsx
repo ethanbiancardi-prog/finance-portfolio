@@ -60,7 +60,7 @@ export function FactorRiskAttribution() {
           ))}
         </div>
         <p className="mt-2 text-[10px] leading-4 text-zinc-500">
-          Moving one slider rescales the other two so the book stays fully invested. Loadings per asset class are stylised long-run figures — see the
+          Moving one slider rescales the other two so the book stays fully invested. Loadings per asset class are stylised long-run figures, see the
           <Term term="factorRegression" className="ml-1">
             factor model
           </Term>

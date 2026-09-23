@@ -6,14 +6,14 @@ export default function QuantNotes() {
     <PageShell
       eyebrow="notes"
       title="Quant Notes"
-      description="Plain-language notes on the quantitative concepts behind the tools on this site — what each formula means, why it's used this way, and where to see it running on real data."
+      description="Plain-language notes on the quantitative concepts behind the tools on this site, what each formula means, why it's used this way, and where to see it running on real data."
     >
       <section className="mt-4 space-y-2">
         {NOTES.map((note) => {
           const hasDetail = Boolean(note.detail);
           return (
             <Card key={note.slug} href={hasDetail ? `/quant-notes/${note.slug}` : note.href} interactive>
-              {/* Note titles are entry titles, not section labels — they take
+              {/* Note titles are entry titles, not section labels; they take
                   the display serif, like the index on the homepage. */}
               <h3 className="display text-[18px] text-foreground">{note.title}</h3>
               <p className="mt-2 max-w-2xl text-xs leading-5 text-zinc-400">{note.body}</p>

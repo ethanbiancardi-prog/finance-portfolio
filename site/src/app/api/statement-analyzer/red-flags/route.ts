@@ -22,14 +22,16 @@ const anthropic = new Anthropic();
 const SYSTEM_PROMPT = `You are a skeptical equity research analyst scanning a 10-K filing for red flags.
 
 You will be given:
-1. Three pre-computed numeric signals, each already determined to be true or false. For every one that is true, write a one-sentence "why" using only the numbers provided — do not invent figures.
+1. Three pre-computed numeric signals, each already determined to be true or false. For every one that is true, write a one-sentence "why" using only the numbers provided, do not invent figures.
 2. Text snippets pulled from the filing around mentions of "non-GAAP"/"adjusted" figures, and around mentions of "going concern".
 
 For the non-GAAP snippets: only flag it if the snippets suggest management leans on adjusted figures to paper over weak GAAP results (e.g. large addbacks, adjusted figures presented more prominently than GAAP, a pattern of adjusting away recurring costs). Routine, isolated non-GAAP reporting is normal and should not be flagged.
 
 For the going-concern snippets: only flag it if the language expresses genuine doubt about the company continuing to operate (e.g. "substantial doubt", "may not continue as a going concern"). Standard audit-report boilerplate that merely explains what a going-concern opinion would cover, without expressing doubt, is NOT a flag.
 
-Only include patterns that are genuinely triggered. If nothing qualifies, return an empty list. Do not pad the list to seem thorough.`;
+Only include patterns that are genuinely triggered. If nothing qualifies, return an empty list. Do not pad the list to seem thorough.
+
+Never use em dashes or en dashes (— or –) anywhere in your output. Use a comma, colon, semicolon, full stop, or parentheses instead. A hyphen inside a compound word is fine.`;
 
 const RESPONSE_SCHEMA = {
   type: "object",
@@ -90,7 +92,7 @@ export async function POST(request: Request) {
 
   const userPrompt = `Ticker: ${ticker.toUpperCase()}
 
-Numeric signals (already computed correctly — do not recompute, just explain the ones that are true):
+Numeric signals (already computed correctly, do not recompute, just explain the ones that are true):
 1. Revenue up but operating cash flow down: ${numbers.revenueUpOcfDown} (revenue growth ${fmtPct(numbers.revenueGrowth)}, operating cash flow growth ${fmtPct(numbers.ocfGrowth)})
 2. Rising debt with falling interest coverage: ${numbers.debtRisingCoverageFalling} (total liabilities growth ${fmtPct(numbers.liabilitiesGrowth)}, interest coverage ${fmtX(numbers.interestCoveragePrior)} -> ${fmtX(numbers.interestCoverageNow)})
 3. Inventory growing faster than revenue: ${numbers.inventoryOutpacingRevenue} (inventory growth ${fmtPct(numbers.inventoryGrowth)}, revenue growth ${fmtPct(numbers.revenueGrowth)})
