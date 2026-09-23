@@ -94,8 +94,13 @@ export default async function Home() {
       <main className="page-enter mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
         {/* Masthead ------------------------------------------------------ */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[10px] caps-wide text-zinc-500">
-          <span className="text-accent">Ethan Biancardi</span>
-          <span>Finance × AI · Bentley ’29</span>
+          <span>
+            <span className="text-accent">PRISM</span>
+            <span className="ml-2 hidden text-zinc-600 sm:inline">
+              Portfolio Research in Systematic Markets
+            </span>
+          </span>
+          <span>Ethan Biancardi · Finance × AI · Bentley ’29</span>
         </div>
         <div className="mt-2.5 h-px w-full bg-foreground/80" />
 

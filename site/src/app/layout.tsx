@@ -41,7 +41,7 @@ const ebGaramond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Ethan Biancardi, Finance x AI",
+  title: "Ethan Biancardi · Finance × AI",
   description:
     "Finance x AI portfolio: working finance tools built with modern AI.",
 };
