@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { Card } from "./Card";
-import { GeometricLoader } from "./GeometricLoader";
+import { GeometricLoader, useLoaderHold } from "./GeometricLoader";
 
 // A page can broadcast "open everything" / "close everything" to the
 // sections inside it without threading a prop through each panel.
@@ -31,6 +31,10 @@ export function Section({
   children: ReactNode;
 }) {
   const force = useContext(SectionForce);
+  // The summary replaces the loader the moment the data lands, so hold the
+  // mark on screen long enough for it to reassemble first.
+  const busy = status === "loading" && !summary;
+  const heldLoader = useLoaderHold(busy);
   const [open, setOpen] = useState(defaultOpen);
   const [seenSeq, setSeenSeq] = useState(force?.seq ?? 0);
   if (force && force.seq !== seenSeq) {
@@ -52,8 +56,8 @@ export function Section({
           <span className="section-title block text-[11px] caps-wide text-accent">{label}</span>
           {!(hideSummaryWhenOpen && isOpen) && (
             <span className="mt-1 block text-xs leading-5 text-foreground">
-              {status === "loading" && !summary ? (
-                <GeometricLoader size={13} className="text-zinc-500" />
+              {heldLoader ? (
+                <GeometricLoader loading={busy} size={13} className="text-zinc-500" />
               ) : (
                 summary ?? <span className="text-zinc-500">—</span>
               )}

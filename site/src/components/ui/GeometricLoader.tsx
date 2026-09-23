@@ -37,6 +37,35 @@ const FACETS = VERTICES.map(
 
 const RESOLVE_MS = 600;
 
+/**
+ * Keeps a loader on screen for the length of the reconstruct after the work
+ * has finished. Without it, a call site that swaps the loader for its content
+ * the instant `loading` goes false unmounts the mark mid-reassembly.
+ *
+ *   const held = useLoaderHold(busy);
+ *   return held ? <GeometricLoader loading={busy} /> : <TheContent />;
+ *
+ * The flip to held is derived during render so it lands in the same commit as
+ * the prop change; only the release is timed.
+ */
+export function useLoaderHold(loading: boolean): boolean {
+  const [held, setHeld] = useState(loading);
+  const [prevLoading, setPrevLoading] = useState(loading);
+
+  if (loading !== prevLoading) {
+    setPrevLoading(loading);
+    if (loading) setHeld(true);
+  }
+
+  useEffect(() => {
+    if (loading || !held) return;
+    const timer = setTimeout(() => setHeld(false), RESOLVE_MS);
+    return () => clearTimeout(timer);
+  }, [loading, held]);
+
+  return held;
+}
+
 export function GeometricLoader({
   size = 16,
   label,

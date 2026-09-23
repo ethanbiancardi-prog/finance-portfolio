@@ -1,5 +1,7 @@
+"use client";
+
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { GeometricLoader } from "./GeometricLoader";
+import { GeometricLoader, useLoaderHold } from "./GeometricLoader";
 
 type ButtonProps = {
   variant?: "solid" | "outline";
@@ -21,6 +23,10 @@ export function Button({
   className,
   ...rest
 }: ButtonProps) {
+  // Holds the mark through its reconstruct, so the label comes back once the
+  // shape has reassembled rather than cutting it off mid-fold.
+  const held = useLoaderHold(loading);
+
   const variantClass =
     variant === "solid"
       ? "bg-accent text-background hover:bg-accent/85"
@@ -34,7 +40,7 @@ export function Button({
       disabled={disabled || loading}
       {...rest}
     >
-      {loading ? <GeometricLoader size={13} label={loadingLabel} /> : children}
+      {held ? <GeometricLoader loading={loading} size={13} label={loadingLabel} /> : children}
     </button>
   );
 }

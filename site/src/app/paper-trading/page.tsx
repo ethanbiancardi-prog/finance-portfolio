@@ -9,6 +9,7 @@ import {
   Card,
   ChartLoading,
   GeometricLoader,
+  useLoaderHold,
   Field,
   PageLoading,
   PageShell,
@@ -104,6 +105,9 @@ function PaperTradingPage() {
   const [journal, setJournal] = useState<JournalEntry[]>([]);
   const [riskMetrics, setRiskMetrics] = useState<RiskMetrics | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  // Hold the mark on screen while it reassembles, before the timestamp
+  // replaces it.
+  const heldLoader = useLoaderHold(!updatedAt);
   const [refreshing, setRefreshing] = useState(false);
   const [symbol, setSymbol] = useState("");
   const [qty, setQty] = useState("");
@@ -232,10 +236,10 @@ function PaperTradingPage() {
     >
       <div className="mt-3 flex items-center gap-3 text-[10px] caps text-zinc-500">
         <span>
-          {updatedAt ? (
-            `Updated ${updatedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+          {heldLoader ? (
+            <GeometricLoader loading={!updatedAt} size={11} label="Loading" />
           ) : (
-            <GeometricLoader size={11} label="Loading" />
+            `Updated ${updatedAt?.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
           )}
         </span>
         <span>Refreshes every minute</span>

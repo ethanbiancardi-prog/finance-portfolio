@@ -1,6 +1,6 @@
 export { PageShell } from "./PageShell";
 export { PageLoading } from "./PageLoading";
-export { GeometricLoader, ChartLoading } from "./GeometricLoader";
+export { GeometricLoader, ChartLoading, useLoaderHold } from "./GeometricLoader";
 export { SectionHeader } from "./SectionHeader";
 export { Card } from "./Card";
 export { Callout } from "./Callout";

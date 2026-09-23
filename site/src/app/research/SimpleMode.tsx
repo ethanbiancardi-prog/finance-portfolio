@@ -7,7 +7,7 @@
 //      everyday analogy, on demand, via /api/research/simplify (cached).
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { JARGON, splitJargon, type JargonKey } from "@/lib/jargon";
-import { GeometricLoader } from "@/components/ui";
+import { GeometricLoader, useLoaderHold } from "@/components/ui";
 
 const SimpleContext = createContext(false);
 export const SimpleProvider = SimpleContext.Provider;
@@ -101,6 +101,8 @@ export function SimpleText({ text, context, className }: { text: string; context
   const simple = useSimple();
   const [state, setState] = useState<"original" | "loading" | "simple" | "error">("original");
   const [result, setResult] = useState<Simplified | null>(cache.get(text) ?? null);
+  // Holds the mark on screen while it reassembles, after the rewrite lands.
+  const heldLoader = useLoaderHold(state === "loading");
 
   async function simplify() {
     const cached = cache.get(text);
@@ -150,8 +152,13 @@ export function SimpleText({ text, context, className }: { text: string; context
               Say it simply
             </button>
           )}
-          {state === "loading" && (
-            <GeometricLoader size={12} label="Rewriting" className="text-zinc-500" />
+          {heldLoader && (
+            <GeometricLoader
+              loading={state === "loading"}
+              size={12}
+              label="Rewriting"
+              className="text-zinc-500"
+            />
           )}
           {state === "error" && (
             <button type="button" onClick={simplify} className="text-bad hover:underline">
