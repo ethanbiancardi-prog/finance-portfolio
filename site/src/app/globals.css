@@ -314,41 +314,91 @@ body {
   animation: grid-in 600ms ease-out both;
 }
 
-/* Nested shapes, counter-rotating. transform-box: fill-box makes the SVG
-   element rotate about its own centre rather than the viewport origin. */
-@keyframes geo-cw {
-  to {
-    transform: rotate(360deg);
-  }
+/* A hexagon cut into six triangular facets around its centre. While work is
+   in flight each facet folds inward and back out, staggered, so the fold
+   travels around the ring. When the work finishes the facets snap back into
+   a whole hexagon with a slight overshoot and an outline draws around them —
+   the shape reconstructing itself is the "done" signal.
+
+   transform-box: view-box resolves transform-origin against the SVG's
+   viewBox, so 50% 50% is the hexagon's centre (12,12) for every facet,
+   rather than each facet's own bounding box. */
+.geo-facet {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
 }
-@keyframes geo-ccw {
-  to {
-    transform: rotate(-360deg);
-  }
-}
-@keyframes geo-breathe {
+
+@keyframes facet-fold {
   0%,
-  100% {
-    transform: scale(0.75);
-    opacity: 0.55;
+  10% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.85;
   }
-  50% {
-    transform: scale(1.15);
+  40% {
+    transform: scale(0.16) rotate(75deg);
+    opacity: 0.2;
+  }
+  70%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.85;
+  }
+}
+.geo-folding .geo-facet {
+  animation: facet-fold 2.2s ease-in-out infinite;
+}
+
+@keyframes facet-assemble {
+  0% {
+    transform: scale(0.16) rotate(75deg);
+    opacity: 0.2;
+  }
+  55% {
+    transform: scale(1.14) rotate(-8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
     opacity: 1;
   }
 }
-.geo-shape {
-  transform-box: fill-box;
-  transform-origin: center;
+.geo-resolving .geo-facet {
+  animation: facet-assemble 380ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
-.geo-outer {
-  animation: geo-ccw 4.5s linear infinite;
+
+/* The outline drawing itself around the reassembled shape. pathLength="1"
+   again, so the dash runs in fractions of the perimeter. */
+@keyframes geo-ring {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
 }
-.geo-inner {
-  animation: geo-cw 2.4s linear infinite;
+.geo-ring {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
 }
-.geo-core {
-  animation: geo-breathe 1.8s ease-in-out infinite;
+.geo-resolving .geo-ring {
+  animation: geo-ring 420ms ease-out 120ms both;
+}
+
+/* Once reassembled, the whole mark lifts away. */
+@keyframes geo-out {
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+.geo-resolving {
+  animation: geo-out 200ms ease-in 400ms both;
 }
 
 /* Page content fades up on navigation so route changes feel continuous
@@ -370,10 +420,16 @@ body {
   .page-enter,
   .curve-sweep,
   .grid-in,
-  .geo-outer,
-  .geo-inner,
-  .geo-core {
+  .geo-folding .geo-facet,
+  .geo-resolving,
+  .geo-resolving .geo-facet,
+  .geo-resolving .geo-ring {
     animation: none;
+  }
+  /* Without the fold, the facets must still be visible and whole. */
+  .geo-resolving .geo-ring {
+    stroke-dashoffset: 0;
+    opacity: 1;
   }
   /* The curve still needs to be visible, just not drawn — hold it complete
      instead of leaving a dash offset that would hide it entirely. */

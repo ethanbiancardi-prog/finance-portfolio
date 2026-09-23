@@ -148,11 +148,11 @@ export default function SectorRotation() {
       title="Momentum + Leverage"
       description="An aggressive, rule-based book. 60% of equity goes to the 10 strongest stocks by risk-adjusted momentum across eight sectors (max 3 per sector); 30% to 3x leveraged index ETFs (TQQQ, SOXL); 10% stays in cash. Circuit breaker: if SPY is below its 200-day average, the leveraged sleeve goes to cash and momentum shrinks to 5 names. Rebalanced monthly by a scheduled job on the Alpaca paper account — never on margin."
     >
-      {loading && (
-        <p className="mt-4 text-xs text-zinc-500">
-          <GeometricLoader size={13} label="Recomputing this month’s picks" />
-        </p>
-      )}
+      {/* Stays mounted after loading ends so the mark can reassemble; the
+          loader removes itself once the reconstruct finishes. */}
+      <div className="mt-4 text-xs text-zinc-500 empty:mt-0">
+        <GeometricLoader loading={loading} size={13} label="Recomputing this month’s picks" />
+      </div>
       {error && <p className="mt-4 text-xs text-bad">{error}</p>}
 
       {status && (

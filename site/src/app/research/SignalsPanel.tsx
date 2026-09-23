@@ -206,11 +206,15 @@ export function SignalsPanel({
       <SectionForce.Provider value={force}>
       {(active.key === "legislation" || active.key === "geopolitics" || active.key === "financial") && (
         <>
-          {ai[active.key] === undefined && !error && (
-            <p className="mt-4 text-xs text-zinc-500">
-              <GeometricLoader size={13} label="Loading signals" />
-            </p>
-          )}
+          {/* Kept mounted once loading ends so the mark can reassemble; it
+              removes itself when the reconstruct finishes. */}
+          <div className="mt-4 text-xs text-zinc-500 empty:mt-0">
+            <GeometricLoader
+              loading={ai[active.key] === undefined && !error}
+              size={13}
+              label="Loading signals"
+            />
+          </div>
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
           {ai[active.key] === null && <p className="mt-4 text-xs text-zinc-500">No {active.label.toLowerCase()} signals have been generated yet — the daily refresh hasn&apos;t run.</p>}
           {ai[active.key] && <AiSignals batch={ai[active.key]!} label={active.label} onResearch={onResearch} />}
@@ -219,11 +223,13 @@ export function SignalsPanel({
 
       {active.key === "political" && (
         <>
-          {political === undefined && !error && (
-            <p className="mt-4 text-xs text-zinc-500">
-              <GeometricLoader size={13} label="Loading signals" />
-            </p>
-          )}
+          <div className="mt-4 text-xs text-zinc-500 empty:mt-0">
+            <GeometricLoader
+              loading={political === undefined && !error}
+              size={13}
+              label="Loading signals"
+            />
+          </div>
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
           {presidential && <PresidentialSection batch={presidential} onResearch={onResearch} />}
           {presidential === null && <p className="mt-4 text-xs text-zinc-500">Presidential trades haven&apos;t been generated yet — the daily refresh hasn&apos;t run.</p>}
