@@ -94,7 +94,21 @@
    is a variable here; components use .caps / .section-title / .page-title
    and rounded-[var(--radius)] instead of hard-coding the terminal styling.
    --------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------
+   Display face — the serif used for the homepage masthead and project names.
+   Both faces are loaded in layout.tsx; switch the whole site's display type
+   by changing this ONE line to var(--font-fraunces).
+     Newsreader — quieter, more like a printed research note
+     Fraunces   — more character, a bit more magazine
+   --------------------------------------------------------------------------- */
+.display {
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: -0.015em;
+}
+
 :root {
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --font-ui: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-num: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --caps-transform: uppercase;
@@ -158,12 +172,24 @@ body {
   font-family: var(--font-num);
 }
 
-/* Page title and section headers get real hierarchy in the modern style. */
-:root[data-style="modern"] .page-title {
-  font-size: 26px;
-  font-weight: 650;
+/* Every page's <h1> (PageShell) carries the display serif, in BOTH visual
+   styles — a serif headline over monospace labels is the site's voice now,
+   and it's what the homepage establishes. The two styles still differ
+   everywhere else: label casing, tracking, radius, panel treatment.
+   These rules sit outside @layer, so they beat the Tailwind size/weight
+   utilities on the element and cancel the terminal style's uppercase. */
+.page-title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 300;
   letter-spacing: -0.02em;
-  line-height: 1.15;
+  line-height: 1.1;
+  text-transform: none;
+}
+@media (min-width: 640px) {
+  .page-title {
+    font-size: 36px;
+  }
 }
 /* Section labels are written lowercase in the source (the terminal style
    uppercases them); Modern title-cases them instead. */

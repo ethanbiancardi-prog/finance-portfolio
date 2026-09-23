@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono, Newsreader } from "next/font/google";
 import Nav from "@/components/Nav";
 import "./globals.css";
 
@@ -11,6 +11,23 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Two display serifs, both loaded so the look can be compared side by side.
+// Which one the site actually uses is decided by --font-display in
+// globals.css — change that one line to switch.
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -36,7 +53,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} ${fraunces.variable} h-full antialiased`}
       // The inline script below sets data-mode/data-accent on this element
       // before hydration runs, so its attributes intentionally differ from
       // what was server-rendered — the standard, documented fix for this

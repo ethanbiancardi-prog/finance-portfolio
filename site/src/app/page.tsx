@@ -1,176 +1,215 @@
-import Image from "next/image";
-import { Card, PageShell, SectionHeader } from "@/components/ui";
+import Link from "next/link";
+import { getHomeSnapshot, sparklinePoints } from "@/lib/homeSnapshot";
+import { formatCurrency } from "@/lib/format";
+
+// The homepage is deliberately not built from the shared PageShell/Card kit:
+// it's a masthead and a ruled index, not a stack of panels. Everything still
+// reads from the theme tokens, so mode and accent switching keep working.
 
 type Project = {
   name: string;
   blurb: string;
-  status: "Live" | "In progress" | "Planned" | "Passcode";
-  href?: string;
-  // Screenshot of the tool, from public/screenshots (928x464, content column only).
-  screenshot?: string;
+  href: string;
+  status: "Live" | "Passcode";
 };
 
 const projects: Project[] = [
   {
-    name: "AI Paper Trading Simulator",
-    blurb:
-      "Fake-money portfolio tracking real market prices, with a trade journal, risk metrics, and a live equity curve.",
-    status: "Live",
+    name: "Paper Trading",
+    blurb: "Real Alpaca account — trade journal, Sharpe, drawdown, beta.",
     href: "/paper-trading",
-    screenshot: "/screenshots/paper-trading.png",
+    status: "Live",
   },
   {
-    name: "Momentum + Leverage Strategy",
-    blurb:
-      "Aggressive rule-based book: the 10 strongest stocks by risk-adjusted momentum plus 3x index ETFs, with a 200-day trend circuit breaker, rebalanced monthly by a scheduled job.",
-    status: "Live",
+    name: "Momentum + Leverage",
+    blurb: "Top-10 risk-adjusted momentum, 3x ETFs, 200-day circuit breaker.",
     href: "/rotation",
-    screenshot: "/screenshots/rotation.png",
-  },
-  {
-    name: "Monte Carlo Simulator",
-    blurb:
-      "Simulates 10,000 portfolio paths from real SPY/AGG history to project a range of outcomes and your odds of hitting a savings goal.",
     status: "Live",
-    href: "/monte-carlo",
-    screenshot: "/screenshots/monte-carlo.png",
-  },
-  {
-    name: "Portfolio Optimizer",
-    blurb:
-      "Samples thousands of random portfolio weightings across your tickers to approximate the efficient frontier, with max-Sharpe and min-variance picks.",
-    status: "Live",
-    href: "/optimizer",
-    screenshot: "/screenshots/optimizer.png",
-  },
-  {
-    name: "Regime Backtester",
-    blurb:
-      "The momentum strategy's trend rule run through 2008, 2020, 2022 and a bull market: equity curve vs. benchmark, drawdowns, Sharpe, Sortino and how long you'd have been underwater.",
-    status: "Live",
-    href: "/quant/backtester",
-    screenshot: "/screenshots/backtester.png",
-  },
-  {
-    name: "Factor Risk Attribution",
-    blurb:
-      "Set a stock / bond / commodity mix and see its risk split into equity beta, interest-rate duration and inflation shock, with alpha, systemic beta and R-squared.",
-    status: "Live",
-    href: "/quant/factor-risk",
-    screenshot: "/screenshots/factor-risk.png",
-  },
-  {
-    name: "Options Volatility Smile",
-    blurb:
-      "An implied-volatility sandbox: fear and skew dials reshape the smile live, and every strike shows its vol, moneyness and Black-Scholes price.",
-    status: "Live",
-    href: "/quant/vol-smile",
-    screenshot: "/screenshots/vol-smile.png",
-  },
-  {
-    name: "Interactive DCF Builder",
-    blurb:
-      "Input revenue growth, margins, and WACC to get a live valuation with a WACC x terminal growth sensitivity table.",
-    status: "Live",
-    href: "/dcf-builder",
-    screenshot: "/screenshots/dcf-builder.png",
   },
   {
     name: "Stock Research",
-    blurb:
-      "One ticker, everything on it: 17 ratios from the latest 10-K, an AI red-flag scan, live headlines from Yahoo Finance and Benzinga, and six AI analyst takes.",
-    status: "Live",
+    blurb: "17 ratios from the latest 10-K, red-flag scan, six analyst takes.",
     href: "/research",
-    screenshot: "/screenshots/research.png",
+    status: "Live",
+  },
+  {
+    name: "Regime Backtester",
+    blurb: "The strategy through 2008, 2020, 2022 and a bull run.",
+    href: "/quant/backtester",
+    status: "Live",
+  },
+  {
+    name: "DCF Builder",
+    blurb: "Live valuation with a WACC × terminal growth sensitivity grid.",
+    href: "/dcf-builder",
+    status: "Live",
+  },
+  {
+    name: "Portfolio Optimizer",
+    blurb: "Efficient frontier with max-Sharpe and min-variance picks.",
+    href: "/optimizer",
+    status: "Live",
+  },
+  {
+    name: "Monte Carlo",
+    blurb: "10,000 paths blended from real SPY and AGG history.",
+    href: "/monte-carlo",
+    status: "Live",
+  },
+  {
+    name: "Factor Risk",
+    blurb: "Equity beta, rate duration and inflation shock in one mix.",
+    href: "/quant/factor-risk",
+    status: "Live",
+  },
+  {
+    name: "Options Vol Smile",
+    blurb: "Implied vol across strikes, with Black-Scholes price and delta.",
+    href: "/quant/vol-smile",
+    status: "Live",
   },
   {
     name: "Quant Notes",
-    blurb:
-      "Plain-language notes on the quant concepts behind these tools — momentum, Sharpe, beta, diversification, mean-variance optimization, Monte Carlo — each linking to the live page that demonstrates it.",
-    status: "Live",
+    blurb: "The math behind these tools, in plain language.",
     href: "/quant-notes",
-    screenshot: "/screenshots/quant-notes.png",
+    status: "Live",
   },
   {
     name: "Client Work",
-    blurb:
-      "Case studies from small-business sites I've built: the problem, what shipped, and the result.",
-    status: "Passcode",
+    blurb: "Small-business case studies: problem, what shipped, result.",
     href: "/client-work",
+    status: "Passcode",
   },
 ];
 
-export default function Home() {
+const SPARK_W = 208;
+const SPARK_H = 54;
+
+export default async function Home() {
+  const snapshot = await getHomeSnapshot();
+  const up = (snapshot?.changePct ?? 0) >= 0;
+
   return (
-    <PageShell
-      eyebrow="portfolio"
-      title="Ethan Biancardi"
-      subtitle="Finance x AI @ Bentley"
-      description="I build working finance tools with modern AI — not just a resume, a set of projects you can actually try."
-    >
-      <section className="mt-4">
-        <SectionHeader label="projects" />
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {projects.map((project, i) => {
-            const live = project.status === "Live";
-            const isPasscode = project.status === "Passcode";
-            const card = (
-              <>
-                {project.screenshot && (
-                  <div className="-mx-3 -mt-3 mb-3 hidden aspect-[2/1] overflow-hidden rounded-t-[var(--radius)] border-b border-border sm:block">
-                    <Image
-                      src={project.screenshot}
-                      alt={`${project.name} screenshot`}
-                      width={928}
-                      height={464}
-                      sizes="(min-width: 640px) 50vw, 100vw"
-                      className="h-full w-full object-cover object-top"
-                    />
-                  </div>
-                )}
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-[10px] tabular-nums text-zinc-600">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span
-                    className={`inline-flex shrink-0 items-center gap-1.5 text-[10px] caps ${
-                      live ? "text-good" : isPasscode ? "text-accent" : "text-zinc-600"
-                    }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 ${
-                        live ? "animate-pulse bg-good" : isPasscode ? "bg-accent" : "bg-zinc-700"
-                      }`}
-                    />
-                    {isPasscode ? "Passcode" : project.status}
-                  </span>
-                </div>
-                <h3 className="mt-2 text-sm caps-tight text-foreground">
-                  {project.name}
-                  {project.href && <span className="ml-1 text-zinc-600">→</span>}
-                </h3>
-                <p className="mt-1.5 text-[11px] leading-5 text-zinc-500 dark:text-zinc-400">{project.blurb}</p>
-              </>
-            );
-
-            return (
-              <Card key={project.name} padding="sm" href={project.href} interactive={!!project.href}>
-                {card}
-              </Card>
-            );
-          })}
+    <div className="flex flex-1 flex-col bg-background">
+      <main className="page-enter mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
+        {/* Masthead ------------------------------------------------------ */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[10px] caps-wide text-zinc-500">
+          <span className="text-accent">Ethan Biancardi</span>
+          <span>Finance × AI · Bentley ’28</span>
         </div>
-      </section>
+        <div className="mt-2.5 h-px w-full bg-foreground/80" />
 
-      <section className="mt-4">
-        <SectionHeader label="contact" />
-        <a
-          href="mailto:ethanbiancardi@gmail.com"
-          className="mt-3 inline-block text-xs text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-accent hover:decoration-accent"
-        >
-          ethanbiancardi@gmail.com
-        </a>
-      </section>
-    </PageShell>
+        {/* Statement + live proof panel ---------------------------------- */}
+        <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-12">
+          <div className="flex-1">
+            <h1 className="display text-[34px] leading-[1.06] text-foreground sm:text-[46px]">
+              I build finance tools
+              <br />
+              that actually run.
+            </h1>
+            <p className="mt-5 max-w-md text-[13px] leading-6 text-zinc-500 dark:text-zinc-400">
+              Eleven of them, on live market data, SEC filings and a funded paper
+              account. Not screenshots of projects — things you can open and use.
+            </p>
+          </div>
+
+          {/* Hidden entirely when Alpaca is unreachable, rather than showing
+              an empty frame or a fake number. */}
+          {snapshot && (
+            <div className="w-full shrink-0 border border-border bg-panel p-4 sm:w-[248px]">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] caps-wide text-zinc-500">Paper account</span>
+                <span className="inline-flex items-center gap-1.5 text-[9px] caps text-good">
+                  <span className="h-1.5 w-1.5 rounded-full bg-good" />
+                  Live
+                </span>
+              </div>
+
+              <div className="mt-2.5 flex items-baseline gap-2">
+                <span className="text-xl tabular-nums text-foreground">
+                  {formatCurrency(snapshot.equity)}
+                </span>
+                <span className={`text-[11px] tabular-nums ${up ? "text-good" : "text-bad"}`}>
+                  {up ? "+" : "−"}
+                  {Math.abs(snapshot.changePct * 100).toFixed(1)}%
+                </span>
+              </div>
+
+              <svg
+                viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+                width="100%"
+                height={SPARK_H}
+                role="img"
+                aria-label={`Paper account equity over three months, ${up ? "up" : "down"} ${Math.abs(snapshot.changePct * 100).toFixed(1)} percent`}
+                className="mt-3 block"
+                preserveAspectRatio="none"
+              >
+                <polyline
+                  points={sparklinePoints(snapshot.points, SPARK_W, SPARK_H)}
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+
+              <p className="mt-3 border-t border-border pt-2.5 text-[10px] leading-4 text-zinc-500">
+                Three months, straight from the account. Paper money — the
+                strategy is real, the dollars are not.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Index --------------------------------------------------------- */}
+        <div className="mt-11 flex items-baseline gap-4">
+          <span className="text-[10px] caps-wide text-foreground">Coverage</span>
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-[10px] caps text-zinc-500">{projects.length} tools</span>
+        </div>
+
+        <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 sm:gap-x-12">
+          {projects.map((project, i) => (
+            <Link
+              key={project.name}
+              href={project.href}
+              className="group block border-b border-border py-3 transition-colors duration-150 hover:border-accent/60"
+            >
+              <div className="flex items-baseline gap-3">
+                <span className="w-5 shrink-0 text-[10px] tabular-nums text-zinc-600">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="display flex-1 text-[17px] font-normal text-foreground transition-colors duration-150 group-hover:text-accent">
+                  {project.name}
+                </span>
+                <span
+                  className={`shrink-0 text-[9px] caps ${
+                    project.status === "Live" ? "text-good" : "text-accent"
+                  }`}
+                >
+                  {project.status}
+                </span>
+              </div>
+              <p className="ml-8 mt-0.5 text-[11px] leading-[1.5] text-zinc-500 dark:text-zinc-400">
+                {project.blurb}
+              </p>
+            </Link>
+          ))}
+        </div>
+
+        {/* Contact ------------------------------------------------------- */}
+        <div className="mt-8 flex flex-wrap items-baseline justify-between gap-3">
+          <a
+            href="mailto:ethanbiancardi@gmail.com"
+            className="text-xs text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-accent hover:decoration-accent"
+          >
+            ethanbiancardi@gmail.com
+          </a>
+          <span className="text-[10px] caps text-zinc-600">Bentley University</span>
+        </div>
+      </main>
+    </div>
   );
 }

@@ -20,7 +20,9 @@ export function PageShell({
           <p className="text-[11px] caps-wide text-zinc-500">
             {eyebrow}
           </p>
-          <h1 className="page-title mt-1.5 text-lg font-semibold caps-tight text-foreground sm:text-xl">
+          {/* Sizing, weight and casing all live in .page-title now, so the
+              display serif renders the same way in both visual styles. */}
+          <h1 className="page-title mt-1.5 text-foreground">
             {title}
           </h1>
           {subtitle && <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>}
