@@ -4,7 +4,7 @@
 // evidence, each with a sourced reason. Served from the daily cache only —
 // this component never triggers a refresh. Research leads, not advice.
 import { useContext, useEffect, useState, type ReactNode } from "react";
-import { Callout, Card, Chip, SectionHeader, StatusBadge, Tabs, tableCellClass, tableCellStrongClass, tableHeadCellClass, tableHeadRowClass, tableRowClass } from "@/components/ui";
+import { Callout, Card, Chip, GeometricLoader, SectionHeader, StatusBadge, Tabs, tableCellClass, tableCellStrongClass, tableHeadCellClass, tableHeadRowClass, tableRowClass } from "@/components/ui";
 import { SectionForce } from "@/components/ui/Section";
 import type { PresidentialAggregate, PresidentialBatch, Signal, SignalBatch, SignalCategory } from "@/lib/signals/types";
 import { JargonText, SimpleText } from "./SimpleMode";
@@ -206,7 +206,11 @@ export function SignalsPanel({
       <SectionForce.Provider value={force}>
       {(active.key === "legislation" || active.key === "geopolitics" || active.key === "financial") && (
         <>
-          {ai[active.key] === undefined && !error && <p className="mt-4 text-xs text-zinc-500">Loading...</p>}
+          {ai[active.key] === undefined && !error && (
+            <p className="mt-4 text-xs text-zinc-500">
+              <GeometricLoader size={13} label="Loading signals" />
+            </p>
+          )}
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
           {ai[active.key] === null && <p className="mt-4 text-xs text-zinc-500">No {active.label.toLowerCase()} signals have been generated yet — the daily refresh hasn&apos;t run.</p>}
           {ai[active.key] && <AiSignals batch={ai[active.key]!} label={active.label} onResearch={onResearch} />}
@@ -215,7 +219,11 @@ export function SignalsPanel({
 
       {active.key === "political" && (
         <>
-          {political === undefined && !error && <p className="mt-4 text-xs text-zinc-500">Loading...</p>}
+          {political === undefined && !error && (
+            <p className="mt-4 text-xs text-zinc-500">
+              <GeometricLoader size={13} label="Loading signals" />
+            </p>
+          )}
           {error && <p className="mt-4 text-xs text-bad">{error}</p>}
           {presidential && <PresidentialSection batch={presidential} onResearch={onResearch} />}
           {presidential === null && <p className="mt-4 text-xs text-zinc-500">Presidential trades haven&apos;t been generated yet — the daily refresh hasn&apos;t run.</p>}

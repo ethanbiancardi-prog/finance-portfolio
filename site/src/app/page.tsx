@@ -95,7 +95,7 @@ export default async function Home() {
         {/* Masthead ------------------------------------------------------ */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[10px] caps-wide text-zinc-500">
           <span className="text-accent">Ethan Biancardi</span>
-          <span>Finance × AI · Bentley ’28</span>
+          <span>Finance × AI · Bentley ’29</span>
         </div>
         <div className="mt-2.5 h-px w-full bg-foreground/80" />
 
