@@ -108,9 +108,9 @@ export default async function Home() {
         <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-12">
           <div className="flex-1">
             <h1 className="display text-[34px] leading-[1.06] text-foreground sm:text-[46px]">
-              I build finance tools
+              Welcome to PRISM!
               <br />
-              that actually run.
+              Check out my finance tools below.
             </h1>
             <p className="mt-5 max-w-md text-[13px] leading-6 text-zinc-500 dark:text-zinc-400">
               Eleven of them, on live market data, SEC filings and a funded paper
