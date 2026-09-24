@@ -48,8 +48,19 @@ export async function authenticate(_prev: State, formData: FormData): Promise<St
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    // Deliberately vague about which half was wrong: a precise message would
-    // let anyone check which email addresses are registered.
+    // An unconfirmed account is a completely different problem from wrong
+    // credentials, and saying "wrong password" sends people hunting for a
+    // typo that isn't there. Safe to be specific: it reveals nothing that
+    // signing up with the same address wouldn't already reveal.
+    if (error.code === "email_not_confirmed" || /not confirmed/i.test(error.message)) {
+      return {
+        error:
+          "This account exists but its email hasn't been confirmed yet. Click the link in the confirmation email, or turn Confirm email off in Supabase (Authentication, Sign In / Providers, Email).",
+        notice: null,
+      };
+    }
+    // Otherwise stay vague about which half was wrong: a precise message
+    // would let anyone check which email addresses are registered.
     return {
       error: "That email and password don't match an account. If you don't have one yet, use Create an account.",
       notice: null,
