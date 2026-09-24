@@ -16,9 +16,16 @@ import {
   tableHeadRowClass,
   tableRowClass,
 } from "@/components/ui";
-import { MAX_HOLDINGS, PRESETS, type PlannedOrder, type Rebalance, type StrategyConfig } from "@/lib/strategies";
+import {
+  MAX_HOLDINGS,
+  PRESETS,
+  type PlannedOrder,
+  type Rebalance,
+  type SavedStrategy,
+  type StrategyConfig,
+  type StrategyRun,
+} from "@/lib/strategies";
 
-type Saved = StrategyConfig & { updatedAt: string };
 type Row = { symbol: string; weight: string };
 type Preview = { equity: number; orders: PlannedOrder[]; cashAfter: number; missingPrices: string[] };
 
@@ -29,10 +36,36 @@ const REBALANCE_LABEL: Record<Rebalance, string> = {
 };
 
 const describeRebalance = (c: StrategyConfig) =>
-  c.rebalance === "drift" ? `when any holding drifts ${c.driftPct} pts from target` : c.rebalance;
+  c.rebalance === "monthly"
+    ? "on the first trading day of each month"
+    : c.rebalance === "weekly"
+      ? "on the first trading day of each week"
+      : `whenever any holding drifts ${c.driftPct} pts or more from its target`;
+
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+// When the nightly job will next look at the strategy, in words. It runs at
+// 22:00 UTC on weekdays (6pm New York in summer); holidays are skipped by the
+// job itself, so this can be a day early around them.
+function nextCheck() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setUTCHours(22, 0, 0, 0);
+  if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+  const nyDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const weekday = next.getUTCDay() >= 1 && next.getUTCDay() <= 5;
+  return weekday && nyDay(next) === nyDay(now)
+    ? "tonight, after the market closes"
+    : "after the next trading day's close";
+}
+
+// Tell the portfolio card to reload, so its order form pauses or resumes now.
+const announce = () => window.dispatchEvent(new Event("strategy-changed"));
 
 export default function Strategy() {
-  const [saved, setSaved] = useState<Saved | null>(null);
+  const [saved, setSaved] = useState<SavedStrategy | null>(null);
+  const [runs, setRuns] = useState<StrategyRun[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -43,14 +76,17 @@ export default function Strategy() {
   const [driftPct, setDriftPct] = useState("5");
 
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [busy, setBusy] = useState<"preview" | "save" | "remove" | null>(null);
+  const [busy, setBusy] = useState<"preview" | "save" | "remove" | "toggle" | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   useEffect(() => {
     (async () => {
       const res = await fetch("/api/portfolio/strategy");
       const body = await res.json().catch(() => ({}));
-      if (res.ok) setSaved(body.strategy);
+      if (res.ok) {
+        setSaved(body.strategy);
+        setRuns(body.runs ?? []);
+      }
       setLoaded(true);
     })();
   }, []);
@@ -77,7 +113,7 @@ export default function Strategy() {
     setPreview(null);
   }
 
-  const config = () => ({
+  const config = (): StrategyConfig => ({
     name,
     presetKey,
     holdings: rows
@@ -89,13 +125,15 @@ export default function Strategy() {
 
   const total = rows.reduce((sum, r) => sum + (Number(r.weight) || 0), 0);
 
-  async function send(method: "POST" | "PUT" | "DELETE", cfg: StrategyConfig = config()) {
-    setBusy(method === "POST" ? "preview" : method === "PUT" ? "save" : "remove");
+  async function send(method: "POST" | "PUT" | "DELETE" | "PATCH", payload?: object) {
+    setBusy(
+      method === "POST" ? "preview" : method === "PUT" ? "save" : method === "DELETE" ? "remove" : "toggle",
+    );
     setMessage(null);
     const res = await fetch("/api/portfolio/strategy", {
       method,
       headers: { "Content-Type": "application/json" },
-      body: method === "DELETE" ? undefined : JSON.stringify(cfg),
+      body: method === "DELETE" ? undefined : JSON.stringify(payload ?? config()),
     });
     const body = await res.json().catch(() => ({}));
     setBusy(null);
@@ -107,12 +145,28 @@ export default function Strategy() {
     if (method === "PUT") {
       setSaved(body.strategy);
       setEditing(false);
-      setMessage({ text: `Saved "${body.strategy.name}".`, ok: true });
+      setMessage({
+        text: body.strategy.active
+          ? `Saved "${body.strategy.name}". It's on, so the account moves to the new targets ${nextCheck()}.`
+          : `Saved "${body.strategy.name}". It's off: nothing will trade until you turn it on.`,
+        ok: true,
+      });
+    }
+    if (method === "PATCH") {
+      setSaved(body.strategy);
+      setMessage({
+        text: body.strategy.active
+          ? `Turned on. The first rebalance happens ${nextCheck()}, at closing prices. Manual trading is paused.`
+          : "Turned off. Your holdings stay as they are, nothing more will be traded automatically, and manual trading is back on.",
+        ok: true,
+      });
+      announce();
     }
     if (method === "DELETE") {
       setSaved(null);
       setPreview(null);
-      setMessage({ text: "Strategy removed.", ok: true });
+      setMessage({ text: "Strategy removed. Your holdings stay as they are, and manual trading is back on.", ok: true });
+      announce();
     }
   }
 
@@ -126,39 +180,107 @@ export default function Strategy() {
     <Card as="section" className="mt-4" id="strategy">
       <SectionHeader
         label="strategy"
-        description="Pick a preset or build your own. For now this saves the strategy and previews the trades it would make; automatic rebalancing comes next."
+        description="Pick a preset or build your own, then turn it on and it runs your paper account for you."
       />
 
       {loaded && !editing && (
         <div className="mt-3">
           {saved ? (
             <>
-              <p className="text-sm text-foreground">{saved.name}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm text-foreground">{saved.name}</p>
+                <span
+                  className={`rounded-[var(--radius-sm)] border px-1.5 py-0.5 text-[10px] caps ${
+                    saved.active ? "border-accent text-accent" : "border-border text-zinc-500"
+                  }`}
+                >
+                  {saved.active ? "On" : "Off"}
+                </span>
+              </div>
               <p className="mt-1 text-xs leading-5 text-zinc-400">
                 {saved.holdings.map((h) => `${h.symbol} ${h.weight}%`).join(" · ")}
                 {saved.holdings.reduce((s, h) => s + h.weight, 0) < 100 && " · rest in cash"}
-                <span className="text-zinc-600"> — rebalance {describeRebalance(saved)}</span>
               </p>
+
+              {/* What state it's in, in plain words. */}
+              <p className="mt-3 max-w-2xl text-xs leading-5 text-zinc-400">
+                {!saved.active ? (
+                  <>
+                    <span className="text-foreground">Off.</span> Saved, but not running. Turn it on and it takes
+                    over your whole account: at the next check after the close it moves your holdings to these
+                    targets, then keeps them there by rebalancing {describeRebalance(saved)}. Manual trading pauses
+                    while it&apos;s on.
+                  </>
+                ) : !saved.lastCheckedAt ? (
+                  <>
+                    <span className="text-foreground">On since {shortDate(saved.activatedAt ?? saved.updatedAt)}.</span>{" "}
+                    Nothing has traded yet. The first rebalance happens {nextCheck()}, moving your account to these
+                    targets at closing prices.
+                  </>
+                ) : (
+                  <>
+                    <span className="text-foreground">On.</span> Last checked{" "}
+                    {new Date(saved.lastCheckedAt).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                    : {saved.lastCheckNote} Next check {nextCheck()}.
+                  </>
+                )}
+              </p>
+
               <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  onClick={() => send("PATCH", { active: !saved.active })}
+                  loading={busy === "toggle"}
+                  loadingLabel={saved.active ? "Turning off" : "Turning on"}
+                >
+                  {saved.active ? "Turn off" : "Turn on"}
+                </Button>
                 <Button variant="outline" onClick={edit}>
                   Edit
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => send("POST", saved)}
-                  loading={busy === "preview"}
-                  loadingLabel="Pricing"
-                >
+                <Button variant="outline" onClick={() => send("POST", saved)} loading={busy === "preview"} loadingLabel="Pricing">
                   Preview trades
                 </Button>
                 <Button variant="outline" onClick={() => send("DELETE")} loading={busy === "remove"} loadingLabel="Removing">
                   Remove
                 </Button>
               </div>
+
+              <details className="mt-3 max-w-2xl text-[11px] leading-5 text-zinc-500">
+                <summary className="cursor-pointer text-zinc-400">What happens each night while it&apos;s on</summary>
+                <ol className="mt-2 list-decimal space-y-1 pl-4">
+                  <li>
+                    Every weekday at 6pm ET (5pm in winter), after the market closes, the site checks every strategy
+                    that&apos;s turned on. Market holidays are skipped.
+                  </li>
+                  <li>
+                    It decides whether yours is due: {describeRebalance(saved)}. Right after you turn it on or change
+                    it, it&apos;s always due.
+                  </li>
+                  <li>
+                    If it&apos;s due, it sells whatever is above its target (and anything the strategy doesn&apos;t
+                    hold) first, so the cash is there, then buys whatever is below target. Whole shares only, so a
+                    little cash is left over.
+                  </li>
+                  <li>
+                    Every order fills at that day&apos;s closing price, the same price for everyone. Nobody,
+                    including you, can pick a better one.
+                  </li>
+                  <li>What it did, and why, is recorded in the log below.</li>
+                </ol>
+              </details>
             </>
           ) : (
             <>
-              <p className="text-xs text-zinc-400">No strategy yet. Start from a preset or build your own.</p>
+              <p className="max-w-2xl text-xs leading-5 text-zinc-400">
+                No strategy yet. A strategy is a set of target weights, like 60% stocks and 40% bonds, plus a rule for
+                how often to rebalance back to them. Start from a preset or build your own; nothing trades until you
+                turn it on.
+              </p>
               <div className="mt-3">
                 <Button onClick={edit}>Choose a strategy</Button>
               </div>
@@ -195,11 +317,11 @@ export default function Strategy() {
               Custom
             </button>
           </div>
-          {presetKey && (
-            <p className="text-[11px] leading-5 text-zinc-500">
-              {PRESETS.find((p) => p.presetKey === presetKey)?.description} Change any holding to make it your own.
-            </p>
-          )}
+          <p className="text-[11px] leading-5 text-zinc-500">
+            {presetKey
+              ? `${PRESETS.find((p) => p.presetKey === presetKey)?.description} Change any holding to make it your own.`
+              : "Choose up to 20 tickers and what percentage of the account each should be. Anything under 100% stays in cash."}
+          </p>
 
           <Field label="Name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} className="w-64" />
 
@@ -271,6 +393,17 @@ export default function Strategy() {
               />
             )}
           </div>
+          <p className="-mt-2 text-[11px] leading-5 text-zinc-500">
+            {rebalance === "drift"
+              ? `Checks every trading day and rebalances only once a holding is ${driftPct || "?"} percentage points off its target, e.g. a 60% target that has grown to ${60 + (Number(driftPct) || 0)}%. Fewer trades than a calendar schedule.`
+              : `Rebalances back to the targets ${rebalance === "monthly" ? "on the first trading day of each month" : "on the first trading day of each week"}, however far things have moved.`}
+          </p>
+
+          {saved?.active && (
+            <p className="text-[11px] leading-5 text-zinc-500">
+              This strategy is on, so saving changes moves your account to the new targets {nextCheck()}.
+            </p>
+          )}
 
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => send("POST")} loading={busy === "preview"} loadingLabel="Pricing">
@@ -279,7 +412,14 @@ export default function Strategy() {
             <Button onClick={() => send("PUT")} loading={busy === "save"} loadingLabel="Saving">
               Save strategy
             </Button>
-            <Button variant="outline" onClick={() => { setEditing(false); setPreview(null); setMessage(null); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditing(false);
+                setPreview(null);
+                setMessage(null);
+              }}
+            >
               Cancel
             </Button>
           </div>
@@ -287,7 +427,7 @@ export default function Strategy() {
       )}
 
       {message && (
-        <p className={`mt-3 text-xs ${message.ok ? "text-good" : "text-bad"}`} role="status">
+        <p className={`mt-3 max-w-2xl text-xs leading-5 ${message.ok ? "text-good" : "text-bad"}`} role="status">
           <span className="text-zinc-600">&gt; </span>
           {message.text}
         </p>
@@ -295,10 +435,10 @@ export default function Strategy() {
 
       {preview && (
         <div className="mt-4">
-          <p className="text-[11px] leading-5 text-zinc-500">
-            If this strategy took over your {formatCurrency(preview.equity)} account at today&apos;s prices, it would
-            place these orders (whole shares, so about {formatCurrency(preview.cashAfter)} stays in cash). Nothing is
-            traded.
+          <p className="max-w-2xl text-[11px] leading-5 text-zinc-500">
+            If this strategy took over your {formatCurrency(preview.equity)} account at the latest prices, it would
+            place these orders (whole shares, so about {formatCurrency(preview.cashAfter)} stays in cash). This is only
+            a preview: the real rebalance uses that evening&apos;s closing prices, so the numbers will shift a little.
             {preview.missingPrices.length > 0 && ` No live price for ${preview.missingPrices.join(", ")}; left out.`}
           </p>
           <div className="mt-2 overflow-x-auto">
@@ -333,6 +473,40 @@ export default function Strategy() {
                 {preview.orders.length === 0 && <EmptyRow colSpan={6}>nothing to trade</EmptyRow>}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {loaded && saved && !editing && (
+        <div className="mt-5">
+          <SectionHeader
+            label="strategy log"
+            description="Every rebalance the strategy has made, and why. Nights where nothing was due only update the status line above."
+          />
+          <div className="mt-2 space-y-2">
+            {runs.map((r) => (
+              <div key={r.id} className="border-t border-border/60 pt-2 text-xs leading-5">
+                <p>
+                  <span className="text-zinc-500">{shortDate(r.ran_at)}</span>{" "}
+                  <span className={r.status === "error" ? "text-bad" : "text-foreground"}>
+                    {r.status === "error" ? "Didn't rebalance." : "Rebalanced."}
+                  </span>{" "}
+                  <span className="text-zinc-400">{r.reason}</span>
+                </p>
+                {r.orders.length > 0 && (
+                  <p className="text-[11px] text-zinc-500">
+                    {r.orders
+                      .map((o) => `${o.side === "buy" ? "Bought" : "Sold"} ${o.qty} ${o.symbol} at ${formatCurrency(o.price)}`)
+                      .join(" · ")}
+                  </p>
+                )}
+              </div>
+            ))}
+            {runs.length === 0 && (
+              <p className="text-[11px] text-zinc-500">
+                {saved.active ? "No rebalances yet. The first one shows up here the morning after it runs." : "No rebalances yet."}
+              </p>
+            )}
           </div>
         </div>
       )}

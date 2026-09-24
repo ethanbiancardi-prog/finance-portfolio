@@ -25,6 +25,21 @@ export async function POST(request: Request) {
     );
   }
 
+  // While a strategy is on it owns the account; a manual trade would just be
+  // undone at the next rebalance, and would muddy the strategy's record.
+  const { data: strategy } = await (await createClient())
+    .from("paper_strategies")
+    .select("name, active")
+    .maybeSingle();
+  if (strategy?.active) {
+    return NextResponse.json(
+      {
+        error: `"${strategy.name}" is managing this account, so manual trading is paused. Turn the strategy off to trade by hand.`,
+      },
+      { status: 409 },
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
   const symbol = String(body.symbol ?? "").trim().toUpperCase();
   const side = body.side;

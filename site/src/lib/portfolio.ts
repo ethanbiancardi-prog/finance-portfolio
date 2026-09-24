@@ -58,7 +58,7 @@ export type Trade = {
 
 // Trading days are New York days. A trade at 11pm UTC is still "today" in
 // New York, and daily bars are stamped in New York time too.
-const nyDate = (iso: string | Date) =>
+export const nyDate = (iso: string | Date) =>
   new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
 type Holding = { qty: number; cost: number };

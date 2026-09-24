@@ -119,15 +119,24 @@ or shares, so two simultaneous orders can't both spend the same cash, and
 only the `service_role` may execute it. Positions table and trade history
 sit under the chart.
 
-Strategies (step 1 of 3): pick a preset (S&P 500, 60/40, three-fund,
-diversified ETF core) or build a custom one — up to 20 tickers with target
-weights (under 100% leaves cash) and a rebalance rule (monthly, weekly, or on
-drift of N points). Presets and custom strategies share one shape, so one
-planner (`planRebalance`) handles both. "Preview trades" shows the
-whole-share orders it would place at live prices; nothing trades yet. Planned:
-step 2 runs active strategies in `api/cron/daily` at the close (a strategy
-then owns the whole account and manual trading pauses); step 3 adds a trend
-filter and momentum rules.
+Strategies: pick a preset (S&P 500, 60/40, three-fund, diversified ETF core)
+or build a custom one — up to 20 tickers with target weights (under 100%
+leaves cash) and a rebalance rule (monthly, weekly, or on drift of N points).
+Presets and custom strategies share one shape, so one planner
+(`planRebalance`) handles both. "Preview trades" shows the whole-share orders
+it would place at live prices.
+
+Turning a strategy on hands it the whole account: manual trading returns 409
+until it's turned off. `lib/strategyRunner.ts` runs inside `api/cron/daily`
+(22:00 UTC weekdays, after the close): it skips market holidays (Alpaca
+`/calendar`), prices every symbol any active strategy touches in one batched
+request at that day's close, decides per strategy whether it's due
+(`rebalanceDue`: just turned on/changed, first trading day of the
+month/week, or drift past the threshold), then sells before buying through
+`place_paper_trade()`. Rebalances and failures go to `paper_strategy_runs`;
+not-due nights only update `last_check_note`. The dashboard captions every
+state in plain words and shows the log. One user's failure never stops the
+others. Planned step 3: trend filter and momentum rules.
 
 ## Trade journal (`/dashboard`)
 

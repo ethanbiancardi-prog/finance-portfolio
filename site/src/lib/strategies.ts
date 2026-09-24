@@ -15,6 +15,107 @@ export type StrategyConfig = {
   driftPct: number | null;
 };
 
+// A paper_strategies row (0004 + 0005) as the database returns it.
+export type StrategyRow = {
+  user_id: string;
+  name: string;
+  preset_key: string | null;
+  holdings: Holding[];
+  rebalance: Rebalance;
+  drift_pct: string | number | null;
+  updated_at: string;
+  active: boolean;
+  activated_at: string | null;
+  last_rebalanced_at: string | null;
+  last_checked_at: string | null;
+  last_check_note: string | null;
+};
+
+export type SavedStrategy = StrategyConfig & {
+  updatedAt: string;
+  active: boolean;
+  activatedAt: string | null;
+  lastRebalancedAt: string | null;
+  lastCheckedAt: string | null;
+  lastCheckNote: string | null;
+};
+
+export const rowToSaved = (row: StrategyRow): SavedStrategy => ({
+  name: row.name,
+  presetKey: row.preset_key,
+  holdings: row.holdings,
+  rebalance: row.rebalance,
+  driftPct: row.drift_pct == null ? null : Number(row.drift_pct),
+  updatedAt: row.updated_at,
+  active: row.active,
+  activatedAt: row.activated_at,
+  lastRebalancedAt: row.last_rebalanced_at,
+  lastCheckedAt: row.last_checked_at,
+  lastCheckNote: row.last_check_note,
+});
+
+export type RunOrder = { symbol: string; side: "buy" | "sell"; qty: number; price: number };
+export type StrategyRun = {
+  id: string;
+  ran_at: string;
+  status: "rebalanced" | "error";
+  reason: string;
+  orders: RunOrder[];
+};
+
+// "2026-10" style keys, compared as strings.
+const monthKey = (date: string) => date.slice(0, 7);
+// The Monday of the week containing `date` (a YYYY-MM-DD New York date).
+function weekKey(date: string) {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+const monthName = (date: string) =>
+  new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+
+// Is a rebalance due today? Returns the reason in plain English either way,
+// because both answers are shown to the user.
+export function rebalanceDue(
+  config: StrategyConfig,
+  lastRebalancedOn: string | null, // New York date, or null if never / just changed
+  today: string, // New York date of this trading day
+  currentWeights: Map<string, number>, // percent of account value
+): { due: boolean; reason: string } {
+  if (!lastRebalancedOn) {
+    return { due: true, reason: "The strategy was just turned on or changed, so the account is moved to its targets." };
+  }
+  if (config.rebalance === "monthly") {
+    return monthKey(today) > monthKey(lastRebalancedOn)
+      ? { due: true, reason: `First trading day of ${monthName(today)}: monthly rebalance.` }
+      : { due: false, reason: `Not due. Next monthly rebalance is on the first trading day of next month.` };
+  }
+  if (config.rebalance === "weekly") {
+    return weekKey(today) > weekKey(lastRebalancedOn)
+      ? { due: true, reason: "First trading day of the week: weekly rebalance." }
+      : { due: false, reason: "Not due. Next weekly rebalance is on the first trading day of next week." };
+  }
+  // Drift: compare every holding, including ones the strategy doesn't want
+  // (target 0), against its target.
+  const threshold = config.driftPct ?? 5;
+  const symbols = new Set([...config.holdings.map((h) => h.symbol), ...currentWeights.keys()]);
+  let worst = { symbol: "", drift: 0, target: 0 };
+  for (const symbol of symbols) {
+    const target = config.holdings.find((h) => h.symbol === symbol)?.weight ?? 0;
+    const drift = Math.abs((currentWeights.get(symbol) ?? 0) - target);
+    if (drift > worst.drift) worst = { symbol, drift, target };
+  }
+  const detail = `${worst.symbol} is ${worst.drift.toFixed(1)} pts from its ${worst.target}% target`;
+  return worst.drift >= threshold
+    ? { due: true, reason: `${detail}, past the ${threshold}-pt drift threshold.` }
+    : {
+        due: false,
+        reason: worst.symbol
+          ? `Not due. Largest drift: ${detail}, under the ${threshold}-pt threshold.`
+          : "Not due. Every holding is on target.",
+      };
+}
+
 export type Preset = StrategyConfig & { presetKey: string; description: string };
 
 export const PRESETS: Preset[] = [

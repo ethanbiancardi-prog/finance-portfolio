@@ -23,20 +23,26 @@ export async function GET() {
     .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
   if (openError) return NextResponse.json({ error: openError.message }, { status: 500 });
 
-  const [{ data: account, error: accountError }, { data: trades, error: tradesError }] =
-    await Promise.all([
-      supabase.from("paper_accounts").select("*").single(),
-      supabase.from("paper_trades").select("*").order("executed_at"),
-    ]);
+  const [
+    { data: account, error: accountError },
+    { data: trades, error: tradesError },
+    { data: strategy },
+  ] = await Promise.all([
+    supabase.from("paper_accounts").select("*").single(),
+    supabase.from("paper_trades").select("*").order("executed_at"),
+    supabase.from("paper_strategies").select("name, active").maybeSingle(),
+  ]);
   if (accountError || !account) {
     return NextResponse.json({ error: accountError?.message ?? "No account" }, { status: 500 });
   }
   if (tradesError) return NextResponse.json({ error: tradesError.message }, { status: 500 });
 
   try {
-    return NextResponse.json(
-      await buildPortfolio(account as PaperAccountRow, (trades ?? []) as PaperTradeRow[]),
-    );
+    return NextResponse.json({
+      ...(await buildPortfolio(account as PaperAccountRow, (trades ?? []) as PaperTradeRow[])),
+      // The dashboard pauses its order form while a strategy runs the account.
+      activeStrategy: strategy?.active ? strategy.name : null,
+    });
   } catch (err) {
     // Market data is the only external call; say so rather than a bare 500.
     return NextResponse.json(

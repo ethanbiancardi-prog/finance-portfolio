@@ -39,7 +39,7 @@ function Change({ value, base }: { value: number; base: number }) {
 }
 
 export default function Portfolio() {
-  const [data, setData] = useState<PortfolioSummary | null>(null);
+  const [data, setData] = useState<(PortfolioSummary & { activeStrategy: string | null }) | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [symbol, setSymbol] = useState("");
@@ -64,7 +64,13 @@ export default function Portfolio() {
     load();
     // Prices move while the market is open; match the paper-trading page.
     const timer = setInterval(load, 60_000);
-    return () => clearInterval(timer);
+    // The strategy card announces on/off changes so the order form pauses or
+    // resumes straight away rather than at the next poll.
+    window.addEventListener("strategy-changed", load);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("strategy-changed", load);
+    };
   }, [load]);
 
   async function placeOrder(e: React.FormEvent) {
@@ -138,6 +144,18 @@ export default function Portfolio() {
           label="place order"
           description="Market order at the live price, filled instantly. Only while the market is open."
         />
+        {data?.activeStrategy ? (
+          <p className="mt-3 max-w-2xl text-xs leading-5 text-zinc-400">
+            Manual trading is paused because your strategy,{" "}
+            <span className="text-foreground">{data.activeStrategy}</span>, is managing this account. It
+            rebalances on its own after the market closes, and any trade placed here would just be undone at
+            its next rebalance. Turn it off in the{" "}
+            <a href="#strategy" className="text-accent underline decoration-accent/40 underline-offset-4">
+              strategy card
+            </a>{" "}
+            to trade by hand again.
+          </p>
+        ) : (
         <form onSubmit={placeOrder} className="mt-3 flex flex-wrap items-end gap-3">
           <TickerSearch
             label="Ticker"
@@ -172,6 +190,7 @@ export default function Portfolio() {
             Submit
           </Button>
         </form>
+        )}
         {message && (
           <p className={`mt-3 text-xs ${message.ok ? "text-good" : "text-bad"}`} role="status">
             <span className="text-zinc-600">&gt; </span>
