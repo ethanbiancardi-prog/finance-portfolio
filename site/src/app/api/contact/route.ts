@@ -4,8 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getUser } from "@/lib/supabase/server";
 
 // The contact form. Each message is saved to Supabase (contact_messages)
-// and, when RESEND_API_KEY is set, emailed to Ethan with Reply-To set to the
-// sender, so answering is just hitting Reply.
+// first, so nothing is lost, then emailed to Ethan with Reply-To set to the
+// sender: from here via Resend when RESEND_API_KEY is set, otherwise from
+// the visitor's browser via FormSubmit (ContactForm.tsx).
 
 const CATEGORIES = { bug: "Bug", question: "Question", opportunity: "Opportunity", other: "Other" } as const;
 type Category = keyof typeof CATEGORIES;
@@ -63,38 +64,14 @@ export async function POST(request: Request) {
     .single();
   if (error) return NextResponse.json({ error: `Couldn't send that. Email me at ${TO}.` }, { status: 500 });
 
-  const label = CATEGORIES[category];
-  let res: Response | null;
-  if (!process.env.RESEND_API_KEY) {
-    // Default: FormSubmit, a free relay that needs no account or key. The
-    // very first message triggers a one-time "activate" email to TO; after
-    // that click, every message is delivered. Called from the server so the
-    // browser never talks to it directly.
-    res = await fetch(`https://formsubmit.co/ajax/${TO}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        // FormSubmit ties a form to the site it's used from.
-        Referer: new URL(request.url).origin + "/contact",
-        Origin: new URL(request.url).origin,
-      },
-      body: JSON.stringify({
-        _subject: `[${label}] ${name} via your portfolio site`,
-        _replyto: email,
-        _template: "table",
-        _captcha: "false",
-        name,
-        email,
-        about: label,
-        signed_in: user ? "yes" : "no",
-        message,
-      }),
-    }).catch(() => null);
-    const ok = res?.ok && (await res.json().catch(() => ({}))).success !== "false";
-    if (ok) await admin.from("contact_messages").update({ emailed: true }).eq("id", saved.id);
-  } else {
-    res = await fetch("https://api.resend.com/emails", {
+  // Without a Resend key, the browser emails the message itself through
+  // FormSubmit after this returns (see ContactForm.tsx). FormSubmit only
+  // accepts posts from a visitor's browser; calling it from here was
+  // silently dropped.
+  let emailed = false;
+  if (process.env.RESEND_API_KEY) {
+    const label = CATEGORIES[category];
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -112,8 +89,11 @@ export async function POST(request: Request) {
       }),
     }).catch(() => null);
     // The message is already saved, so a failed email is recorded, not fatal.
-    if (res?.ok) await admin.from("contact_messages").update({ emailed: true }).eq("id", saved.id);
+    if (res?.ok) {
+      emailed = true;
+      await admin.from("contact_messages").update({ emailed: true }).eq("id", saved.id);
+    }
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, emailed });
 }

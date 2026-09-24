@@ -46,11 +46,31 @@ export default function ContactForm({
       body: JSON.stringify({ name, email, category, message, website }),
     });
     const body = await res.json().catch(() => ({}));
-    setSending(false);
     if (!res.ok) {
+      setSending(false);
       setStatus({ text: body.error ?? "Couldn't send that. Try emailing me directly.", ok: false });
       return;
     }
+    // Saved. If the server didn't email it (no Resend key), send the email
+    // from here through FormSubmit, which only accepts posts from a browser.
+    // The message is already stored either way, so a failure here is quiet.
+    if (body.emailed === false) {
+      await fetch("https://formsubmit.co/ajax/ethanbiancardi@gmail.com", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          _subject: `[${CATEGORIES.find((c) => c.value === category)?.label}] ${name} via your portfolio site`,
+          _replyto: email,
+          _template: "table",
+          _captcha: "false",
+          name,
+          email,
+          about: CATEGORIES.find((c) => c.value === category)?.label,
+          message,
+        }),
+      }).catch(() => {});
+    }
+    setSending(false);
     setMessage("");
     setStatus({ text: `Sent. Thanks, ${name.split(" ")[0]}. I'll reply to ${email}.`, ok: true });
   }
