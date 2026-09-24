@@ -54,6 +54,8 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/quant/factor-risk` — market/rates/inflation variance attribution
 - `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta
 - `/education` and `/education/[slug]` — two tracks: tool guides and finance fundamentals, with search
+- `/login` — email + password sign-in (create account on the same form)
+- `/dashboard` — signed-in-only area; the trade journal moves here in step 2
 - `/client-work` — passcode-gated private client case studies
 - Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`
 
@@ -81,7 +83,8 @@ licences and caveats: `docs/DATA_AND_ENV.md`.
 Local: `site/.env.local`, gitignored. Production: Vercel project settings.
 **Required** `ANTHROPIC_API_KEY` (read implicitly by `new Anthropic()`),
 `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`, `KV_REST_API_URL`,
-`KV_REST_API_TOKEN`, `CRON_SECRET`. **Optional** `CLIENT_WORK_PASSCODE`,
+`KV_REST_API_TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`. **Optional** `CLIENT_WORK_PASSCODE`,
 `CLIENT_WORK_SECRET`, `SIGNALS_DEBUG`. `KV_URL`, `REDIS_URL`,
 `KV_REST_API_READ_ONLY_TOKEN` and `VERCEL_OIDC_TOKEN` are Vercel-provisioned
 and unread by app code.
@@ -89,7 +92,10 @@ and unread by app code.
 ## Project rules
 
 1. **Keys stay server-side.** Everything external goes through an API route.
-   No key in a client component, ever.
+   No key in a client component, ever. The one deliberate exception is the
+   Supabase anon key: it is designed to be public and is useless without a
+   session, because Row Level Security decides what each user can read. The
+   Supabase **service role key** bypasses RLS and must never reach the browser.
 2. **Cache external data. Never call a paid API on page load.** `/api/signals`
    reads cache only; refreshes run on the cron or a secret-gated route. Redis
    via `lib/kv.ts` (`getRedis()`, guarded by `kvConfigured()`).

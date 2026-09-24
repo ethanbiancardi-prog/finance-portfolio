@@ -22,6 +22,8 @@ const LINKS = [
   { href: "/research", label: "Research" },
   { href: "/education", label: "Education" },
   { href: "/about", label: "About" },
+  // Signed out, proxy.ts bounces this to /login, so one link covers both states.
+  { href: "/dashboard", label: "Account" },
 ];
 
 const itemClass = (active: boolean) =>
