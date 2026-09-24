@@ -12,9 +12,10 @@ import { createClient } from "@/lib/supabase/server";
 // piece of state, so a failed sign-in can never leave an error on screen
 // that outlives the sign-up attempt after it.
 
+// Only async functions may be exported from a "use server" file, so the
+// initial state object lives in the client component instead. A type export
+// is fine: types are erased before this ever runs.
 export type State = { error: string | null; notice: string | null };
-
-export const initialState: State = { error: null, notice: null };
 
 export async function authenticate(_prev: State, formData: FormData): Promise<State> {
   const email = String(formData.get("email") ?? "").trim();

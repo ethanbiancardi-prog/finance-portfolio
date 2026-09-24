@@ -3,7 +3,9 @@
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button, Callout, Card, Field } from "@/components/ui";
-import { authenticate, initialState } from "./actions";
+import { authenticate, type State } from "./actions";
+
+const initialState: State = { error: null, notice: null };
 
 export default function LoginForm() {
   const next = useSearchParams().get("next") ?? "/dashboard";
