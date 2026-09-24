@@ -43,7 +43,7 @@
 - [ ] Update resume bullet points as projects ship ("Built X used by Y, resulting in Z")
 
 ## Shipped beyond the original plan
-- [x] Trade journal on the paper-trading page (date/ticker/action/thesis/exit condition, local JSON store)
+- [x] Trade journal on the paper-trading page (date/ticker/action/thesis/exit condition); now per-user in Supabase Postgres on /dashboard
 - [x] `projects/paper-trading/STRATEGY.md` — core-satellite strategy doc with quantum-computing and dip-buying satellite templates, SPY benchmark
 - [x] Shared nav bar across all pages
 - [x] Dark mode consistency fix (`color-scheme` so native form controls follow the theme too)

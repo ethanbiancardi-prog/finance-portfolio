@@ -93,13 +93,18 @@ company-facts JSON.
 ## Paper trading (`/paper-trading`)
 
 Live Alpaca **paper** account: equity, positions, buy/sell, auto-refresh every
-60s with an "updated" stamp. Trade journal captures a thesis and an exit
-condition per trade (`site/data/journal.json` — a flat file, fine for one local
-user, not for serverless multi-request writes). Risk metrics: Sharpe,
+60s with an "updated" stamp. Risk metrics: Sharpe,
 annualised volatility, max drawdown, beta vs SPY over 3 months.
 
 The research playbook's action buttons deep-link into this page:
 `/paper-trading?ticker=&side=&thesis=` or `?journal=&thesis=`.
+
+## Trade journal (`/dashboard`)
+
+Signed-in only. Captures a thesis and an exit condition per trade. Stored in
+Supabase Postgres (`journal_entries`); Row Level Security means each account
+reads and writes only its own rows, and the API stamps ownership from the
+session, never the request body.
 
 ## Momentum + Leverage strategy (`/rotation`)
 

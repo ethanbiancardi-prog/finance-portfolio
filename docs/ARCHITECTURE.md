@@ -18,7 +18,6 @@ finance-portfolio/            ← git root (the OUTER folder is not the project)
     ├── src/components/       ← Nav, theme, UI kit (src/components/ui)
     ├── src/lib/              ← all the finance/data logic
     ├── src/data/             ← clientWork.ts case studies
-    ├── data/journal.json     ← paper-trading journal (flat file, local only)
     ├── public/screenshots/   ← homepage card thumbnails
     ├── scripts/              ← screenshots.js, sell-core.js
     └── vercel.json           ← cron definitions
@@ -29,10 +28,13 @@ finance-portfolio/            ← git root (the OUTER folder is not the project)
 ## Stack
 
 Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS v4 ·
-Recharts · `@anthropic-ai/sdk` · `@upstash/redis` · `pdf-parse`. Node 24 on Vercel.
+Recharts · `@anthropic-ai/sdk` · `@upstash/redis` · `@supabase/ssr` · `pdf-parse`.
+Node 24 on Vercel.
 
-There is no database and no Python. Server state is Upstash Redis (via Vercel KV)
-plus one flat JSON file for the trade journal.
+There is no Python. Server state is Upstash Redis (via Vercel KV) for caches and
+strategy state, plus Supabase (auth + Postgres) for per-user data — currently the
+trade journal, with Row Level Security enforcing ownership
+(`supabase/migrations/`).
 
 ## Pages
 
@@ -41,7 +43,9 @@ plus one flat JSON file for the trade journal.
 | `/` | Homepage — project cards with screenshot thumbnails, contact links |
 | `/about` | Bio, coursework, skills, contact |
 | `/research` | **Stock Research** — three tabs: Search, Browse by Sector, Research Signals |
-| `/paper-trading` | Live Alpaca paper account: equity, positions, buy/sell, journal, risk metrics |
+| `/paper-trading` | Live Alpaca paper account: equity, positions, buy/sell, risk metrics |
+| `/login` | Email + password sign-in / sign-up (Supabase) |
+| `/dashboard` | Signed-in only: account details and your trade journal |
 | `/rotation` | Momentum + Leverage strategy dashboard: current picks, regime state, rebalance button |
 | `/dcf-builder` | Interactive DCF with sensitivity grid; "Load from a 10-K" prefill |
 | `/optimizer` | Efficient frontier sampled across user-entered tickers |
@@ -70,7 +74,7 @@ reaches the browser.
 - `GET /api/paper-trading/history` — 1-month equity curve for the chart
 - `GET /api/paper-trading/risk-metrics` — Sharpe / vol / max drawdown / beta over 3M
 - `GET /api/paper-trading/search` — ticker autocomplete from Alpaca assets
-- `GET|POST|DELETE /api/paper-trading/journal` — trade journal in `site/data/journal.json`
+- `GET|POST|DELETE /api/paper-trading/journal` — the signed-in user's trade journal (Postgres `journal_entries`, RLS; 401 when signed out)
 
 **Research**
 - `GET /api/research/quote` — live quote for one symbol

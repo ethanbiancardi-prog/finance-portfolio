@@ -38,8 +38,8 @@ Data: Supabase Postgres holds the trade journal (RLS on, policies in
 `supabase/migrations/`). Everything else is still Redis or a flat file.
 
 Stack: Next.js 16 App Router · React 19 · TypeScript · Tailwind v4 · Recharts ·
-`@anthropic-ai/sdk` · Upstash Redis · `pdf-parse` · `fflate`. No database, no
-Python — server state is Redis plus one JSON file for the trade journal. AI
+`@anthropic-ai/sdk` · Upstash Redis · Supabase · `pdf-parse` · `fflate`. No
+Python — server state is Redis, plus Postgres for the trade journal. AI
 calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 
 ## Every route
@@ -48,7 +48,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/` — homepage: masthead, live account snapshot, ruled index of the projects
 - `/about` — bio, coursework, skills
 - `/research` — Stock Research: Search · Browse by Sector · Research Signals
-- `/paper-trading` — live Alpaca paper account: equity, positions, buy/sell, journal, risk metrics
+- `/paper-trading` — live Alpaca paper account: equity, positions, buy/sell, risk metrics
 - `/rotation` — Momentum + Leverage strategy: current picks, regime state, rebalance
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
 - `/optimizer` — efficient frontier across user-entered tickers
