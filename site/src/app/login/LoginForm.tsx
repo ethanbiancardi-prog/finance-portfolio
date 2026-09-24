@@ -20,6 +20,8 @@ export default function LoginForm() {
           what someone with an account will do most often. */}
       <form action={action} className="space-y-4">
         <input type="hidden" name="next" value={next} />
+        {/* Only used by Create an account; signing in ignores it. */}
+        <Field label="Name" name="name" autoComplete="name" maxLength={60} suffix="new accounts only" />
         <Field label="Email" name="email" type="email" autoComplete="email" required />
         <Field
           label="Password"

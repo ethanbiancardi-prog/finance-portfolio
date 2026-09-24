@@ -58,7 +58,8 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta
 - `/education` and `/education/[slug]` — two tracks: tool guides and finance fundamentals, with search
 - `/login` — email + password sign-in (create account on the same form)
-- `/dashboard` — signed-in-only area; holds the trade journal
+- `/dashboard` — signed-in-only area: name, paper portfolio, strategy, trade journal
+- `/contact` — contact form (bug / question / opportunity), saved to Supabase and emailed via Resend
 - `/client-work` — passcode-gated private client case studies
 - Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`
 
@@ -88,7 +89,9 @@ Local: `site/.env.local`, gitignored. Production: Vercel project settings.
 `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`, `KV_REST_API_URL`,
 `KV_REST_API_TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (server-only; without
-it dashboard trading returns 503). **Optional** `CLIENT_WORK_PASSCODE`,
+it dashboard trading returns 503). **Optional** `RESEND_API_KEY` (contact-form email via Resend;
+without it the form emails through FormSubmit, which needs no key), `CONTACT_TO_EMAIL`,
+`CONTACT_FROM_EMAIL`, `CLIENT_WORK_PASSCODE`,
 `CLIENT_WORK_SECRET`, `SIGNALS_DEBUG`. `KV_URL`, `REDIS_URL`,
 `KV_REST_API_READ_ONLY_TOKEN` and `VERCEL_OIDC_TOKEN` are Vercel-provisioned
 and unread by app code.

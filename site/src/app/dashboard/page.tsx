@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { Button, Card, PageShell, SectionHeader } from "@/components/ui";
+import { Button, Card, Field, PageShell, SectionHeader } from "@/components/ui";
+import { updateName } from "./actions";
 import { getUser } from "@/lib/supabase/server";
 import { signOut } from "../login/actions";
 import Journal from "./Journal";
@@ -21,7 +22,25 @@ export default async function Dashboard() {
     >
       <Card as="section" className="mt-4">
         <SectionHeader label="signed in as" />
-        <p className="mt-2 text-sm text-foreground">{user.email}</p>
+        {user.user_metadata?.full_name && (
+          <p className="mt-2 text-sm text-foreground">{String(user.user_metadata.full_name)}</p>
+        )}
+        <p className={user.user_metadata?.full_name ? "text-xs text-zinc-400" : "mt-2 text-sm text-foreground"}>
+          {user.email}
+        </p>
+        {/* Accounts made before names were asked for can add one here. */}
+        <form action={updateName} className="mt-3 flex flex-wrap items-end gap-2">
+          <Field
+            label={user.user_metadata?.full_name ? "Change name" : "Add your name"}
+            name="name"
+            autoComplete="name"
+            maxLength={60}
+            required
+            defaultValue={String(user.user_metadata?.full_name ?? "")}
+            className="w-48"
+          />
+          <Button variant="outline">Save</Button>
+        </form>
         <dl className="mt-3 divide-y divide-border/60 border-t border-border/60">
           <div className="grid grid-cols-[6rem_1fr] gap-3 py-1.5">
             <dt className="text-xs text-zinc-500">User ID</dt>

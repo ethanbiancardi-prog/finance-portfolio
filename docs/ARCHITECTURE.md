@@ -45,7 +45,8 @@ trade journal, with Row Level Security enforcing ownership
 | `/research` | **Stock Research** — three tabs: Search, Browse by Sector, Research Signals |
 | `/paper-trading` | Live Alpaca paper account: equity, positions, buy/sell, risk metrics |
 | `/login` | Email + password sign-in / sign-up (Supabase) |
-| `/dashboard` | Signed-in only: account details and your trade journal |
+| `/dashboard` | Signed-in only: name, paper portfolio, strategy, trade journal |
+| `/contact` | Contact form (bug / question / opportunity / other) |
 | `/rotation` | Momentum + Leverage strategy dashboard: current picks, regime state, rebalance button |
 | `/dcf-builder` | Interactive DCF with sensitivity grid; "Load from a 10-K" prefill |
 | `/optimizer` | Efficient frontier sampled across user-entered tickers |
@@ -79,7 +80,11 @@ reaches the browser.
 **Per-user paper portfolio (Supabase)**
 - `GET /api/portfolio` — opens the user's $100,000 account on first call, then returns cash, positions and a daily equity curve vs SPY, all rebuilt from `paper_trades` (`lib/portfolio.ts`)
 - `POST /api/portfolio/trade` — `{symbol, side, qty}`; market hours only; server-priced, written via `place_paper_trade()` with the secret key (`lib/supabase/admin.ts`)
-- `GET|PUT|DELETE /api/portfolio/strategy` — the user's saved strategy (`paper_strategies`, RLS); `POST` previews the whole-share orders a config would place now, without trading (`lib/strategies.ts`)
+- `GET|PUT|PATCH|DELETE /api/portfolio/strategy` — the user's saved strategy and its last 10 runs (`paper_strategies`, `paper_strategy_runs`, RLS); `PATCH {active}` turns it on/off; `POST` previews the whole-share orders a config would place now, without trading (`lib/strategies.ts`)
+- Active strategies are rebalanced by `lib/strategyRunner.ts`, called from `api/cron/daily`
+
+**Contact**
+- `POST /api/contact` — validates, honeypot + 5/hour/IP rate limit (Redis), saves to `contact_messages` with the secret key, and emails `CONTACT_TO_EMAIL` (Reply-To = sender): via FormSubmit by default (no key; the first message sends a one-time activation email), or via Resend when `RESEND_API_KEY` is set
 
 **Research**
 - `GET /api/research/quote` — live quote for one symbol

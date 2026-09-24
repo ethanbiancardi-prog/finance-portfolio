@@ -28,10 +28,20 @@ export async function authenticate(_prev: State, formData: FormData): Promise<St
   const supabase = await createClient();
 
   if (intent === "signup") {
+    const name = String(formData.get("name") ?? "").trim();
+    if (!name) return { error: "Add your name to create an account.", notice: null };
+    if (name.length > 60) return { error: "Keep the name under 60 characters.", notice: null };
     if (password.length < 8) {
       return { error: "Password needs to be at least 8 characters.", notice: null };
     }
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // The name rides along as user metadata on the Supabase account itself,
+    // so it needs no table of its own. Read it back as
+    // user.user_metadata.full_name.
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } },
+    });
     if (error) return { error: error.message, notice: null };
 
     // With email confirmation on in Supabase, the account exists but has no
