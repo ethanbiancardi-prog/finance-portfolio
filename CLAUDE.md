@@ -34,6 +34,9 @@ pages + `/api` routes, `src/components`, `src/lib` = all finance logic,
 the live strategy write-up at `projects/paper-trading/STRATEGY.md`; `docs/` is
 the long-form documentation listed at the bottom of this file.
 
+Data: Supabase Postgres holds the trade journal (RLS on, policies in
+`supabase/migrations/`). Everything else is still Redis or a flat file.
+
 Stack: Next.js 16 App Router · React 19 · TypeScript · Tailwind v4 · Recharts ·
 `@anthropic-ai/sdk` · Upstash Redis · `pdf-parse` · `fflate`. No database, no
 Python — server state is Redis plus one JSON file for the trade journal. AI
@@ -55,12 +58,12 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta
 - `/education` and `/education/[slug]` — two tracks: tool guides and finance fundamentals, with search
 - `/login` — email + password sign-in (create account on the same form)
-- `/dashboard` — signed-in-only area; the trade journal moves here in step 2
+- `/dashboard` — signed-in-only area; holds the trade journal
 - `/client-work` — passcode-gated private client case studies
 - Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`
 
 **API** (all server-side; no key ever reaches the browser)
-- `/api/paper-trading/*` — `account`, `positions`, `orders`, `history`, `risk-metrics`, `search`, `journal`
+- `/api/paper-trading/*` — `account`, `positions`, `orders`, `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
 - `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-persona panel), `simplify` (AI)
 - `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `industry`, `red-flags` (AI)
 - `/api/dcf/prefill` — DCF assumptions from EDGAR facts, pure XBRL math; `/api/optimizer/frontier` and `/api/monte-carlo/simulate` — the two solvers

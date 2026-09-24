@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
@@ -63,17 +64,6 @@ type EquityPoint = {
   equity: number;
 };
 
-type JournalEntry = {
-  id: string;
-  date: string;
-  ticker: string;
-  action: "buy" | "sell";
-  thesis: string;
-  exitCondition: string;
-};
-
-const today = () => new Date().toISOString().slice(0, 10);
-
 type PortfolioHistory = {
   timestamp: number[];
   equity: (number | null)[];
@@ -102,7 +92,6 @@ function PaperTradingPage() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [equityHistory, setEquityHistory] = useState<EquityPoint[]>([]);
-  const [journal, setJournal] = useState<JournalEntry[]>([]);
   const [riskMetrics, setRiskMetrics] = useState<RiskMetrics | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   // Hold the mark on screen while it reassembles, before the timestamp
@@ -114,27 +103,20 @@ function PaperTradingPage() {
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [message, setMessage] = useState("");
 
-  const [journalDate, setJournalDate] = useState(today());
-  const [journalTicker, setJournalTicker] = useState("");
-  const [journalAction, setJournalAction] = useState<"buy" | "sell">("buy");
-  const [journalThesis, setJournalThesis] = useState("");
-  const [journalExit, setJournalExit] = useState("");
 
   async function loadAll() {
     setRefreshing(true);
-    const [accountRes, positionsRes, ordersRes, historyRes, journalRes, riskMetricsRes] =
+    const [accountRes, positionsRes, ordersRes, historyRes, riskMetricsRes] =
       await Promise.all([
         fetch("/api/paper-trading/account"),
         fetch("/api/paper-trading/positions"),
         fetch("/api/paper-trading/orders"),
         fetch("/api/paper-trading/history"),
-        fetch("/api/paper-trading/journal"),
         fetch("/api/paper-trading/risk-metrics"),
       ]);
     setAccount(await accountRes.json());
     setPositions(await positionsRes.json());
     setOrders(await ordersRes.json());
-    setJournal(await journalRes.json());
     setRiskMetrics(await riskMetricsRes.json());
 
     const history: PortfolioHistory = await historyRes.json();
@@ -164,22 +146,20 @@ function PaperTradingPage() {
   }, []);
 
   // Arriving from a research-page option: ?ticker=X&side=buy pre-fills the
-  // order form, ?journal=X&thesis=... pre-fills a journal entry. Deferred a
-  // tick so the state updates don't run synchronously inside the effect.
+  // order form. ?journal=X used to pre-fill a journal entry here; the journal
+  // moved to /dashboard, so that parameter now just scrolls to the pointer.
+  // Deferred a tick so the state updates don't run synchronously inside the
+  // effect.
   useEffect(() => {
     const orderTicker = params.get("ticker")?.toUpperCase();
     const side = params.get("side");
     const journalFor = params.get("journal")?.toUpperCase();
-    const thesis = params.get("thesis");
     if (!orderTicker && !journalFor) return;
     const id = window.setTimeout(() => {
       if (orderTicker) {
         setSymbol(orderTicker);
         if (side === "buy" || side === "sell") setSide(side);
       }
-      const jt = journalFor ?? orderTicker;
-      if (jt) setJournalTicker(jt);
-      if (thesis) setJournalThesis(thesis);
       if (journalFor) document.getElementById("journal")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 0);
     return () => window.clearTimeout(id);
@@ -204,28 +184,6 @@ function PaperTradingPage() {
     setSymbol("");
     setQty("");
     loadAll();
-  }
-
-  async function submitJournalEntry(e: React.FormEvent) {
-    e.preventDefault();
-
-    const res = await fetch("/api/paper-trading/journal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: journalDate,
-        ticker: journalTicker,
-        action: journalAction,
-        thesis: journalThesis,
-        exitCondition: journalExit,
-      }),
-    });
-
-    const entry = await res.json();
-    setJournal([entry, ...journal]);
-    setJournalTicker("");
-    setJournalThesis("");
-    setJournalExit("");
   }
 
   return (
@@ -354,79 +312,16 @@ function PaperTradingPage() {
 
       <Card as="section" className="mt-4" id="journal">
         <SectionHeader label="trade journal" />
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left">
-            <thead>
-              <tr className={tableHeadRowClass}>
-                <th className={tableHeadCellClass}>Date</th>
-                <th className={tableHeadCellClass}>Ticker</th>
-                <th className={tableHeadCellClass}>Action</th>
-                <th className={tableHeadCellClass}>Thesis</th>
-                <th className={tableHeadCellClass}>Exit Condition</th>
-              </tr>
-            </thead>
-            <tbody>
-              {journal.map((entry) => (
-                <tr key={entry.id} className={`${tableRowClass} align-top`}>
-                  <td className={`${tableCellClass} whitespace-nowrap pr-3`}>{entry.date}</td>
-                  <td className={`${tableCellStrongClass} pr-3`}>{entry.ticker}</td>
-                  <td className={`${tableCellClass} pr-3 caps ${entry.action === "buy" ? "text-good" : "text-bad"}`}>
-                    {entry.action}
-                  </td>
-                  <td className={`${tableCellClass} pr-3 leading-4`}>{entry.thesis}</td>
-                  <td className={`${tableCellClass} leading-4`}>{entry.exitCondition}</td>
-                </tr>
-              ))}
-              {journal.length === 0 && <EmptyRow colSpan={5}>no journal entries yet</EmptyRow>}
-            </tbody>
-          </table>
-        </div>
-
-        <form onSubmit={submitJournalEntry} className="mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-3">
-          <Field
-            label="Date"
-            type="date"
-            value={journalDate}
-            onChange={(e) => setJournalDate(e.target.value)}
-            required
-            className="w-auto"
-          />
-          <Field
-            label="Ticker"
-            placeholder="AAPL"
-            value={journalTicker}
-            onChange={(e) => setJournalTicker(e.target.value)}
-            required
-            className="w-24"
-          />
-          <SelectField
-            label="Action"
-            value={journalAction}
-            onChange={(e) => setJournalAction(e.target.value as "buy" | "sell")}
-            options={[
-              { value: "buy", label: "Buy" },
-              { value: "sell", label: "Sell" },
-            ]}
-          />
-          <Field
-            label="Thesis (one line)"
-            placeholder="Why this trade"
-            value={journalThesis}
-            onChange={(e) => setJournalThesis(e.target.value)}
-            required
-            wrapperClassName="min-w-40 flex-1"
-          />
-          <Field
-            label="Exit Condition"
-            placeholder="What makes you sell"
-            value={journalExit}
-            onChange={(e) => setJournalExit(e.target.value)}
-            required
-            wrapperClassName="min-w-40 flex-1"
-          />
-          <Button type="submit">Add Entry</Button>
-        </form>
+        <p className="mt-3 max-w-2xl text-xs leading-5 text-zinc-400">
+          The journal moved to your{" "}
+          <Link href="/dashboard#journal" className="text-accent underline decoration-accent/40 underline-offset-4">
+            dashboard
+          </Link>
+          . Entries are private to your account now, so they live behind a sign-in
+          rather than on this public page.
+        </p>
       </Card>
+
 
       <Card as="section" className="mt-4">
         <SectionHeader label="recent orders" />

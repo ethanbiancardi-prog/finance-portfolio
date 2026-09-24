@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import { Button, Callout, Card, PageShell, SectionHeader } from "@/components/ui";
+import { Button, Card, PageShell, SectionHeader } from "@/components/ui";
 import { getUser } from "@/lib/supabase/server";
 import { signOut } from "../login/actions";
+import Journal from "./Journal";
 
 export default async function Dashboard() {
   // proxy.ts already redirects signed-out visitors, but a page that shows
@@ -14,7 +15,7 @@ export default async function Dashboard() {
     <PageShell
       eyebrow="account"
       title="Dashboard"
-      description="Your private area. Right now it holds nothing but your account; the trade journal moves in next."
+      description="Your private area: your trade journal, and the account it belongs to."
     >
       <Card as="section" className="mt-4">
         <SectionHeader label="signed in as" />
@@ -36,11 +37,7 @@ export default async function Dashboard() {
         </form>
       </Card>
 
-      <Callout label="what's next" className="mt-4">
-        Step 2 moves the trade journal off its JSON file and into Postgres, with
-        each entry tagged to the user id above. The database will then enforce
-        that you can only ever read and write your own rows.
-      </Callout>
+      <Journal />
     </PageShell>
   );
 }
