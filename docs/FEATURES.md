@@ -176,6 +176,44 @@ These three rules fixed Honeywell (a +297% "growth" figure that was really a
 quarter), Morgan Stanley (2014 revenue shown as current) and BlackRock (a
 sub-total tag beating the total). Keep them when adding tags.
 
+### The DCF reads quarters too (Sep 2026)
+
+Those rules are right for the 17-ratio dashboard, which compares one fiscal
+year with the next. They left the DCF up to twelve months stale: Apple's last
+10-K covers the year to Sep 2025, and three 10-Qs have been filed since.
+
+`ttmAny()` in `lib/edgar.ts` builds a trailing-twelve-month figure from the
+cumulative year-to-date numbers every 10-Q carries:
+
+```
+TTM = year-to-date this year + (last full year − year-to-date last year)
+```
+
+Apple: 364,357 + (416,161 − 313,695) = **466,823**, against the 416,161 the
+annual series reports. The prefill uses TTM whenever it is at least two months
+fresher, and every "how" line says which window a figure covers.
+
+Two details that matter if you touch it:
+
+- The prior-year leg is matched on duration with **12 days of slack**, because
+  quarter ends drift on a 52/53-week calendar (Coca-Cola's Q1 2026 is 92 days
+  against 86 the year before). Quarters sit ~91 days apart, so the slack cannot
+  confuse a one-quarter stretch with a two-quarter one.
+- Ratios divide by revenue **on the same basis** as the numerator, so a TTM
+  operating profit is never divided by annual sales. Where only one leg of a
+  ratio has quarterly tagging (the effective tax rate, for some filers), both
+  drop back to the fiscal year rather than the field disappearing.
+
+Balance-sheet figures (cash, debt, working capital) come from the newest
+balance sheet filed rather than the year end, all read at that one date so the
+"every figure from one period" rule still holds.
+
+**Known gaps.** Foreign private issuers reporting under IFRS return nothing:
+Spotify files a 20-F with facts under `ifrs-full`, and every tag list here is
+`us-gaap`. Supporting them means a second tag vocabulary, not a filter change.
+ExxonMobil also fails ("No annual revenue on file"), which predates this work
+and is not yet diagnosed.
+
 ## Homepage screenshots
 
 Thumbnails live in `site/public/screenshots/` and are hidden on phones.

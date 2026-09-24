@@ -126,6 +126,19 @@ function latestAnnual(points: FactPoint[]): FactPoint[] {
   return [...byEnd.values()].sort((a, b) => b.end.localeCompare(a.end));
 }
 
+function daysBetween(from: string, to: string): number {
+  return (Date.parse(to) - Date.parse(from)) / 86_400_000;
+}
+
+// A trailing-twelve-month figure and the window it covers.
+export type TtmPoint = {
+  value: number;
+  end: string; // last day of the TTM window
+  fyEnd: string; // the full fiscal year it was built from
+  fyValue: number; // that year's figure, for showing the difference
+  monthsNewer: number; // how much fresher the TTM window is
+};
+
 function safeDiv(numerator: number | null, denominator: number | null) {
   if (numerator == null || !denominator) return null;
   return numerator / denominator;
@@ -235,7 +248,94 @@ function buildSeriesHelpers(facts: any) {
     return points.find((p) => p.end === end)?.val ?? null;
   }
 
-  return { series, seriesAny, val, deiSeries, yearEnds };
+  // Everything above reads annual (10-K) facts only, which is right for a
+  // year-over-year ratio table but leaves a valuation up to twelve months
+  // behind: Apple's last 10-K covers the year to Sep 2025, and three 10-Qs
+  // have been filed since. The helpers below reach into those quarterly
+  // facts so a DCF can be built on current numbers.
+  function rawPoints(tag: string, unit: "USD" | "shares" = "USD"): FactPoint[] {
+    return gaap[tag]?.units?.[unit] ?? [];
+  }
+
+  const spanOf = (p: FactPoint) => (p.start ? daysBetween(p.start, p.end) : 0);
+
+  /**
+   * Trailing twelve months for a flow fact (revenue, operating income, capex).
+   *
+   * SEC publishes cumulative year-to-date figures in every 10-Q, so the
+   * window is arithmetic rather than a sum of individual quarters:
+   *
+   *   TTM = year-to-date this year + (last full year − year-to-date last year)
+   *
+   * For Apple that is 364,357 + (416,161 − 313,695) = 466,823, versus the
+   * 416,161 the annual series reports. Returns null when any leg is missing,
+   * so callers fall back to the fiscal year.
+   */
+  function ttmAny(tags: string[]): TtmPoint | null {
+    const fy = seriesAny(tags)[0];
+    if (!fy?.start) return null;
+
+    const raw = tags.flatMap((tag) => rawPoints(tag));
+
+    // Year-to-date inside the CURRENT fiscal year. Its start should be the
+    // day after the last year ended, with a few days of slack for the
+    // 52/53-week calendars retailers and Apple use.
+    const ytdNow = raw
+      .filter((p) => p.start && p.end > fy.end && daysBetween(fy.end, p.start) >= 0 && daysBetween(fy.end, p.start) <= 4)
+      .sort((a, b) => b.end.localeCompare(a.end) || b.filed.localeCompare(a.filed))[0];
+    if (!ytdNow) return null;
+
+    // The matching stretch of the prior year, to subtract back out. The
+    // tolerance is wide because quarter ends drift on a 52/53-week calendar:
+    // Coca-Cola's Q1 2026 runs 92 days against 86 the year before. Quarters
+    // sit ~91 days apart, so 12 days of slack still cannot confuse a
+    // one-quarter stretch with a two-quarter one.
+    const span = spanOf(ytdNow);
+    const ytdPrior = raw
+      .filter((p) => p.start && Math.abs(daysBetween(fy.start!, p.start)) <= 4 && Math.abs(spanOf(p) - span) <= 12)
+      .sort((a, b) => b.filed.localeCompare(a.filed))[0];
+    if (!ytdPrior) return null;
+
+    return {
+      value: ytdNow.val + fy.val - ytdPrior.val,
+      end: ytdNow.end,
+      fyEnd: fy.end,
+      fyValue: fy.val,
+      monthsNewer: Math.round(daysBetween(fy.end, ytdNow.end) / 30.44),
+    };
+  }
+
+  // Balance-sheet facts are instants (no start date). The newest one Assets
+  // reports is the latest balance sheet the company has filed, quarterly or
+  // annual — net debt read at the fiscal year end is as stale as revenue was.
+  const latestBalanceSheetEnd: string | null =
+    rawPoints("Assets")
+      .filter((p) => !p.start)
+      .reduce<string | null>((max, p) => (max == null || p.end > max ? p.end : max), null) ?? null;
+
+  // Read a balance-sheet item at one specific date. Every caller passes the
+  // same date, which keeps the "all figures from one period" rule intact —
+  // it is just anchored to the latest quarter now instead of the last year.
+  function instantAt(tags: string[], end: string): number | null {
+    for (const tag of tags) {
+      const hit = rawPoints(tag)
+        .filter((p) => !p.start && p.end === end)
+        .sort((a, b) => b.filed.localeCompare(a.filed))[0];
+      if (hit) return hit.val;
+    }
+    return null;
+  }
+
+  return {
+    series,
+    seriesAny,
+    val,
+    deiSeries,
+    yearEnds,
+    ttmAny,
+    instantAt,
+    latestBalanceSheetEnd,
+  };
 }
 
 // The same helpers, for modules outside this file (lib/dcfPrefill.ts).
