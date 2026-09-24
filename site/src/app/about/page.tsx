@@ -31,15 +31,33 @@ export default function About() {
     <PageShell
       eyebrow="about"
       title="Ethan Biancardi"
-      subtitle="Bentley University — Finance & Artificial Intelligence"
+      subtitle="Bentley University, Finance & Artificial Intelligence"
       description="Double major, expected graduation Spring 2029."
     >
       <section className="mt-4">
         <SectionHeader label="why I built this" />
-        <p className="mt-2 max-w-2xl text-xs leading-5 text-zinc-400">
-          I built this finance portfolio because I wanted to learn more about coding with AI while
-          also learning essential financial hard skills like building DCF models.
-        </p>
+        <div className="mt-2 max-w-2xl space-y-3 text-xs leading-5 text-zinc-400">
+          <p>
+            I built PRISM because I wanted to learn how a website is made and how different trading strategies work. I
+            started with a clear idea of what I wanted: a paper trading simulator that could automate trading, so I could find
+            out which strategies work best and potentially put real money through the same process one day. I did not think it
+            would turn out like this. It is not finished yet, and I keep adding to it every day.
+          </p>
+          <p>
+            I used AI for most of the coding and for finding data, which ties into the other reason I built this. I have
+            always been interested in finding ways to incorporate AI into finance, because I think it can make people in this
+            industry far more productive. Work that used to take an analyst hours, like reading through a 10-K or tracking news
+            across a whole portfolio, can now take minutes. On PRISM, AI summarizes 10-K filings, flags risks buried inside
+            them, argues a stock from six different investor viewpoints, and scans for new laws and world events that could
+            affect a company. That frees up time for the parts of the job that still need a person: judgment, conviction, and
+            the final decision.
+          </p>
+          <p>
+            The biggest thing I have learned is that AI works best as a research assistant, not a decision maker. Every AI
+            result on the site shows its source and the date it came from, and anywhere a plain formula does the job, like a
+            DCF or a Sharpe ratio, I used the formula instead.
+          </p>
+        </div>
       </section>
 
       <section className="mt-4">
@@ -86,7 +104,7 @@ export default function About() {
         <SectionHeader label="contact" />
         <div className="mt-3 space-y-1.5 text-xs">
           <p>
-            <span className="text-zinc-500">Email — </span>
+            <span className="text-zinc-500">Email: </span>
             <a
               href="mailto:ethanbiancardi@gmail.com"
               className="text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-accent hover:decoration-accent"
@@ -95,7 +113,7 @@ export default function About() {
             </a>
           </p>
           <p>
-            <span className="text-zinc-500">School Email — </span>
+            <span className="text-zinc-500">School Email: </span>
             <a
               href="mailto:ebiancardi@falcon.bentley.edu"
               className="text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-accent hover:decoration-accent"
@@ -104,7 +122,7 @@ export default function About() {
             </a>
           </p>
           <p>
-            <span className="text-zinc-500">GitHub — </span>
+            <span className="text-zinc-500">GitHub: </span>
             <a
               href="https://github.com/ethanbiancardi-prog"
               target="_blank"
@@ -115,7 +133,7 @@ export default function About() {
             </a>
           </p>
           <p>
-            <span className="text-zinc-500">LinkedIn — </span>
+            <span className="text-zinc-500">LinkedIn: </span>
             <a
               href="https://www.linkedin.com/in/ethan-biancardi"
               target="_blank"
