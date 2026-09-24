@@ -90,7 +90,7 @@ Local: `site/.env.local`, gitignored. Production: Vercel project settings.
 `KV_REST_API_TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (server-only; without
 it dashboard trading returns 503). **Optional** `RESEND_API_KEY` (contact-form email via Resend;
-without it the browser emails through FormSubmit, which needs no key), `CONTACT_TO_EMAIL`,
+without it messages are only saved to `contact_messages`), `CONTACT_TO_EMAIL`,
 `CONTACT_FROM_EMAIL`, `CLIENT_WORK_PASSCODE`,
 `CLIENT_WORK_SECRET`, `SIGNALS_DEBUG`. `KV_URL`, `REDIS_URL`,
 `KV_REST_API_READ_ONLY_TOKEN` and `VERCEL_OIDC_TOKEN` are Vercel-provisioned

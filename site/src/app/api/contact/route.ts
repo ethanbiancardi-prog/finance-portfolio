@@ -5,8 +5,7 @@ import { getUser } from "@/lib/supabase/server";
 
 // The contact form. Each message is saved to Supabase (contact_messages)
 // first, so nothing is lost, then emailed to Ethan with Reply-To set to the
-// sender: from here via Resend when RESEND_API_KEY is set, otherwise from
-// the visitor's browser via FormSubmit (ContactForm.tsx).
+// sender, via Resend. Without RESEND_API_KEY the message is only saved.
 
 const CATEGORIES = { bug: "Bug", question: "Question", opportunity: "Opportunity", other: "Other" } as const;
 type Category = keyof typeof CATEGORIES;
@@ -64,10 +63,6 @@ export async function POST(request: Request) {
     .single();
   if (error) return NextResponse.json({ error: `Couldn't send that. Email me at ${TO}.` }, { status: 500 });
 
-  // Without a Resend key, the browser emails the message itself through
-  // FormSubmit after this returns (see ContactForm.tsx). FormSubmit only
-  // accepts posts from a visitor's browser; calling it from here was
-  // silently dropped.
   let emailed = false;
   if (process.env.RESEND_API_KEY) {
     const label = CATEGORIES[category];

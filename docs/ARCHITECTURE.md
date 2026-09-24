@@ -84,7 +84,7 @@ reaches the browser.
 - Active strategies are rebalanced by `lib/strategyRunner.ts`, called from `api/cron/daily`
 
 **Contact**
-- `POST /api/contact` — validates, honeypot + 5/hour/IP rate limit (Redis), saves to `contact_messages` with the secret key, and emails `CONTACT_TO_EMAIL` (Reply-To = sender): via FormSubmit from the visitor's browser by default (no key; FormSubmit drops server-side posts; the first message from each site address sends a one-time activation email), or via Resend when `RESEND_API_KEY` is set
+- `POST /api/contact` — validates, honeypot + 5/hour/IP rate limit (Redis), saves to `contact_messages` with the secret key, and emails `CONTACT_TO_EMAIL` (Reply-To = sender) via Resend when `RESEND_API_KEY` is set (otherwise it's only saved)
 
 **Research**
 - `GET /api/research/quote` — live quote for one symbol
