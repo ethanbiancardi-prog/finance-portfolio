@@ -135,3 +135,30 @@ reaches the browser.
   Definitions come from the Quant Notes, so add the note first.
 - Wrap new AI-written text in `SimpleText` / `JargonText` so it participates in
   the "Explain simply" toggle.
+
+## Visual identity (Sep 23 2026 redesign)
+
+- The site is named **PRISM** in the homepage masthead eyebrow. It is a
+  wordmark only — no logo file, no other branding to keep in sync.
+- The homepage is deliberately **not** built from `PageShell`/`Card`: it is a
+  masthead, a live account snapshot (`lib/homeSnapshot.ts`, with a sparkline)
+  and a ruled index of projects. It still reads only from theme tokens, so
+  mode/accent/style switching keeps working.
+- **Fonts** are all `next/font/google`, loaded in `layout.tsx` as CSS
+  variables: EB Garamond for body and prose (`--font-eb-garamond`, set a
+  couple of steps larger because of its small x-height), Newsreader and
+  Fraunces as display faces selected by `--font-display`, Geist and Geist Mono
+  for UI and numerals.
+- **Two loaders, no skeleton bars.**
+  - `PageLoading` — shown while a page's JS chunk (and its Recharts import)
+    streams in. Draws a fixed, hand-written equity curve on a grid with a scan
+    line; pure CSS, keyframes in `globals.css`. The path is hand-written, not
+    random, so server and client render identically.
+  - `GeometricLoader` — a hexagon of six facets that fold inward in sequence
+    while work is in flight, then reconstruct into a whole hexagon when it
+    finishes. Use `<GeometricLoader loading={busy} />` and keep rendering it
+    after the work ends so the reconstruct can play; it unmounts itself.
+    It has **no progress arc on purpose** — an AI scan can take thirty seconds
+    and vary a lot, so a progress indicator would be inventing information.
+- Rendered copy and AI prompts contain **no em dashes** (Sep 23 sweep). Keep it
+  that way when adding user-facing text or prompt instructions.
