@@ -208,11 +208,46 @@ Balance-sheet figures (cash, debt, working capital) come from the newest
 balance sheet filed rather than the year end, all read at that one date so the
 "every figure from one period" rule still holds.
 
+### Successor registrants (Sep 2026)
+
+A holding-company reorganisation hands the ticker to a brand-new CIK with no
+filing history. XOM resolves to "ExxonMobil Holdings Corp" (CIK 2115436,
+registered July 2026 via an 8-K12B, one 10-Q and no 10-K) while eighteen years
+of annual reports sit under "Exxon Mobil Corp" (CIK 34088) — which SEC's ticker
+file no longer lists at all, with an empty `formerNames`. Nothing links the two,
+and the ratio dashboard came back 0/17.
+
+`getCompanyFactsWithHistory()` handles it:
+
+1. Fetch the ticker's CIK. If `hasAnnualRevenue()` passes, done — the normal
+   path is untouched and costs nothing extra.
+2. Otherwise normalise the name (`"ExxonMobil Holdings Corp"` → `"Exxon Mobil"`:
+   split run-together capitals, drop Holdings/Corp/Inc and friends) and ask
+   EDGAR's company search for filers of that name **with a 10-K**, via
+   `browse-edgar?...&output=atom`.
+3. Verify each candidate's facts actually contain annual revenue before
+   trusting it, so a wrong name match cannot substitute another company's
+   numbers. At most three are checked; each is a multi-megabyte download.
+4. **Union both fact trees.** The predecessor holds the annual history, the
+   successor holds the quarters filed since the switch — ExxonMobil's Q2 2026
+   exists only under the new CIK. Reading either alone leaves you a quarter or
+   a year behind. The readers de-duplicate by period end and filing date, so
+   overlapping periods resolve to the newest filing.
+
+XOM after this: revenue $368,757M TTM to Jun 2026 (201,155 + 332,238 − 164,636),
+balance sheet Jun 2026, 11/17 ratios populated. Responses carry `filedUnder`
+naming the entity the history came from, so the UI never implies the successor
+filed it.
+
 **Known gaps.** Foreign private issuers reporting under IFRS return nothing:
 Spotify files a 20-F with facts under `ifrs-full`, and every tag list here is
 `us-gaap`. Supporting them means a second tag vocabulary, not a filter change.
-ExxonMobil also fails ("No annual revenue on file"), which predates this work
-and is not yet diagnosed.
+The error message now says so explicitly rather than just "no annual revenue".
+
+XOM has no EBIT margin, and that is correct rather than broken: like several oil
+majors it never tags `OperatingIncomeLoss`, presenting no operating income line
+at all. Deriving EBIT from pre-tax income plus interest expense would fill the
+gap, and hasn't been done.
 
 ## Homepage screenshots
 

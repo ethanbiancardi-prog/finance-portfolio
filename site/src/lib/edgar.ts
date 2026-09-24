@@ -101,6 +101,156 @@ export async function getCompanyFacts(cik: number) {
   return res.json();
 }
 
+/* -------------------------------------------------------------------------
+   Successor registrants
+
+   A holding-company reorganisation hands the ticker to a brand-new CIK with
+   no filing history. XOM now resolves to "ExxonMobil Holdings Corp"
+   (CIK 2115436, registered July 2026 via an 8-K12B, one 10-Q and no 10-K),
+   while eighteen years of annual reports sit under "Exxon Mobil Corp"
+   (CIK 34088) — which SEC's ticker file no longer lists at all. The
+   submissions feed's formerNames is empty, so nothing links the two and the
+   ratio dashboard came back entirely null.
+
+   EDGAR's company search does link them, by name: ask for filers of that
+   name that have filed a 10-K. The candidate is only trusted once its facts
+   are confirmed to contain annual revenue, so a wrong name match cannot
+   quietly substitute another company's numbers.
+   ------------------------------------------------------------------------- */
+
+/** Does this fact set have annual revenue aligned to its latest year end? */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function hasAnnualRevenue(facts: any): boolean {
+  try {
+    const { seriesAny, yearEnds } = buildSeriesHelpers(facts);
+    const end = yearEnds[0];
+    if (!end) return false;
+    return seriesAny(REVENUE_TAGS).some((p) => p.end === end);
+  } catch {
+    return false;
+  }
+}
+
+// "ExxonMobil Holdings Corp" -> "Exxon Mobil", which is what the predecessor
+// is called. Splits run-together capitals and drops the corporate furniture
+// the two entities disagree about.
+function searchableName(name: string): string {
+  return name
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[^A-Za-z0-9 &]/g, " ")
+    .replace(/\b(holdings?|holdco|corporation|corp|incorporated|inc|company|co|ltd|limited|plc|group|trust|the|new)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function filerName(cik: number): Promise<string | null> {
+  try {
+    const res = await secFetch(`https://data.sec.gov/submissions/CIK${String(cik).padStart(10, "0")}.json`, {
+      next: { revalidate: 86400 },
+    });
+    return (await res.json()).name ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function findPredecessor(name: string, excludeCik: number): Promise<{ cik: number; title: string } | null> {
+  const query = searchableName(name);
+  if (query.length < 3) return null;
+
+  const url = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(query)}&type=10-K&dateb=&owner=include&count=10&output=atom`;
+  const xml = await secFetch(url)
+    .then((r) => r.text())
+    .catch(() => "");
+  if (!xml) return null;
+
+  const candidates = new Set<number>();
+  for (const m of xml.matchAll(/<cik>(\d+)<\/cik>/gi)) candidates.add(Number(m[1]));
+  for (const m of xml.matchAll(/CIK=(\d{6,10})/g)) candidates.add(Number(m[1]));
+  candidates.delete(excludeCik);
+
+  // Check a couple at most: each one is a multi-megabyte facts download.
+  for (const cik of [...candidates].slice(0, 3)) {
+    const facts = await getCompanyFacts(cik).catch(() => null);
+    if (facts && hasAnnualRevenue(facts)) {
+      return { cik, title: (await filerName(cik)) ?? `CIK ${cik}` };
+    }
+  }
+  return null;
+}
+
+// After a reorganisation the two entities hold different halves of the record:
+// the predecessor has every annual report, the successor has the quarters filed
+// since the switch. ExxonMobil's Q2 2026 is only under the new CIK, so reading
+// either one alone leaves the valuation a quarter or a year behind. Unions the
+// two fact trees tag by tag; the readers above already de-duplicate by period
+// end and filing date, so overlapping periods resolve to the newest filing.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mergeFactSets(history: any, recent: any): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const merged: any = { ...history, facts: {} };
+  const namespaces = new Set([...Object.keys(history.facts ?? {}), ...Object.keys(recent.facts ?? {})]);
+  for (const ns of namespaces) {
+    const a = history.facts?.[ns] ?? {};
+    const b = recent.facts?.[ns] ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const out: any = {};
+    for (const tag of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if (!a[tag]) {
+        out[tag] = b[tag];
+        continue;
+      }
+      if (!b[tag]) {
+        out[tag] = a[tag];
+        continue;
+      }
+      const units = { ...a[tag].units };
+      for (const unit of Object.keys(b[tag].units ?? {})) {
+        units[unit] = [...(a[tag].units?.[unit] ?? []), ...(b[tag].units[unit] ?? [])];
+      }
+      out[tag] = { ...a[tag], units };
+    }
+    merged.facts[ns] = out;
+  }
+  return merged;
+}
+
+// Only ever hit on the failure path, and the answer never changes, so a
+// process-lifetime cache is enough. null means "looked and found nothing".
+const predecessorCache = new Map<number, { cik: number; title: string } | null>();
+
+export type FiledFacts = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  facts: any;
+  cik: number;
+  /** Present only when the history came from a predecessor entity, so callers
+   *  can say whose filings the numbers are. */
+  filedUnder?: { cik: number; title: string };
+};
+
+/**
+ * Company facts for a ticker, reaching back to the predecessor entity when a
+ * successor registrant has no annual history of its own. Falls back to the
+ * successor's own (thin) facts if no predecessor can be confirmed.
+ */
+export async function getCompanyFactsWithHistory(company: TickerEntry): Promise<FiledFacts> {
+  const facts = await getCompanyFacts(company.cik);
+  if (hasAnnualRevenue(facts)) return { facts, cik: company.cik };
+
+  if (!predecessorCache.has(company.cik)) {
+    predecessorCache.set(company.cik, await findPredecessor(company.title, company.cik).catch(() => null));
+  }
+  const prior = predecessorCache.get(company.cik);
+  if (!prior) return { facts, cik: company.cik };
+
+  const priorFacts = await getCompanyFacts(prior.cik).catch(() => null);
+  if (!priorFacts || !hasAnnualRevenue(priorFacts)) return { facts, cik: company.cik };
+
+  // The predecessor for the annual history, the successor for the quarters
+  // filed since the reorganisation.
+  return { facts: mergeFactSets(priorFacts, facts), cik: prior.cik, filedUnder: prior };
+}
+
 export type FactPoint = { start?: string; end: string; val: number; fy: number; fp: string; form: string; filed: string };
 
 // Flow facts (revenue, income, cash flow) carry a start date; an annual
