@@ -15,6 +15,13 @@ const PROTECTED = ["/dashboard"];
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  // Supabase not set up yet: no accounts exist, so there is no session to
+  // refresh and nothing to protect. Let every request through rather than
+  // failing the whole site.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return response;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

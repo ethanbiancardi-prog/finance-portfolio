@@ -37,9 +37,17 @@ export async function createClient() {
 // directly — getUser() re-validates the token with Supabase, while reading
 // the cookie alone would trust whatever the browser sent.
 export async function getUser() {
+  if (!supabaseConfigured()) return null;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
+}
+
+// Mirrors kvConfigured() in lib/kv.ts: the app has to keep working when the
+// Supabase env vars are not set yet. Without this, every page on the site
+// fails, because proxy.ts runs on all of them.
+export function supabaseConfigured(): boolean {
+  return !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 }
