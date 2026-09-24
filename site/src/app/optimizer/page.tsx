@@ -110,7 +110,12 @@ export default function Optimizer() {
   const minVarianceSeries = useMemo(() => (result ? [result.minVariance] : []), [result]);
   const maxSharpeSeries = useMemo(() => (result ? [result.maxSharpe] : []), [result]);
 
-  const selectedPortfolio = result && edge.length ? portfolioAt(targetVol, edge, result) : null;
+  // Memoized for the same reason as the series above: the chart now plots it.
+  const selectedPortfolio = useMemo(
+    () => (result && edge.length ? portfolioAt(targetVol, edge, result) : null),
+    [result, edge, targetVol],
+  );
+  const selectedSeries = useMemo(() => (selectedPortfolio ? [selectedPortfolio] : []), [selectedPortfolio]);
 
   return (
     <>
@@ -174,10 +179,12 @@ export default function Optimizer() {
           <section className="mt-4">
             <SectionHeader
               label="sampled frontier"
-              description="Each square is one randomly-weighted portfolio. Accent = max Sharpe, white = min variance."
+              description="Each faint square is one randomly weighted portfolio. The line is the efficient frontier: the best return possible at each level of risk, so nothing can sit above it. Accent square = max Sharpe, solid square = min variance, ring = the risk level picked below."
             />
             <Chart
               samples={result.samples}
+              frontier={result.frontier}
+              selectedSeries={selectedSeries}
               minVarianceSeries={minVarianceSeries}
               maxSharpeSeries={maxSharpeSeries}
             />
