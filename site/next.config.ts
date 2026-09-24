@@ -6,7 +6,12 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pdf-parse"],
   async redirects() {
     // The 10-K analyzer moved into the research tab; keep old links working.
-    return [{ source: "/statement-analyzer", destination: "/research", permanent: true }];
+    return [
+      { source: "/statement-analyzer", destination: "/research", permanent: true },
+      // Quant Notes grew into the Education section (tool guides + fundamentals).
+      { source: "/quant-notes", destination: "/education", permanent: true },
+      { source: "/quant-notes/:slug", destination: "/education/:slug", permanent: true },
+    ];
   },
 };
 

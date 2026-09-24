@@ -79,7 +79,7 @@ export function Term({ term, children, className }: { term: GlossaryKey; childre
           <span className="mt-1 block text-[11px] leading-5 text-zinc-500 dark:text-zinc-400">{entry.definition}</span>
           {entry.noteSlug && (
             <Link
-              href={`/quant-notes/${entry.noteSlug}`}
+              href={`/education/${entry.noteSlug}`}
               className="mt-2 inline-block text-[11px] text-accent underline decoration-border underline-offset-4 hover:decoration-accent"
             >
               Read the note →

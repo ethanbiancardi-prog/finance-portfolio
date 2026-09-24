@@ -53,9 +53,9 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/quant/backtester` — the live strategy run through four synthetic regimes
 - `/quant/factor-risk` — market/rates/inflation variance attribution
 - `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta
-- `/quant-notes` and `/quant-notes/[slug]` — plain-language quant explainers
+- `/education` and `/education/[slug]` — two tracks: tool guides and finance fundamentals, with search
 - `/client-work` — passcode-gated private client case studies
-- Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`
+- Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`
 
 **API** (all server-side; no key ever reaches the browser)
 - `/api/paper-trading/*` — `account`, `positions`, `orders`, `history`, `risk-metrics`, `search`, `journal`

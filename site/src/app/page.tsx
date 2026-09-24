@@ -71,7 +71,7 @@ const projects: Project[] = [
   {
     name: "Quant Notes",
     blurb: "The math behind these tools, in plain language.",
-    href: "/quant-notes",
+    href: "/education",
     status: "Live",
   },
   {

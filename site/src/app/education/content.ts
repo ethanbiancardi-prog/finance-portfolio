@@ -1,3 +1,10 @@
+// The Education section has two tracks. "fundamentals" entries explain a
+// concept and use the note format below, ordered beginner to advanced by
+// `level`. "tools" entries are guides to one tool on this site and add a
+// `guide` block: what it does, how to read its output, and a walkthrough you
+// can follow in the tool itself.
+export type Track = "fundamentals" | "tools";
+
 export type NoteDetail = {
   summary: string;
   intuition: string[];
@@ -5,6 +12,18 @@ export type NoteDetail = {
   example: { setup: string; steps: { label: string; calc: string }[]; result: string };
   useful: string[];
   breaks: string[];
+  glossary: { term: string; definition: string }[];
+};
+
+export type GuideDetail = {
+  // What the tool does, in one paragraph, before any finance vocabulary.
+  does: string;
+  // The concept the tool is built on, and why the tool needs it.
+  concept: string[];
+  // How to read each part of what the tool puts on screen.
+  reading: { part: string; means: string }[];
+  // A walkthrough the reader can repeat in the live tool, with real inputs.
+  walkthrough: { setup: string; steps: { label: string; calc: string }[]; result: string };
   glossary: { term: string; definition: string }[];
 };
 
@@ -16,12 +35,26 @@ export type Note = {
   formula: string;
   href: string;
   cta: string;
+  track: Track;
+  // Ordering inside a track: 1 is the most introductory. Ties keep array order.
+  level: number;
+  // Free-text tags, used by the search box on the landing page.
+  tags: string[];
+  // Shown as a callout near the top of the entry: what to do if it is not
+  // landing. Every new entry should have one — this section is aimed at
+  // someone who is stuck, and "read it again" is not help. It names the one
+  // sentence people actually get stuck on and answers that.
+  stuck?: { title: string; body: string };
   detail?: NoteDetail;
+  guide?: GuideDetail;
 };
 
 export const NOTES: Note[] = [
   {
     slug: "momentum",
+    track: "fundamentals",
+    level: 11,
+    tags: ["momentum", "trend", "volatility", "ranking", "rotation"],
     label: "momentum & volatility",
     title: "Momentum & Volatility",
     body: "Momentum is the tendency of a stock's recent trend to persist a bit longer than random chance would predict. Ranking by trailing return alone rewards a lucky spike as much as a real trend, so the sector rotation strategy divides by the volatility of daily returns over the same window, a risk-adjusted score, since a smooth 20% climb is a more convincing trend than a choppy, coin-flip one.",
@@ -82,6 +115,9 @@ export const NOTES: Note[] = [
   },
   {
     slug: "sharpe-ratio",
+    track: "fundamentals",
+    level: 9,
+    tags: ["sharpe", "risk-adjusted", "volatility", "risk free rate"],
     label: "sharpe ratio",
     title: "Sharpe Ratio",
     body: "Return earned per unit of risk taken, above what a risk-free investment (a T-bill) would pay with no risk at all. A higher Sharpe means better risk-adjusted performance, not just a higher return, since a higher return earned by taking on much more risk isn't actually an improvement.",
@@ -152,6 +188,9 @@ export const NOTES: Note[] = [
   },
   {
     slug: "max-drawdown",
+    track: "fundamentals",
+    level: 10,
+    tags: ["drawdown", "loss", "risk", "recovery"],
     label: "max drawdown",
     title: "Max Drawdown",
     body: "The worst peak-to-trough decline an account has experienced over a period: a plain, concrete answer to \"how bad could it get\" that a total-return number alone doesn't show. A portfolio can have a great average return and still be gut-wrenching to hold if its drawdowns are severe.",
@@ -211,6 +250,9 @@ export const NOTES: Note[] = [
   },
   {
     slug: "beta-capm",
+    track: "fundamentals",
+    level: 8,
+    tags: ["beta", "capm", "market risk", "expected return"],
     label: "beta & capm",
     title: "Beta & CAPM",
     body: "Beta measures how much a portfolio tends to move for every 1% move in a benchmark like the S&P 500. Beta of 1 means it moves with the market; below 1 means smaller swings than the market. It's the central building block of CAPM (the Capital Asset Pricing Model), which says expected return should scale with how much market risk you're actually exposed to.",
@@ -274,6 +316,9 @@ export const NOTES: Note[] = [
   },
   {
     slug: "correlation-diversification",
+    track: "fundamentals",
+    level: 6,
+    tags: ["diversification", "correlation", "portfolio", "risk"],
     label: "correlation & diversification",
     title: "Correlation & Diversification",
     body: "Combining two volatile assets doesn't just average their risk: if they don't move together, the combination can end up less volatile than either asset held alone. That's the entire mathematical case for diversification, and it only works when correlation between the assets is meaningfully below 1.",
@@ -335,6 +380,9 @@ export const NOTES: Note[] = [
   },
   {
     slug: "mean-variance",
+    track: "fundamentals",
+    level: 12,
+    tags: ["optimizer", "efficient frontier", "mean variance", "weights"],
     label: "mean-variance optimization",
     title: "Mean-Variance Optimization",
     body: "Given a set of assets' expected returns and how they move together, there's a whole frontier of \"best possible\" portfolios (for any level of risk, one specific weighting maximizes expected return. The optimizer approximates this frontier by sampling thousands of random portfolios rather than solving it analytically with matrix inversion) simpler code, at the cost of being an approximation rather than the exact frontier.",
@@ -400,6 +448,9 @@ export const NOTES: Note[] = [
   },
   {
     slug: "monte-carlo",
+    track: "fundamentals",
+    level: 13,
+    tags: ["monte carlo", "simulation", "probability", "retirement"],
     label: "monte carlo simulation",
     title: "Monte Carlo Simulation",
     body: "Instead of assuming one \"expected\" future, simulate thousands of possible ones by drawing a random annual return from a distribution fit to real historical data, then look at the spread of outcomes. It turns \"what will my portfolio be worth in 30 years\" into a range and a probability, instead of a single, misleadingly precise number.",
@@ -459,6 +510,149 @@ export const NOTES: Note[] = [
         { term: "Compounding", definition: "Earning returns on prior returns, so growth accelerates over time." },
         { term: "Fat tails", definition: "When extreme outcomes occur more often than a normal distribution predicts." },
         { term: "Mean reversion", definition: "The tendency of returns to drift back toward their long-run average after extreme stretches." },
+      ],
+    },
+  },
+  {
+    slug: "income-statement",
+    track: "fundamentals",
+    level: 1,
+    tags: ["income statement", "revenue", "profit", "margin", "earnings", "10-K", "P&L"],
+    label: "reading an income statement",
+    title: "Reading an Income Statement",
+    body: "The income statement answers one question: over the last year, did money coming in beat money going out? It starts at revenue and subtracts costs in layers until what's left is profit. Each layer strips out a different kind of expense, which is why there are several profit lines rather than one, and why people argue about which one matters.",
+    formula: "netIncome = revenue − COGS − operatingExpenses − interest − tax",
+    href: "/research",
+    cta: "Pull a real one from a 10-K →",
+    stuck: {
+      title: "If only one thing sticks, make it this",
+      body: "The income statement is one subtraction problem written out in stages. Start with everything the company sold, then take away costs in layers. Every scary-looking line is either a cost being subtracted or a subtotal telling you where you stand after that layer. You do not need to know all of them to read one.",
+    },
+    detail: {
+      summary:
+        "The income statement is a company's scorecard for a period, usually a quarter or a year. It begins with revenue, the total value of what the company sold, and subtracts costs in layers until it reaches net income, the profit left for shareholders. It matters because it's where almost every ratio on this site starts, and because the layers tell you *where* a company makes or loses money, not just whether it did.",
+      intuition: [
+        "Imagine a coffee shop that sold $300,000 of coffee last year. That's revenue, the top line. The beans, cups and milk cost $120,000 — those costs rise and fall with how much coffee you sell, so they're cost of goods sold, and revenue minus them is gross profit, $180,000. Gross profit answers: does the product itself make money before anything else?",
+        "Next come the costs of running the business whether or not anyone buys a coffee: rent, the manager's salary, insurance, marketing. Say $130,000. Those are operating expenses, and taking them out leaves operating income, $50,000. This is usually the most honest picture of the actual business, because it's what's left after every cost of operating and nothing else.",
+        "Finally the costs that have nothing to do with making coffee: interest on the shop's loan, and tax. Take those out and what remains is net income, the bottom line. The reason there are several profit lines instead of one is that they answer different questions. A shop with great gross profit and terrible net income has a fine product and a debt problem, and you can only see that by reading the layers.",
+      ],
+      formula: {
+        expression: "Revenue − COGS = Gross profit − OpEx = Operating income (EBIT) − Interest − Tax = Net income",
+        variables: [
+          { symbol: "Revenue", meaning: "The total value of goods and services sold during the period. Also called the top line or sales. It is not cash collected — a credit sale counts here before the money arrives." },
+          { symbol: "COGS", meaning: "Cost of goods sold: the direct cost of the things sold, the costs that scale with sales volume. Materials, the labour that makes the product, shipping it out." },
+          { symbol: "Gross profit", meaning: "Revenue − COGS. What the product itself earns before the cost of running a company is counted. As a percent of revenue it is the gross margin." },
+          { symbol: "OpEx", meaning: "Operating expenses: the costs of running the business regardless of sales volume. Salaries, rent, marketing, R&D, and depreciation." },
+          { symbol: "Operating income", meaning: "Gross profit − OpEx, also called EBIT (earnings before interest and taxes). The profit of the core business, before how it is financed and before the tax authority." },
+          { symbol: "Interest", meaning: "The cost of the company's debt for the period. Sits below operating income because it is a financing choice, not an operating one." },
+          { symbol: "Tax", meaning: "Income tax owed on the pre-tax profit." },
+          { symbol: "Net income", meaning: "What is left for shareholders after every cost. The bottom line. Divided by share count, it is earnings per share." },
+        ],
+      },
+      example: {
+        setup:
+          "A company reports $1,000M of revenue for the year. Cost of goods sold was $600M, operating expenses $250M, interest on its debt $20M, and its tax rate is 21%. Walk it down one layer at a time.",
+        steps: [
+          { label: "Revenue", calc: "$1,000M" },
+          { label: "− COGS", calc: "1,000 − 600 = $400M gross profit (40% gross margin)" },
+          { label: "− OpEx", calc: "400 − 250 = $150M operating income (15% operating margin)" },
+          { label: "− Interest", calc: "150 − 20 = $130M pre-tax income" },
+          { label: "− Tax at 21%", calc: "130 × 0.21 = $27.3M" },
+          { label: "Net income", calc: "130 − 27.3 = $102.7M (10.3% net margin)" },
+        ],
+        result:
+          "Of every dollar this company sold, about 10 cents ended up as profit. The layers tell you where the other 90 went: 60 cents to making the product, 25 to running the company, 2 to lenders, and 3 to tax. If next year gross margin holds at 40% but net margin falls to 6%, the product is fine and something below it — costs, debt, or tax — changed. That's the diagnostic the layers give you and a single profit number can't.",
+      },
+      useful: [
+        "Comparing a company to itself over time. Margins that drift in one direction across several years say more than any single year's profit.",
+        "Comparing companies in the same industry, where the cost structures are similar enough that margins mean the same thing.",
+        "Working out which lever moved. Revenue up but net income down has a specific cause, and the layers narrow it to one.",
+      ],
+      breaks: [
+        "It is not cash. Revenue is recorded when a sale is made, not when the customer pays, so a profitable company can still run out of money. That is what the cash flow statement is for.",
+        "Margins are not comparable across industries. A grocer runs on 2% net margins and a software company on 25%; neither fact says one is better run.",
+        "The layers can be managed. Where a cost is classified, how quickly assets are depreciated, and what gets called one-time all shift the subtotals without changing the business.",
+        "One year is a snapshot of a period, not a verdict. A loss year caused by a single write-off looks identical to a loss year caused by a failing product, until you read the notes.",
+      ],
+      glossary: [
+        { term: "Revenue", definition: "The total value of goods and services a company sold during a period. Also called sales or the top line." },
+        { term: "COGS", definition: "Cost of goods sold: the direct costs of producing what was sold, which scale with sales volume." },
+        { term: "Gross profit", definition: "Revenue minus COGS. What the product earns before the costs of running the company." },
+        { term: "Operating expenses", definition: "The costs of running the business that don't scale directly with each sale: salaries, rent, marketing, R&D." },
+        { term: "Operating income", definition: "Gross profit minus operating expenses. The core business's profit, before interest and tax. Also called EBIT." },
+        { term: "EBIT", definition: "Earnings before interest and taxes, the same thing as operating income." },
+        { term: "Net income", definition: "The profit left after every expense including interest and tax. The bottom line." },
+        { term: "Margin", definition: "A profit line divided by revenue, expressed as a percent, so companies of different sizes can be compared." },
+        { term: "Earnings per share", definition: "Net income divided by the number of shares outstanding: the profit attributable to one share." },
+        { term: "Accrual accounting", definition: "Recording revenue when it is earned and costs when they are incurred, rather than when cash moves." },
+        { term: "Fiscal year", definition: "The twelve-month period a company reports on, which does not have to match the calendar year." },
+      ],
+    },
+  },
+  {
+    slug: "dcf-builder",
+    track: "tools",
+    level: 1,
+    tags: ["dcf", "valuation", "discounted cash flow", "wacc", "terminal value", "intrinsic value"],
+    label: "dcf builder",
+    title: "Guide: DCF Builder",
+    body: "The DCF Builder estimates what one share of a company is worth by projecting the cash it will generate over the next five years, discounting that cash back to today's money, and dividing by the share count. Change any assumption and every number updates, which is the point: a DCF is less a prediction than a way to see which assumption your answer actually depends on.",
+    formula: "valuePerShare = (Σ PV(FCF) + PV(terminalValue) − netDebt) / shares",
+    href: "/dcf-builder",
+    cta: "Open the DCF Builder →",
+    stuck: {
+      title: "If the whole idea feels slippery, start here",
+      body: "A dollar you'll receive in five years is worth less than a dollar today, because today's dollar could be invested in the meantime. That's the entire trick. A DCF guesses the dollars a company will produce in future years, shrinks each one to what it's worth today, and adds them up. Everything else on the page is detail on top of that sentence.",
+    },
+    guide: {
+      does:
+        "You enter eleven assumptions about a company — how fast it grows, how profitable it is, what it spends on equipment, how risky it is — and the tool projects five years of free cash flow, discounts each year back to today, adds a terminal value for everything after year five, subtracts debt, and divides by shares to reach a value per share. It also prints a sensitivity grid: the same calculation rerun across a range of discount rates and terminal growth rates, so you can see how much the answer moves when the two most arguable assumptions change. You can prefill the assumptions from a company's real SEC filing instead of typing them.",
+      concept: [
+        "A company is worth the cash it will hand its owners over its life. That cash arrives in future years, and money arriving later is worth less than money arriving now, because money you have now can be invested. Discounting is how you convert a future dollar into today's equivalent: divide by (1 + r) for each year you have to wait. At a 9% rate, a dollar five years out is worth about 65 cents today.",
+        "The cash being discounted is free cash flow: operating profit, taxed, plus depreciation added back because it is a bookkeeping charge rather than money leaving, minus the cash actually spent on equipment (capex) and on funding a growing balance of working capital. That last piece catches something people miss — growth consumes cash, because a bigger business ties up more money in inventory and unpaid customer invoices before it collects.",
+        "You cannot project forever, so the model stops at year five and replaces everything after it with a terminal value: the year-five cash flow, grown at a modest constant rate forever, divided by the gap between the discount rate and that growth rate. This single number usually dominates the valuation, which is the most important and least advertised fact about DCFs.",
+        "The discount rate used here is WACC, the blended annual return the company's lenders and shareholders expect. A riskier company has a higher WACC, so its future cash gets shrunk harder and it is worth less today. That is the mechanism by which risk shows up in a valuation.",
+      ],
+      reading: [
+        { part: "Projection table", means: "One row per projected year. Revenue grows at your growth rate, EBIT is revenue times your margin, and FCF is what's left after tax, capex and the change in working capital. The discount factor column shows how much each year is being shrunk." },
+        { part: "PV of FCF", means: "The five projected cash flows, each converted to today's money and added up. This is the part of the value backed by cash flows you can actually see itemised." },
+        { part: "Terminal value / PV of terminal value", means: "Everything after year five, as a lump sum at year five, then discounted to today. Check its share of the total: if it is most of the value, your answer is mostly an assumption about the far future." },
+        { part: "Enterprise value", means: "PV of the five years plus PV of the terminal value. The value of the whole business, before considering who financed it." },
+        { part: "Equity value", means: "Enterprise value minus net debt. Debt has a prior claim on the business, so lenders come out before shareholders." },
+        { part: "Value per share", means: "Equity value divided by shares outstanding. Compare it to the market price: higher suggests the market is more pessimistic than your assumptions, lower suggests the opposite. It does not tell you the market is wrong." },
+        { part: "Sensitivity grid", means: "Value per share recomputed across a range of WACC and terminal growth. A grid that swings wildly means your valuation is an opinion about those two inputs, not a measurement. A tight grid means the answer is robust." },
+      ],
+      walkthrough: {
+        setup:
+          "Open the DCF Builder without changing anything: it loads with $1,000M of revenue, 8% growth, a 20% EBIT margin, a 21% tax rate, D&A at 4% and capex at 5% of revenue, working capital at 10% of revenue, a 9% WACC, 2.5% terminal growth, 100M shares and $200M of net debt. Follow year 1 through by hand, then let the tool do the rest.",
+        steps: [
+          { label: "Year 1 revenue", calc: "1,000 × 1.08 = $1,080M" },
+          { label: "EBIT, then NOPAT", calc: "1,080 × 20% = $216M; after 21% tax = $170.6M" },
+          { label: "Year 1 free cash flow", calc: "170.6 + 43.2 D&A − 54.0 capex − 8.0 ΔNWC = $151.8M" },
+          { label: "Discount it one year", calc: "151.8 / 1.09 = $139.3M in today's money" },
+          { label: "All five years, discounted", calc: "139.3 + 138.0 + 136.8 + 135.5 + 134.3 = $683.9M" },
+          { label: "Terminal value at year 5", calc: "206.6 × 1.025 / (0.09 − 0.025) = $3,257.9M" },
+          { label: "Discount it back five years", calc: "3,257.9 × 0.6499 = $2,117.3M" },
+          { label: "Enterprise value", calc: "683.9 + 2,117.3 = $2,801.2M" },
+          { label: "Equity value, then per share", calc: "2,801.2 − 200 net debt = $2,601.2M ÷ 100M shares = $26.01" },
+        ],
+        result:
+          "$26.01 a share. Now look at what produced it: $2,117M of the $2,801M enterprise value — 76% — is the terminal value, the part standing in for everything after year five. Three quarters of this valuation rests on two numbers you guessed about the distant future. Change terminal growth from 2.5% to 3.5% and the value jumps; drop WACC by a point and it jumps again. That is not a flaw in the tool, it is the honest shape of a DCF, and it is why the sensitivity grid sits next to the answer instead of being hidden behind it.",
+      },
+      glossary: [
+        { term: "Discounted cash flow", definition: "A valuation method that estimates future cash flows and converts them to today's value." },
+        { term: "Free cash flow", definition: "Cash left after operating costs, tax, equipment spending and funding working-capital growth." },
+        { term: "NOPAT", definition: "Net operating profit after tax: operating profit with tax taken out, before any financing costs." },
+        { term: "Discount rate", definition: "The annual rate used to shrink future money to today's value. Higher for riskier cash flows." },
+        { term: "WACC", definition: "Weighted average cost of capital: the blended return a company's lenders and shareholders require." },
+        { term: "Present value", definition: "What a future amount of money is worth today, once discounted." },
+        { term: "Terminal value", definition: "The estimated value of all cash flows after the explicit projection window ends." },
+        { term: "Terminal growth rate", definition: "The constant rate cash flow is assumed to grow at forever after the projection window. Usually near long-run economic growth." },
+        { term: "Enterprise value", definition: "The value of the whole business, before subtracting debt: what all the capital providers share." },
+        { term: "Net debt", definition: "Total debt minus cash on hand. Subtracted from enterprise value because lenders are paid before shareholders." },
+        { term: "Capex", definition: "Capital expenditure: cash spent on long-lived assets like equipment and buildings." },
+        { term: "Working capital", definition: "Money tied up in running the business day to day, mostly inventory and unpaid customer invoices." },
+        { term: "Sensitivity analysis", definition: "Rerunning a model across a range of assumptions to see how much the answer depends on them." },
       ],
     },
   },

@@ -20,7 +20,7 @@ const TOOLS = [
 
 const LINKS = [
   { href: "/research", label: "Research" },
-  { href: "/quant-notes", label: "Quant Notes" },
+  { href: "/education", label: "Education" },
   { href: "/about", label: "About" },
 ];
 

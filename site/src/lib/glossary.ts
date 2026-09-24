@@ -1,7 +1,7 @@
-import { NOTES } from "@/app/quant-notes/notes";
+import { NOTES } from "@/app/education/content";
 
 // Hover definitions for finance terms used as labels around the site. Where
-// a Quant Note covers the term, the definition is the note's own one-line
+// an Education entry covers the term, the definition is the note's own one-line
 // body and the entry links to the full note — so the tooltip and the note
 // never say different things. Terms without a note get a short definition
 // written here.
