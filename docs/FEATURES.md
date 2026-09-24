@@ -99,6 +99,18 @@ annualised volatility, max drawdown, beta vs SPY over 3 months.
 The research playbook's action buttons deep-link into this page:
 `/paper-trading?ticker=&side=&thesis=` or `?journal=&thesis=`.
 
+## Paper portfolio (`/dashboard`)
+
+Signed-in only, separate from the site's Alpaca account. Every account starts
+with $100,000 of simulated cash (pinned by the insert policy, so it can't be
+changed from the browser). Stat cards show starting cash, account value, cash,
+and what the same $100,000 would be worth in SPY since the day the account
+opened; a line chart plots both daily. Only starting cash and trades are
+stored (`paper_accounts`, `paper_trades`); cash, positions and the curve are
+rebuilt from them plus Alpaca prices. Trades are server-written only — there is
+no insert policy on `paper_trades`, because a browser-written trade could
+carry a made-up price. Trading from the dashboard is the next step.
+
 ## Trade journal (`/dashboard`)
 
 Signed-in only. Captures a thesis and an exit condition per trade. Stored in

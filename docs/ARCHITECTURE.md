@@ -76,6 +76,9 @@ reaches the browser.
 - `GET /api/paper-trading/search` — ticker autocomplete from Alpaca assets
 - `GET|POST|DELETE /api/paper-trading/journal` — the signed-in user's trade journal (Postgres `journal_entries`, RLS; 401 when signed out)
 
+**Per-user paper portfolio (Supabase)**
+- `GET /api/portfolio` — opens the user's $100,000 account on first call, then returns cash, positions and a daily equity curve vs SPY, all rebuilt from `paper_trades` (`lib/portfolio.ts`)
+
 **Research**
 - `GET /api/research/quote` — live quote for one symbol
 - `GET /api/research/news` — merged Yahoo RSS + Alpaca headlines

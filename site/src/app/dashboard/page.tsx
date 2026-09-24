@@ -3,6 +3,7 @@ import { Button, Card, PageShell, SectionHeader } from "@/components/ui";
 import { getUser } from "@/lib/supabase/server";
 import { signOut } from "../login/actions";
 import Journal from "./Journal";
+import Portfolio from "./Portfolio";
 
 export default async function Dashboard() {
   // proxy.ts already redirects signed-out visitors, but a page that shows
@@ -15,7 +16,7 @@ export default async function Dashboard() {
     <PageShell
       eyebrow="account"
       title="Dashboard"
-      description="Your private area: your trade journal, and the account it belongs to."
+      description="Your private area: your paper portfolio, your trade journal, and the account they belong to."
     >
       <Card as="section" className="mt-4">
         <SectionHeader label="signed in as" />
@@ -36,6 +37,8 @@ export default async function Dashboard() {
           <Button variant="outline">Sign out</Button>
         </form>
       </Card>
+
+      <Portfolio />
 
       <Journal />
     </PageShell>

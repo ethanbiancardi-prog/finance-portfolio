@@ -63,6 +63,24 @@ export type Quote = {
   asOf: string; // ISO timestamp of the last trade we priced from
 };
 
+// Latest trade price for several symbols in one call. Symbols with no recent
+// trade are left out of the map rather than throwing, so one thin ticker
+// can't blank a whole portfolio; callers fall back to the last close.
+export async function getLatestPrices(
+  symbols: string[],
+): Promise<Map<string, { price: number; asOf: string }>> {
+  const out = new Map<string, { price: number; asOf: string }>();
+  if (symbols.length === 0) return out;
+  const params = new URLSearchParams({ symbols: symbols.join(","), feed: "iex" });
+  const snaps: Record<string, { latestTrade?: { p: number; t: string } }> = await alpacaData(
+    `/stocks/snapshots?${params}`,
+  );
+  for (const [symbol, snap] of Object.entries(snaps)) {
+    if (snap?.latestTrade?.p) out.set(symbol, { price: snap.latestTrade.p, asOf: snap.latestTrade.t });
+  }
+  return out;
+}
+
 // Latest price for one symbol. Alpaca's snapshot bundles the last trade
 // with today's and yesterday's daily bars in a single call. The free IEX
 // feed only sees IEX's slice of volume, so the last trade can lag the
