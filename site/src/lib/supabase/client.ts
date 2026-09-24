@@ -10,9 +10,10 @@ import { createBrowserClient } from "@supabase/ssr";
 // Level Security policies, which decide what that specific signed-in user is
 // allowed to see. Supabase is built to have this key in the browser.
 //
-// The key that IS a secret is the service role key, which bypasses RLS
-// entirely. It must never appear in a NEXT_PUBLIC_ variable or in any file
-// that ships to the browser. It is used only by the one-off import script.
+// The key that IS a secret is the secret (service role) key, which bypasses
+// RLS entirely. It must never appear in a NEXT_PUBLIC_ variable or in any
+// file that ships to the browser. It is used only in admin.ts, server-side,
+// to write paper trades.
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

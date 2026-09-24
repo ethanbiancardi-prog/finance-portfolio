@@ -43,7 +43,17 @@ export type PortfolioSummary = {
   spyEquity: number;
   positions: Position[];
   history: HistoryPoint[];
+  trades: Trade[];
   pricesAsOf: string | null;
+};
+
+export type Trade = {
+  id: string;
+  symbol: string;
+  side: "buy" | "sell";
+  qty: number;
+  price: number;
+  executedAt: string;
 };
 
 // Trading days are New York days. A trade at 11pm UTC is still "today" in
@@ -182,6 +192,15 @@ export async function buildPortfolio(
     spyEquity,
     positions: positions.sort((a, b) => b.marketValue - a.marketValue),
     history,
+    // Newest first, for the dashboard's trade list.
+    trades: [...sorted].reverse().map((t) => ({
+      id: t.id,
+      symbol: t.symbol,
+      side: t.side,
+      qty: Number(t.qty),
+      price: Number(t.price),
+      executedAt: t.executed_at,
+    })),
     pricesAsOf: spyLive?.asOf ?? null,
   };
 }

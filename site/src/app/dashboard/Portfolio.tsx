@@ -1,9 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { formatCurrency, formatPercent } from "@/lib/format";
-import { Card, ChartLoading, SectionHeader, StatCard } from "@/components/ui";
+import {
+  Button,
+  Card,
+  ChartLoading,
+  EmptyRow,
+  Field,
+  SectionHeader,
+  SelectField,
+  StatCard,
+  Term,
+  TickerSearch,
+  tableCellClass,
+  tableCellStrongClass,
+  tableHeadCellClass,
+  tableHeadRowClass,
+  tableRowClass,
+} from "@/components/ui";
 import type { PortfolioSummary } from "@/lib/portfolio";
 
 const PortfolioChart = dynamic(() => import("./PortfolioChart"), {
@@ -26,24 +42,59 @@ export default function Portfolio() {
   const [data, setData] = useState<PortfolioSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      const res = await fetch("/api/portfolio");
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(body.error ?? "Could not load your portfolio.");
-        return;
-      }
-      setError(null);
-      setData(body);
+  const [symbol, setSymbol] = useState("");
+  const [qty, setQty] = useState("");
+  const [side, setSide] = useState<"buy" | "sell">("buy");
+  const [placing, setPlacing] = useState(false);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const load = useCallback(async () => {
+    const res = await fetch("/api/portfolio");
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(body.error ?? "Could not load your portfolio.");
+      return;
     }
+    setError(null);
+    setData(body);
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount, then poll
     load();
     // Prices move while the market is open; match the paper-trading page.
     const timer = setInterval(load, 60_000);
     return () => clearInterval(timer);
-  }, []);
+  }, [load]);
 
-  const opened = data && new Date(data.openedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  async function placeOrder(e: React.FormEvent) {
+    e.preventDefault();
+    setPlacing(true);
+    setMessage(null);
+    // Only symbol, side and quantity are sent. The server looks up the price.
+    const res = await fetch("/api/portfolio/trade", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol, side, qty: Number(qty) }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setPlacing(false);
+    if (!res.ok) {
+      setMessage({ text: body.error ?? "The order failed.", ok: false });
+      return;
+    }
+    setMessage({
+      text: `Filled: ${body.side} ${Number(body.qty)} ${body.symbol} at ${formatCurrency(body.price)}.`,
+      ok: true,
+    });
+    setSymbol("");
+    setQty("");
+    load();
+  }
+
+  const opened =
+    data &&
+    new Date(data.openedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
     <section className="mt-4" id="portfolio">
@@ -82,12 +133,127 @@ export default function Portfolio() {
 
       {data && <PortfolioChart history={data.history} />}
 
-      {data && data.positions.length === 0 && (
-        <p className="mt-2 text-[11px] leading-5 text-zinc-500">
-          No trades yet, so your line stays flat at your starting cash while SPY moves. Trading
-          from this page is coming next.
-        </p>
-      )}
+      <Card as="section" className="mt-4">
+        <SectionHeader
+          label="place order"
+          description="Market order at the live price, filled instantly. Only while the market is open."
+        />
+        <form onSubmit={placeOrder} className="mt-3 flex flex-wrap items-end gap-3">
+          <TickerSearch
+            label="Ticker"
+            value={symbol}
+            onChange={setSymbol}
+            onSelect={setSymbol}
+            endpoint="/api/paper-trading/search"
+            required
+            wrapperClassName="w-36"
+          />
+          <Field
+            label="Qty"
+            placeholder="1"
+            type="number"
+            min="1"
+            step="1"
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            required
+            className="w-20"
+          />
+          <SelectField
+            label="Side"
+            value={side}
+            onChange={(e) => setSide(e.target.value as "buy" | "sell")}
+            options={[
+              { value: "buy", label: "Buy" },
+              { value: "sell", label: "Sell" },
+            ]}
+          />
+          <Button type="submit" loading={placing} loadingLabel="Placing">
+            Submit
+          </Button>
+        </form>
+        {message && (
+          <p className={`mt-3 text-xs ${message.ok ? "text-good" : "text-bad"}`} role="status">
+            <span className="text-zinc-600">&gt; </span>
+            {message.text}
+          </p>
+        )}
+      </Card>
+
+      <Card as="section" className="mt-4">
+        <SectionHeader label="positions" />
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[480px] text-left">
+            <thead>
+              <tr className={tableHeadRowClass}>
+                <th className={tableHeadCellClass}>Symbol</th>
+                <th className={`${tableHeadCellClass} text-right`}>Qty</th>
+                <th className={`${tableHeadCellClass} text-right`}>
+                  <Term term="avgEntry">Avg Cost</Term>
+                </th>
+                <th className={`${tableHeadCellClass} text-right`}>Current</th>
+                <th className={`${tableHeadCellClass} text-right`}>Value</th>
+                <th className={`${tableHeadCellClass} text-right`}>
+                  <Term term="pnl">P&L</Term>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {data?.positions.map((p) => (
+                <tr key={p.symbol} className={tableRowClass}>
+                  <td className="py-1 text-xs text-foreground">{p.symbol}</td>
+                  <td className={`${tableCellClass} text-right`}>{p.qty}</td>
+                  <td className={`${tableCellClass} text-right`}>{formatCurrency(p.avgCost)}</td>
+                  <td className={`${tableCellStrongClass} text-right`}>{formatCurrency(p.price)}</td>
+                  <td className={`${tableCellClass} text-right`}>{formatCurrency(p.marketValue)}</td>
+                  <td
+                    className="py-1 text-right text-xs tabular-nums"
+                    style={{ color: `var(--status-${p.unrealizedPl >= 0 ? "good" : "bad"})` }}
+                  >
+                    {p.unrealizedPl >= 0 ? "+" : ""}
+                    {formatCurrency(p.unrealizedPl)}
+                    <span className="ml-1.5 opacity-70">{formatPercent(p.unrealizedPlPct, { decimals: 2 })}</span>
+                  </td>
+                </tr>
+              ))}
+              {data && data.positions.length === 0 && (
+                <EmptyRow colSpan={6}>no positions yet, place an order above</EmptyRow>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card as="section" className="mt-4">
+        <SectionHeader label="trade history" />
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[480px] text-left">
+            <thead>
+              <tr className={tableHeadRowClass}>
+                <th className={tableHeadCellClass}>Symbol</th>
+                <th className={tableHeadCellClass}>Side</th>
+                <th className={`${tableHeadCellClass} text-right`}>Qty</th>
+                <th className={`${tableHeadCellClass} text-right`}>Price</th>
+                <th className={`${tableHeadCellClass} text-right`}>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data?.trades.map((t) => (
+                <tr key={t.id} className={tableRowClass}>
+                  <td className="py-1 text-xs text-foreground">{t.symbol}</td>
+                  <td className={`${tableCellClass} caps ${t.side === "buy" ? "text-good" : "text-bad"}`}>{t.side}</td>
+                  <td className={`${tableCellStrongClass} text-right`}>{t.qty}</td>
+                  <td className={`${tableCellClass} text-right`}>{formatCurrency(t.price)}</td>
+                  <td className={`${tableCellClass} whitespace-nowrap text-right`}>
+                    {new Date(t.executedAt).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+              {data && data.trades.length === 0 && <EmptyRow colSpan={5}>no trades yet</EmptyRow>}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </section>
   );
 }

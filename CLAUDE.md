@@ -87,7 +87,8 @@ Local: `site/.env.local`, gitignored. Production: Vercel project settings.
 **Required** `ANTHROPIC_API_KEY` (read implicitly by `new Anthropic()`),
 `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`, `KV_REST_API_URL`,
 `KV_REST_API_TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`,
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`. **Optional** `CLIENT_WORK_PASSCODE`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (server-only; without
+it dashboard trading returns 503). **Optional** `CLIENT_WORK_PASSCODE`,
 `CLIENT_WORK_SECRET`, `SIGNALS_DEBUG`. `KV_URL`, `REDIS_URL`,
 `KV_REST_API_READ_ONLY_TOKEN` and `VERCEL_OIDC_TOKEN` are Vercel-provisioned
 and unread by app code.
@@ -98,7 +99,10 @@ and unread by app code.
    No key in a client component, ever. The one deliberate exception is the
    Supabase anon key: it is designed to be public and is useless without a
    session, because Row Level Security decides what each user can read. The
-   Supabase **service role key** bypasses RLS and must never reach the browser.
+   Supabase **secret key** (`SUPABASE_SECRET_KEY`) bypasses RLS and must never
+   reach the browser. It lives only in `lib/supabase/admin.ts` and is used only
+   to write paper trades via `place_paper_trade()`; all reads use the user's
+   own session.
 2. **Cache external data. Never call a paid API on page load.** `/api/signals`
    reads cache only; refreshes run on the cron or a secret-gated route. Redis
    via `lib/kv.ts` (`getRedis()`, guarded by `kvConfigured()`).

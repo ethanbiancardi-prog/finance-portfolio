@@ -109,7 +109,15 @@ opened; a line chart plots both daily. Only starting cash and trades are
 stored (`paper_accounts`, `paper_trades`); cash, positions and the curve are
 rebuilt from them plus Alpaca prices. Trades are server-written only — there is
 no insert policy on `paper_trades`, because a browser-written trade could
-carry a made-up price. Trading from the dashboard is the next step.
+carry a made-up price.
+
+Trading: market orders in whole shares, only while the market is open (Alpaca
+`/clock`). The browser sends symbol, side and quantity; `/api/portfolio/trade`
+looks up the live IEX price itself and calls `place_paper_trade()` with the
+secret key. That function locks the user's account row before checking cash
+or shares, so two simultaneous orders can't both spend the same cash, and
+only the `service_role` may execute it. Positions table and trade history
+sit under the chart.
 
 ## Trade journal (`/dashboard`)
 
