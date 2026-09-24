@@ -79,6 +79,7 @@ reaches the browser.
 **Per-user paper portfolio (Supabase)**
 - `GET /api/portfolio` — opens the user's $100,000 account on first call, then returns cash, positions and a daily equity curve vs SPY, all rebuilt from `paper_trades` (`lib/portfolio.ts`)
 - `POST /api/portfolio/trade` — `{symbol, side, qty}`; market hours only; server-priced, written via `place_paper_trade()` with the secret key (`lib/supabase/admin.ts`)
+- `GET|PUT|DELETE /api/portfolio/strategy` — the user's saved strategy (`paper_strategies`, RLS); `POST` previews the whole-share orders a config would place now, without trading (`lib/strategies.ts`)
 
 **Research**
 - `GET /api/research/quote` — live quote for one symbol

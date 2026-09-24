@@ -4,6 +4,7 @@ import { getUser } from "@/lib/supabase/server";
 import { signOut } from "../login/actions";
 import Journal from "./Journal";
 import Portfolio from "./Portfolio";
+import Strategy from "./Strategy";
 
 export default async function Dashboard() {
   // proxy.ts already redirects signed-out visitors, but a page that shows
@@ -39,6 +40,8 @@ export default async function Dashboard() {
       </Card>
 
       <Portfolio />
+
+      <Strategy />
 
       <Journal />
     </PageShell>

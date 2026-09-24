@@ -65,7 +65,7 @@ type Holding = { qty: number; cost: number };
 
 // Replay trades in order. Average-cost basis: a sell removes shares at the
 // position's average cost, so the remaining shares keep the same average.
-function replay(trades: PaperTradeRow[], startingCash: number) {
+export function replay(trades: PaperTradeRow[], startingCash: number) {
   let cash = startingCash;
   const holdings = new Map<string, Holding>();
   for (const t of trades) {

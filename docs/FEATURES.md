@@ -119,6 +119,16 @@ or shares, so two simultaneous orders can't both spend the same cash, and
 only the `service_role` may execute it. Positions table and trade history
 sit under the chart.
 
+Strategies (step 1 of 3): pick a preset (S&P 500, 60/40, three-fund,
+diversified ETF core) or build a custom one — up to 20 tickers with target
+weights (under 100% leaves cash) and a rebalance rule (monthly, weekly, or on
+drift of N points). Presets and custom strategies share one shape, so one
+planner (`planRebalance`) handles both. "Preview trades" shows the
+whole-share orders it would place at live prices; nothing trades yet. Planned:
+step 2 runs active strategies in `api/cron/daily` at the close (a strategy
+then owns the whole account and manual trading pauses); step 3 adds a trend
+filter and momentum rules.
+
 ## Trade journal (`/dashboard`)
 
 Signed-in only. Captures a thesis and an exit condition per trade. Stored in
