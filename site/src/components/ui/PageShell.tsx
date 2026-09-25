@@ -15,8 +15,10 @@ export function PageShell({
 }) {
   return (
     <div className="flex flex-1 flex-col bg-background">
-      <main className="page-enter mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
-        <div className="border-b border-border pb-4">
+      <main className="page-enter flex w-full flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+        <div className="relative border-b border-border pb-4">
+          {/* A short accent where the rule meets the title. */}
+          <span aria-hidden="true" className="absolute -bottom-px left-0 h-[2px] w-24 bg-accent" />
           <p className="text-[11px] caps-wide text-zinc-500">
             {eyebrow}
           </p>

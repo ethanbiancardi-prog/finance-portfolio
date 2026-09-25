@@ -1,49 +1,14 @@
 import type { Metadata } from "next";
-import { EB_Garamond, Fraunces, Geist, Geist_Mono, Newsreader } from "next/font/google";
 import Nav from "@/components/Nav";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Two display serifs, both loaded so the look can be compared side by side.
-// Which one the site actually uses is decided by --font-display in
-// globals.css — change that one line to switch.
-const newsreader = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
-  display: "swap",
-});
-
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
-  display: "swap",
-});
-
-// Body and prose face. Garamond has a small x-height, so it is set a couple
-// of pixels larger than the sans it replaced (see body in globals.css).
-const ebGaramond = EB_Garamond({
-  variable: "--font-eb-garamond",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
+// No web fonts: the whole site is set in Times New Roman (see globals.css),
+// which every visitor already has.
 
 export const metadata: Metadata = {
-  title: "Ethan Biancardi · Finance × AI",
+  title: "PRISM · Ethan Biancardi",
   description:
-    "Finance x AI portfolio: working finance tools built with modern AI.",
+    "PRISM: Portfolio Research in Systematic Markets. Working finance tools on live market data and SEC filings, by Ethan Biancardi.",
 };
 
 // Applies the user's saved theme (mode + accent + style) to <html> before first
@@ -63,7 +28,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} ${fraunces.variable} ${ebGaramond.variable} h-full antialiased`}
+      className="h-full antialiased"
       // The inline script below sets data-mode/data-accent on this element
       // before hydration runs, so its attributes intentionally differ from
       // what was server-rendered — the standard, documented fix for this

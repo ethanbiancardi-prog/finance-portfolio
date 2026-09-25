@@ -19,7 +19,7 @@ const BENCH =
 export function PageLoading() {
   return (
     <div className="flex flex-1 flex-col bg-background">
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-16 sm:px-6">
+      <main className="flex w-full flex-1 flex-col items-center justify-center px-4 py-16 sm:px-6 lg:px-10">
         <div className="w-full max-w-md">
           <div className="relative overflow-hidden">
             <svg
@@ -76,7 +76,7 @@ export function PageLoading() {
 
           <div className="mt-4 flex items-center justify-between border-t border-border pt-2.5">
             <span className="text-[10px] caps text-zinc-500">Loading</span>
-            <span className="text-[10px] caps text-zinc-600">Finance × AI</span>
+            <span className="text-[10px] caps text-zinc-600">PRISM</span>
           </div>
         </div>
       </main>

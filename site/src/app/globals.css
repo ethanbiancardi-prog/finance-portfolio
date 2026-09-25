@@ -53,8 +53,11 @@
   --color-good: var(--status-good);
   --color-average: var(--status-average);
   --color-bad: var(--status-bad);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* One face across the whole site: Times New Roman. Tailwind's font-sans
+     and font-mono utilities point at it too, so nothing falls back to a
+     different family. */
+  --font-sans: "Times New Roman", Times, serif;
+  --font-mono: "Times New Roman", Times, serif;
 }
 
 /* Dark mode is always driven by this explicit attribute — JS resolves
@@ -95,11 +98,9 @@
    and rounded-[var(--radius)] instead of hard-coding the terminal styling.
    --------------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------------
-   Display face — the serif used for the homepage masthead and project names.
-   Both faces are loaded in layout.tsx; switch the whole site's display type
-   by changing this ONE line to var(--font-fraunces).
-     Newsreader — quieter, more like a printed research note
-     Fraunces   — more character, a bit more magazine
+   Display type: the homepage masthead and project names. Same face as
+   everything else (Times New Roman, set in :root below); .display only
+   changes weight and tracking.
    --------------------------------------------------------------------------- */
 .display {
   font-family: var(--font-display);
@@ -108,15 +109,12 @@
 }
 
 :root {
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
-  /* Body and prose. */
-  --font-ui: var(--font-eb-garamond), Garamond, Georgia, serif;
-  /* Small uppercase labels, chips and buttons. Kept on the monospace face:
-     Garamond's light strokes and small x-height fall apart at the 9-11px
-     tracked-uppercase sizes these labels use. Point this at var(--font-ui)
-     to put the labels in Garamond too. */
-  --font-label: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-num: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Every role uses Times New Roman: headlines, body, labels and numbers.
+     Its figures are tabular by default, so number columns still line up. */
+  --font-display: "Times New Roman", Times, serif;
+  --font-ui: "Times New Roman", Times, serif;
+  --font-label: "Times New Roman", Times, serif;
+  --font-num: "Times New Roman", Times, serif;
   --caps-transform: uppercase;
   --caps-tracking: 0.14em;
   --caps-tracking-wide: 0.18em;
@@ -126,8 +124,7 @@
   --card-shadow: none;
 }
 :root[data-style="modern"] {
-  /* Body stays Garamond in both styles; only the label face differs. */
-  --font-label: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-label: "Times New Roman", Times, serif;
   --caps-transform: none;
   --caps-tracking: 0;
   --caps-tracking-wide: 0.01em;
@@ -150,8 +147,6 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-ui);
-  /* Garamond has a small x-height, so 15px here reads about the same size as
-     the 13px sans it replaced. */
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
 }
@@ -485,4 +480,3 @@ input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
-

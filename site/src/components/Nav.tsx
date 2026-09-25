@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { PrismMark } from "@/components/Prism";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 // Ten flat links wrapped onto two lines at desktop width and three on a
@@ -57,9 +58,16 @@ export default function Nav() {
 
   return (
     <nav className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-4xl items-center gap-1 px-4 py-1.5 sm:px-6">
-        <Link href="/" className={itemClass(pathname === "/")}>
-          Home
+      <div className="flex w-full items-center gap-1 px-4 py-1.5 sm:px-6 lg:px-10">
+        <Link
+          href="/"
+          aria-label="PRISM home"
+          className={`mr-2 inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors duration-100 ${
+            pathname === "/" ? "text-foreground" : "text-zinc-400 hover:text-foreground"
+          }`}
+        >
+          <PrismMark size={26} />
+          <span className="text-[15px] font-semibold tracking-[0.18em]">PRISM</span>
         </Link>
 
         <div
@@ -115,10 +123,11 @@ export default function Nav() {
       </div>
       {/* Status line, desktop only; on a phone the nav should be one row. */}
       <div className="hidden border-t border-border/60 bg-panel sm:block">
-        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 py-1 text-[10px] caps text-zinc-500 sm:px-6">
+        <div className="flex w-full items-center justify-between gap-4 px-4 py-1 text-[10px] caps text-zinc-500 sm:px-6 lg:px-10">
           <span className="truncate">
-            <span className="text-accent">Ethan Biancardi</span>
-            <span className="ml-2">Finance x AI</span>
+            <span className="text-accent">PRISM</span>
+            <span className="ml-2">Portfolio Research in Systematic Markets</span>
+            <span className="ml-2 text-zinc-600">by Ethan Biancardi</span>
           </span>
           <span className="shrink-0">Data: Alpaca · SEC EDGAR · Anthropic</span>
         </div>

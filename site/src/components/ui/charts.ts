@@ -1,7 +1,8 @@
 // Shared Recharts style config. Plain data objects (not components) since
 // Recharts axis/tooltip props expect literal values, not JSX wrappers.
 
-const mono = "var(--font-geist-mono), ui-monospace, monospace";
+// Chart text matches the rest of the site.
+const mono = '"Times New Roman", Times, serif';
 
 export const chartAxisProps = {
   stroke: "var(--chart-muted)",

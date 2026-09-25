@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PrismHero } from "@/components/Prism";
 import { getHomeSnapshot, sparklinePoints } from "@/lib/homeSnapshot";
 import { formatCurrency } from "@/lib/format";
 
@@ -91,7 +92,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col bg-background">
-      <main className="page-enter mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
+      <main className="page-enter flex w-full flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
         {/* Masthead ------------------------------------------------------ */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[10px] caps-wide text-zinc-500">
           <span>
@@ -100,7 +101,7 @@ export default async function Home() {
               Portfolio Research in Systematic Markets
             </span>
           </span>
-          <span>Ethan Biancardi · Finance × AI · Bentley ’29</span>
+          <span>Ethan Biancardi · Bentley ’29</span>
         </div>
         <div className="mt-2.5 h-px w-full bg-foreground/80" />
 
@@ -117,6 +118,9 @@ export default async function Home() {
               account. Not screenshots of projects. Things you can open and use.
             </p>
           </div>
+
+          {/* PRISM's mark, drawn in lines and slowly turning. */}
+          <PrismHero className="hidden aspect-[16/10] w-full max-w-[480px] shrink-0 self-center md:block" />
 
           {/* Hidden entirely when Alpaca is unreachable, rather than showing
               an empty frame or a fake number. */}

@@ -79,7 +79,7 @@ export function QuantHubHeader({
 
   return (
     <header className="sticky top-[37px] z-30 sm:top-[63px] border-b border-border bg-panel/95 backdrop-blur supports-[backdrop-filter]:bg-panel/80">
-      <div className="mx-auto flex w-full max-w-4xl items-center gap-4 px-4 sm:px-6">
+      <div className="flex w-full items-center gap-4 px-4 sm:px-6 lg:px-10">
         {title && <span className="hidden shrink-0 text-[10px] caps text-zinc-500 lg:block">{title}</span>}
 
         <div
