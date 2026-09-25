@@ -43,6 +43,18 @@ export async function alpacaData(path: string) {
   return res.json();
 }
 
+// Is the US market open right now? Pages poll for live prices only while
+// it is, and many viewers can ask at once, so the answer is remembered for a
+// minute rather than costing an Alpaca call every time.
+let clockCache: { open: boolean; at: number } | null = null;
+export async function isMarketOpen(): Promise<boolean> {
+  if (!clockCache || Date.now() - clockCache.at > 60_000) {
+    const clock = await alpaca("/clock");
+    clockCache = { open: !!clock.is_open, at: Date.now() };
+  }
+  return clockCache.open;
+}
+
 export type AlpacaNewsItem = {
   id: number;
   headline: string;

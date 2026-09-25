@@ -140,7 +140,7 @@ function RatioGroup({ group, ratios }: { group: string; ratios: Ratio[] }) {
   );
 }
 
-type Quote = { price: number; change: number | null; changePercent: number | null; asOf: string };
+type Quote = { price: number; change: number | null; changePercent: number | null; asOf: string; marketOpen?: boolean };
 
 // Latest trade next to the annual numbers, with its timestamp, so it's
 // obvious which figures are live and which are from the last 10-K. Keyed by
@@ -151,16 +151,29 @@ export function QuoteBadge({ ticker }: { ticker: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/research/quote?symbol=${encodeURIComponent(ticker)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("quote failed"))))
-      .then((q) => {
-        if (!cancelled) setQuote(q);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+    let loaded = false;
+    const load = () =>
+      fetch(`/api/research/quote?symbol=${encodeURIComponent(ticker)}`)
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error("quote failed"))))
+        .then((q: Quote) => {
+          if (cancelled) return;
+          loaded = true;
+          setQuote(q);
+          // Market closed: the price won't change, so stop asking.
+          if (!q.marketOpen) clearInterval(id);
+        })
+        .catch(() => {
+          // A failed refresh keeps showing the last good price.
+          if (!cancelled && !loaded) setFailed(true);
+        });
+    // While the market is open, keep the price in step with the live chart.
+    const id = setInterval(() => {
+      if (!document.hidden) load();
+    }, 30_000);
+    load();
     return () => {
       cancelled = true;
+      clearInterval(id);
     };
   }, [ticker]);
 

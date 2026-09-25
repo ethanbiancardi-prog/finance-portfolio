@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { Card, Chip } from "@/components/ui";
 import { QuoteBadge, type Company } from "./Fundamentals";
+import { StockChart } from "./StockChart";
 import { JargonText } from "./SimpleMode";
 
 const SECTIONS: { id: string; label: string }[] = [
@@ -41,6 +42,8 @@ export function Overview({
         </h2>
         <QuoteBadge key={company.ticker} ticker={company.ticker} />
       </div>
+
+      <StockChart key={`chart-${company.ticker}`} ticker={company.ticker} />
 
       <p className="mt-2 text-xs leading-5 text-foreground">
         <span className="text-[10px] caps text-zinc-500">At a glance · </span>
