@@ -30,8 +30,8 @@ const LIVE_MS = 30_000;
 
 // Price chart for the researched ticker. Keyed by ticker where it's
 // rendered, so a new search starts fresh.
-export function StockChart({ ticker }: { ticker: string }) {
-  const [range, setRange] = useState<Range>("1Y");
+export function StockChart({ ticker, defaultRange = "1Y" }: { ticker: string; defaultRange?: Range }) {
+  const [range, setRange] = useState<Range>(defaultRange);
   const [data, setData] = useState<ChartData | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Bumped every 30s while live, which re-runs the fetch below.

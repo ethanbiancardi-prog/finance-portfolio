@@ -21,6 +21,7 @@ import {
   tableRowClass,
 } from "@/components/ui";
 import type { PortfolioSummary } from "@/lib/portfolio";
+import { StockChart } from "../research/StockChart";
 
 const PortfolioChart = dynamic(() => import("./PortfolioChart"), {
   ssr: false,
@@ -45,6 +46,16 @@ export default function Portfolio() {
   const [symbol, setSymbol] = useState("");
   const [qty, setQty] = useState("");
   const [side, setSide] = useState<"buy" | "sell">("buy");
+  // The ticker the order form's chart shows: set straight away when a
+  // suggestion is picked, or once typing pauses, so every keystroke on the
+  // way to "AAPL" doesn't load a chart for "A", "AA" and "AAP".
+  const [chartSymbol, setChartSymbol] = useState("");
+  useEffect(() => {
+    const s = symbol.trim().toUpperCase();
+    if (!/^[A-Z.]{1,10}$/.test(s)) return;
+    const id = setTimeout(() => setChartSymbol(s), 700);
+    return () => clearTimeout(id);
+  }, [symbol]);
   const [placing, setPlacing] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -161,7 +172,10 @@ export default function Portfolio() {
             label="Ticker"
             value={symbol}
             onChange={setSymbol}
-            onSelect={setSymbol}
+            onSelect={(s) => {
+              setSymbol(s);
+              setChartSymbol(s.toUpperCase());
+            }}
             endpoint="/api/paper-trading/search"
             required
             wrapperClassName="w-36"
@@ -196,6 +210,17 @@ export default function Portfolio() {
             <span className="text-zinc-600">&gt; </span>
             {message.text}
           </p>
+        )}
+        {/* Price chart for the ticker being traded, so the order is placed
+            with today's move in view. Hidden while a strategy runs the
+            account, since there's no form to trade from then. */}
+        {chartSymbol && !data?.activeStrategy && (
+          <div className="mt-2">
+            <p className="text-[10px] caps text-zinc-500">
+              <span className="text-accent">{chartSymbol}</span> price
+            </p>
+            <StockChart key={chartSymbol} ticker={chartSymbol} defaultRange="1D" />
+          </div>
         )}
       </Card>
 
