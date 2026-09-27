@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { PrismMark } from "@/components/Prism";
+import { MotifMark } from "@/components/Motif";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 // Ten flat links wrapped onto two lines at desktop width and three on a
@@ -66,7 +66,7 @@ export default function Nav() {
             pathname === "/" ? "text-foreground" : "text-zinc-400 hover:text-foreground"
           }`}
         >
-          <PrismMark size={26} />
+          <MotifMark size={26} />
           <span className="text-[15px] font-semibold tracking-[0.18em]">PRISM</span>
         </Link>
 

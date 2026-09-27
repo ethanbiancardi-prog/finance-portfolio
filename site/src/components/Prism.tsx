@@ -105,7 +105,9 @@ export function PrismHero({ className = "" }: { className?: string }) {
     if (!ctx) return;
 
     const segs = prismSegments();
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // ?still (used by /lab) shows the finished frame without animating.
+    const reduced =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches || new URLSearchParams(window.location.search).has("still");
     const BUILD_MS = 2200;
     let start = performance.now();
     let raf = 0;
