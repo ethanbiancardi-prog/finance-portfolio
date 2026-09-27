@@ -10,21 +10,23 @@
    fallback to keep in sync here. */
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
+/* Light mode is warm cream rather than white: easier on the eyes over long
+   reading, with warm near-black text instead of pure black. */
 :root {
   color-scheme: light;
-  --background: #ffffff;
-  --panel: #fafaf9;
-  --border: #dcdbd6;
-  --foreground: #171717;
+  --background: #f4efe4;
+  --panel: #faf6ee;
+  --border: #ddd4c3;
+  --foreground: #2a2520;
   --accent: #b45309;
   /* Chart series are neutral by default (foreground) with the accent
      reserved for a single "highlighted" second series — color is never
      decorative, only --status-good/bad below carry meaning. */
-  --chart-line: #171717;
+  --chart-line: #2a2520;
   --chart-line-2: var(--accent);
-  --chart-grid: #e1e0d9;
-  --chart-muted: #898781;
-  --chart-tooltip-bg: #ffffff;
+  --chart-grid: #e4dccb;
+  --chart-muted: #8a8173;
+  --chart-tooltip-bg: #faf6ee;
   --status-good: #0ca30c;
   --status-average: #b8860b;
   --status-bad: #d03b3b;
@@ -132,9 +134,9 @@
   --radius: 10px;
   --radius-sm: 6px;
   --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.02);
-  --background: #f6f6f4;
-  --panel: #ffffff;
-  --border: #e4e3de;
+  --background: #f2ecdf;
+  --panel: #faf6ee;
+  --border: #e2d9c7;
 }
 :root[data-style="modern"][data-mode="dark"] {
   --background: #09090b;
@@ -479,4 +481,19 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* Homepage: the page fades up in order while the crystal grows. Only where
+   the crystal is shown (md and up) and motion is allowed, so phones and
+   reduced-motion visitors see the page straight away. Per-element delays are
+   inline in page.tsx; this is the default. */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .home-reveal {
+    opacity: 0;
+    animation: home-reveal 0.6s ease-out 0.35s forwards;
+  }
+}
+@keyframes home-reveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
 }

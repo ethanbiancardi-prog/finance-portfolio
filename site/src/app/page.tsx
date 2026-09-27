@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PrismHero } from "@/components/Prism";
+import { MotifHero } from "@/components/Motif";
 import { getHomeSnapshot, sparklinePoints } from "@/lib/homeSnapshot";
 import { formatCurrency } from "@/lib/format";
 
@@ -94,7 +94,7 @@ export default async function Home() {
     <div className="flex flex-1 flex-col bg-background">
       <main className="page-enter flex w-full flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
         {/* Masthead ------------------------------------------------------ */}
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[10px] caps-wide text-zinc-500">
+        <div className="home-reveal flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[10px] caps-wide text-zinc-500">
           <span>
             <span className="text-accent">PRISM</span>
             <span className="ml-2 hidden text-zinc-600 sm:inline">
@@ -103,29 +103,25 @@ export default async function Home() {
           </span>
           <span>Ethan Biancardi · Bentley ’29</span>
         </div>
-        <div className="mt-2.5 h-px w-full bg-foreground/80" />
+        <div className="home-reveal mt-2.5 h-px w-full bg-foreground/80" />
 
         {/* Statement + live proof panel ---------------------------------- */}
         <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-12">
-          <div className="flex-1">
+          <div className="home-reveal flex-1 sm:min-w-[440px]" style={{ animationDelay: "0.5s" }}>
             <h1 className="display text-[34px] leading-[1.06] text-foreground sm:text-[46px]">
               Welcome to PRISM!
               <br />
               Check out my finance tools below.
             </h1>
-            <p className="mt-5 max-w-md text-[13px] leading-6 text-zinc-500 dark:text-zinc-400">
-              Eleven of them, on live market data, SEC filings and a funded paper
-              account. Not screenshots of projects. Things you can open and use.
-            </p>
           </div>
 
-          {/* PRISM's mark, drawn in lines and slowly turning. */}
-          <PrismHero className="hidden aspect-[16/10] w-full max-w-[480px] shrink-0 self-center md:block" />
+          {/* PRISM's artwork; which design is set in components/Motif.ts. */}
+          <MotifHero className="hidden aspect-[16/10] w-full min-w-0 max-w-[560px] self-center md:block" />
 
           {/* Hidden entirely when Alpaca is unreachable, rather than showing
               an empty frame or a fake number. */}
           {snapshot && (
-            <div className="w-full shrink-0 border border-border bg-panel p-4 sm:w-[248px]">
+            <div className="home-reveal w-full shrink-0 border border-border bg-panel p-4 sm:w-[248px]" style={{ animationDelay: "0.65s" }}>
               <div className="flex items-center justify-between">
                 <span className="text-[9px] caps-wide text-zinc-500">Paper account</span>
                 <span className="inline-flex items-center gap-1.5 text-[9px] caps text-good">
@@ -173,13 +169,13 @@ export default async function Home() {
         </div>
 
         {/* Index --------------------------------------------------------- */}
-        <div className="mt-11 flex items-baseline gap-4">
+        <div className="home-reveal mt-11 flex items-baseline gap-4" style={{ animationDelay: "0.8s" }}>
           <span className="text-[10px] caps-wide text-foreground">Coverage</span>
           <span className="h-px flex-1 bg-border" />
           <span className="text-[10px] caps text-zinc-500">{projects.length} tools</span>
         </div>
 
-        <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 sm:gap-x-12">
+        <div className="home-reveal mt-1 grid grid-cols-1 sm:grid-cols-2 sm:gap-x-12" style={{ animationDelay: "0.9s" }}>
           {projects.map((project, i) => (
             <Link
               key={project.name}
@@ -209,7 +205,7 @@ export default async function Home() {
         </div>
 
         {/* Contact ------------------------------------------------------- */}
-        <div className="mt-8 flex flex-wrap items-baseline justify-between gap-3">
+        <div className="home-reveal mt-8 flex flex-wrap items-baseline justify-between gap-3" style={{ animationDelay: "0.9s" }}>
           <a
             href="mailto:ethanbiancardi@gmail.com"
             className="text-xs text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-accent hover:decoration-accent"
