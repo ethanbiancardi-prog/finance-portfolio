@@ -52,12 +52,8 @@ export function TickerSearch({
     if (!typed.current) return;
     typed.current = false;
     const q = value.trim();
-    if (!q) {
-      setMatches([]);
-      setOpen(false);
-      setError("");
-      return;
-    }
+    // An emptied box is cleared in onChange below, not here.
+    if (!q) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
       setLoading(true);
@@ -130,6 +126,13 @@ export function TickerSearch({
           value={value}
           onChange={(e) => {
             typed.current = true;
+            // Emptying the box closes the dropdown straight away; there's
+            // nothing to search for.
+            if (!e.target.value.trim()) {
+              setMatches([]);
+              setOpen(false);
+              setError("");
+            }
             onChange(e.target.value);
           }}
           onFocus={() => matches.length > 0 && setOpen(true)}

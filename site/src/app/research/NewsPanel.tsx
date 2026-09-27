@@ -26,9 +26,9 @@ export function NewsPanel({ ticker }: { ticker: string }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // No reset needed here: the panel is keyed by ticker where it's rendered
+    // (research/page.tsx), so a new ticker mounts it fresh with empty state.
     let cancelled = false;
-    setItems(null);
-    setError("");
     fetch(`/api/research/news?symbol=${encodeURIComponent(ticker)}`)
       .then(async (res) => {
         const data = await res.json();

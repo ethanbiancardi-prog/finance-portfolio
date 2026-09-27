@@ -61,7 +61,6 @@ export function computeDcfPrefill(facts: any): DcfPrefill | null {
   const useTtm = revTtm != null && revTtm.monthsNewer >= 2;
   const rev0 = useTtm ? revTtm!.value : fyRev;
   const incomeAsOf = useTtm ? revTtm!.end : end;
-  const periodPhrase = useTtm ? `the twelve months to ${incomeAsOf}` : `the fiscal year ending ${end}`;
 
   // Every flow figure follows whichever basis revenue used, so a margin is
   // never TTM profit over annual sales. When a line has no quarterly tagging
