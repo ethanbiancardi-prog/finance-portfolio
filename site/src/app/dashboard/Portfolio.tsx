@@ -225,7 +225,23 @@ export default function Portfolio() {
       </Card>
 
       <Card as="section" className="mt-4">
-        <SectionHeader label="positions" />
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <SectionHeader label="positions" />
+          {/* Opens the Optimizer with these holdings and their current
+              weights, so it can plot this portfolio against the frontier.
+              Needs at least two positions; the Optimizer takes up to 20. */}
+          {data && data.positions.length >= 2 && (
+            <a
+              href={`/optimizer?${new URLSearchParams({
+                tickers: data.positions.slice(0, 20).map((p) => p.symbol).join(","),
+                weights: data.positions.slice(0, 20).map((p) => p.marketValue.toFixed(2)).join(","),
+              })}`}
+              className="rounded-[var(--radius-sm)] border border-accent px-2 py-1 text-[11px] caps text-accent transition-colors hover:bg-accent hover:text-background"
+            >
+              Optimize this portfolio →
+            </a>
+          )}
+        </div>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[480px] text-left">
             <thead>

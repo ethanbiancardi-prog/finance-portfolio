@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { QuantHubHeader } from "@/components/QuantHubHeader";
 import { RISK_FREE_RATE_ANNUAL } from "@/lib/constants";
@@ -56,8 +56,33 @@ function portfolioAt(target: number, edge: SampledPortfolio[], r: FrontierRespon
   return { weights, return: ret, volatility, sharpe: sharpeRatio(ret, volatility, RISK_FREE_RATE_ANNUAL) };
 }
 
+// Any weights (e.g. an account's current holdings) priced with the same
+// return and covariance estimates as the frontier, so it can be compared
+// directly.
+function portfolioOf(weights: number[], r: FrontierResponse): SampledPortfolio {
+  const ret = weights.reduce((sum, w, k) => sum + w * r.meanReturns[k], 0);
+  const volatility = Math.sqrt(portfolioVariance(weights, r.covMatrix));
+  return { weights, return: ret, volatility, sharpe: sharpeRatio(ret, volatility, RISK_FREE_RATE_ANNUAL) };
+}
+
+// The lowest-volatility frontier portfolio earning at least `target`
+// return. Returns rise along the frontier, so walk it by return instead of
+// volatility. Null if the target is beyond the frontier's best return.
+function frontierAtReturn(target: number, edge: SampledPortfolio[], r: FrontierResponse): SampledPortfolio | null {
+  if (target > edge[edge.length - 1].return) return null;
+  if (target <= edge[0].return) return edge[0];
+  let i = 0;
+  while (i < edge.length - 2 && edge[i + 1].return < target) i++;
+  const a = edge[i], b = edge[i + 1];
+  const t = (target - a.return) / (b.return - a.return);
+  return portfolioOf(a.weights.map((w, k) => w + t * (b.weights[k] - w)), r);
+}
+
 export default function Optimizer() {
   const [tickerInput, setTickerInput] = useState("AAPL, MSFT, XOM, JNJ");
+  // Set when arriving from the dashboard's "Optimize this portfolio": the
+  // account's current weight in each ticker, to plot against the frontier.
+  const [currentWeights, setCurrentWeights] = useState<Record<string, number> | null>(null);
   const [result, setResult] = useState<FrontierResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -66,6 +91,12 @@ export default function Optimizer() {
 
   async function buildFrontier(e: React.FormEvent) {
     e.preventDefault();
+    // A hand-edited ticker list is a new question, not the account any more.
+    setCurrentWeights(null);
+    await runFrontier(tickerInput);
+  }
+
+  async function runFrontier(tickers: string) {
     setLoading(true);
     setError("");
     setResult(null);
@@ -75,7 +106,7 @@ export default function Optimizer() {
       const res = await fetch("/api/optimizer/frontier", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tickers: tickerInput.split(",") }),
+        body: JSON.stringify({ tickers: tickers.split(",") }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to build frontier");
@@ -86,6 +117,23 @@ export default function Optimizer() {
       setLoading(false);
     }
   }
+
+  // /optimizer?tickers=TQQQ,SOXL&weights=0.15,0.12 (from the dashboard):
+  // fill in the account's holdings and build straight away.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tickers = (params.get("tickers") ?? "").split(",").map((t) => t.trim().toUpperCase()).filter(Boolean);
+    if (tickers.length < 2) return;
+    const weights = (params.get("weights") ?? "").split(",").map(Number);
+    const list = tickers.join(", ");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-off load from the URL on arrival
+    setTickerInput(list);
+    if (weights.length === tickers.length && weights.every((w) => w >= 0)) {
+      setCurrentWeights(Object.fromEntries(tickers.map((t, i) => [t, weights[i]])));
+    }
+    runFrontier(list);
+    // Runs once on arrival, reading the URL; nothing to re-run it for.
+  }, []);
 
   const edge = useMemo(() => result?.frontier ?? [], [result]);
   const volMin = edge[0]?.volatility ?? 0;
@@ -117,6 +165,21 @@ export default function Optimizer() {
   );
   const selectedSeries = useMemo(() => (selectedPortfolio ? [selectedPortfolio] : []), [selectedPortfolio]);
 
+  // The account's current portfolio on the same scale as the frontier, and
+  // the frontier portfolios it's being compared with.
+  const current = useMemo(() => {
+    if (!result || !currentWeights || !edge.length) return null;
+    const raw = result.symbols.map((s) => currentWeights[s] ?? 0);
+    const total = raw.reduce((a, b) => a + b, 0);
+    if (!total) return null;
+    const mine = portfolioOf(raw.map((w) => w / total), result);
+    const sameRisk = portfolioAt(Math.min(Math.max(mine.volatility, volMin), volMax), edge, result);
+    const sameReturn = frontierAtReturn(mine.return, edge, result);
+    return { mine, sameRisk, sameReturn };
+  }, [result, currentWeights, edge, volMin, volMax]);
+  const currentSeries = useMemo(() => (current ? [current.mine] : []), [current]);
+  const levelFor = (vol: number) => Math.min(1, Math.max(0, (vol - volMin) / (volMax - volMin || 1)));
+
   return (
     <>
     <QuantHubHeader />
@@ -128,7 +191,7 @@ export default function Optimizer() {
       <Card as="section" className="mt-4">
         <SectionHeader
           label="tickers"
-          description="2-10 comma-separated tickers, ~1 year of daily price history each."
+          description="2-20 comma-separated tickers, ~1 year of daily price history each."
         />
         <form onSubmit={buildFrontier} className="mt-3 flex flex-wrap items-end gap-3">
           <Field
@@ -176,15 +239,66 @@ export default function Optimizer() {
             />
           </section>
 
+          {current && (
+            <Card as="section" className="mt-4">
+              <SectionHeader
+                label="your portfolio vs the frontier"
+                description="Your account's current weights, priced with the same past-year returns and risk as the frontier. The frontier shows what a better mix of the same tickers could have done."
+              />
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <StatCard
+                  label="Your portfolio now"
+                  value={`${formatPercent(current.mine.return)} return`}
+                  hint={<span className="text-[11px] text-zinc-500">{formatPercent(current.mine.volatility)} volatility · Sharpe {formatRatio(current.mine.sharpe)}</span>}
+                />
+                <StatCard
+                  label="Same risk, on the frontier"
+                  value={`${formatPercent(current.sameRisk.return)} return`}
+                  hint={
+                    <span className="text-[11px] text-zinc-500">
+                      {current.sameRisk.return >= current.mine.return ? "+" : ""}
+                      {formatPercent(current.sameRisk.return - current.mine.return)} vs yours at {formatPercent(current.sameRisk.volatility)} volatility
+                    </span>
+                  }
+                />
+                <StatCard
+                  label="Same return, on the frontier"
+                  value={current.sameReturn ? `${formatPercent(current.sameReturn.volatility)} volatility` : "Not reachable"}
+                  hint={
+                    <span className="text-[11px] text-zinc-500">
+                      {current.sameReturn
+                        ? `${formatPercent(current.mine.volatility - current.sameReturn.volatility)} less risk for the same ${formatPercent(current.mine.return)} return`
+                        : "Your return is above anything this set of tickers could combine to"}
+                    </span>
+                  }
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => { setRiskLevel(levelFor(current.sameRisk.volatility)); setVolText(null); }}>
+                  Show the same-risk mix
+                </Button>
+                {current.sameReturn && (
+                  <Button variant="outline" onClick={() => { setRiskLevel(levelFor(current.sameReturn!.volatility)); setVolText(null); }}>
+                    Show the same-return mix
+                  </Button>
+                )}
+              </div>
+              <p className="mt-2 text-[11px] leading-5 text-zinc-500">
+                Based on the past year only, so it shows which mix would have been most efficient, not a forecast. Educational, not investment advice.
+              </p>
+            </Card>
+          )}
+
           <section className="mt-4">
             <SectionHeader
               label="sampled frontier"
-              description="Each faint square is one randomly weighted portfolio. The line is the efficient frontier: the best return possible at each level of risk, so nothing can sit above it. Accent square = max Sharpe, solid square = min variance, ring = the risk level picked below."
+              description={`Each faint square is one randomly weighted portfolio. The line is the efficient frontier: the best return possible at each level of risk, so nothing can sit above it. Accent square = max Sharpe, solid square = min variance, ring = the risk level picked below${current ? ", red cross = your portfolio now" : ""}.`}
             />
             <Chart
               samples={result.samples}
               frontier={result.frontier}
               selectedSeries={selectedSeries}
+              currentSeries={currentSeries}
               minVarianceSeries={minVarianceSeries}
               maxSharpeSeries={maxSharpeSeries}
             />
@@ -240,7 +354,8 @@ export default function Optimizer() {
                 <thead>
                   <tr className={tableHeadRowClass}>
                     <th className={tableHeadCellClass}>Ticker</th>
-                    <th className={`${tableHeadCellClass} text-right`}>Weight</th>
+                    {current && <th className={`${tableHeadCellClass} text-right`}>Now</th>}
+                    <th className={`${tableHeadCellClass} text-right`}>{current ? "Frontier" : "Weight"}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -252,11 +367,17 @@ export default function Optimizer() {
                           <span className="block text-[10px] text-zinc-600">{result.names[symbol]}</span>
                         )}
                       </td>
+                      {current && <td className={`${tableCellClass} text-right`}>{formatPercent(current.mine.weights[i])}</td>}
                       <td className={`${tableCellStrongClass} text-right`}>{formatPercent(selectedPortfolio.weights[i])}</td>
                     </tr>
                   ))}
                   <tr className="border-t border-border">
                     <td className={`${tableCellClass} text-[10px] caps`}>Return / Vol / Sharpe</td>
+                    {current && (
+                      <td className={`${tableCellClass} text-right`}>
+                        {formatPercent(current.mine.return)} / {formatPercent(current.mine.volatility)} / {formatRatio(current.mine.sharpe)}
+                      </td>
+                    )}
                     <td className={`${tableCellStrongClass} text-right`}>
                       {formatPercent(selectedPortfolio.return)} / {formatPercent(selectedPortfolio.volatility)} /{" "}
                       {formatRatio(selectedPortfolio.sharpe)}

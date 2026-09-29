@@ -3,7 +3,7 @@ import { getDailyBars } from "@/lib/marketdata";
 import { RISK_FREE_RATE_ANNUAL } from "@/lib/constants";
 
 export const MIN_TICKERS = 2;
-export const MAX_TICKERS = 10; // keeps the covariance matrix + weights table readable
+export const MAX_TICKERS = 20; // enough for a real portfolio; the exact frontier still solves in about a second
 export const NUM_FRONTIER_SAMPLES = 2000; // enough for a dense scatter without a heavy payload
 export const LOOKBACK_TRADING_DAYS = 252; // ~1yr of daily history for return/covariance estimates
 export const MIN_HISTORY_DAYS = 20; // below this, a symbol is too new/illiquid to include
@@ -80,9 +80,11 @@ function projectToSimplex(v: number[]): number[] {
 }
 
 // Minimise  riskAversion * w'Σw - includeReturn * μ'w  over long-only,
-// fully-invested portfolios, by projected gradient descent. The problem is
-// convex, so this converges to the exact optimum; with at most 10 assets it
-// takes milliseconds. `start` warm-starts it from a nearby solution.
+// fully-invested portfolios. The problem is convex, so projected gradient
+// descent reaches the exact optimum; this is its accelerated form (FISTA:
+// each step also carries some momentum from the last), which needs far
+// fewer iterations when assets differ a lot in risk, e.g. a bond fund next
+// to a 3x leveraged ETF. `start` warm-starts it from a nearby solution.
 function solveMeanVariance(
   mu: number[],
   cov: number[][],
@@ -90,16 +92,30 @@ function solveMeanVariance(
   includeReturn: number,
   start: number[],
 ): number[] {
+  const n = mu.length;
   // Step size from a bound on the gradient's Lipschitz constant
   // (2λ times the largest row sum of |Σ| bounds 2λ times its top eigenvalue).
   const norm = Math.max(...cov.map((row) => row.reduce((s, x) => s + Math.abs(x), 0)));
   const step = 1 / Math.max(2 * riskAversion * norm, 1e-9);
   let w = start;
-  for (let iter = 0; iter < 20_000; iter++) {
-    const grad = w.map((_, i) => 2 * riskAversion * cov[i].reduce((s, c, j) => s + c * w[j], 0) - includeReturn * mu[i]);
-    const next = projectToSimplex(w.map((x, i) => x - step * grad[i]));
-    const moved = Math.max(...next.map((x, i) => Math.abs(x - w[i])));
+  let y = start;
+  let t = 1;
+  const grad = new Array(n);
+  for (let iter = 0; iter < 5_000; iter++) {
+    for (let i = 0; i < n; i++) {
+      let s = 0;
+      for (let j = 0; j < n; j++) s += cov[i][j] * y[j];
+      grad[i] = 2 * riskAversion * s - includeReturn * mu[i];
+    }
+    const next = projectToSimplex(y.map((x, i) => x - step * grad[i]));
+    const tNext = (1 + Math.sqrt(1 + 4 * t * t)) / 2;
+    let moved = 0;
+    y = next.map((x, i) => {
+      moved = Math.max(moved, Math.abs(x - w[i]));
+      return x + ((t - 1) / tNext) * (x - w[i]);
+    });
     w = next;
+    t = tNext;
     if (moved < 1e-10) break;
   }
   return w;

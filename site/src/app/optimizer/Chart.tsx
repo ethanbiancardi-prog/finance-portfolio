@@ -19,16 +19,30 @@ const Ring = (props: { cx?: number; cy?: number }) => (
   <circle cx={props.cx} cy={props.cy} r={5} fill="none" stroke="var(--foreground)" strokeWidth={1.5} />
 );
 
+// The account's current portfolio: a red cross, so it reads as "you are
+// here" and stays distinct from the ring on the frontier.
+const Cross = (props: { cx?: number; cy?: number }) => {
+  const x = props.cx ?? 0, y = props.cy ?? 0;
+  return (
+    <g stroke="var(--status-bad)" strokeWidth={2} strokeLinecap="round">
+      <line x1={x - 5} y1={y - 5} x2={x + 5} y2={y + 5} />
+      <line x1={x - 5} y1={y + 5} x2={x + 5} y2={y - 5} />
+    </g>
+  );
+};
+
 export default function Chart({
   samples,
   frontier,
   selectedSeries,
+  currentSeries = [],
   minVarianceSeries,
   maxSharpeSeries,
 }: {
   samples: SampledPortfolio[];
   frontier: SampledPortfolio[];
   selectedSeries: SampledPortfolio[];
+  currentSeries?: SampledPortfolio[];
   minVarianceSeries: SampledPortfolio[];
   maxSharpeSeries: SampledPortfolio[];
 }) {
@@ -69,6 +83,7 @@ export default function Chart({
           <Scatter data={minVarianceSeries} fill="var(--chart-line)" shape="square" />
           <Scatter data={maxSharpeSeries} fill="var(--chart-line-2)" shape="square" />
           <Scatter data={selectedSeries} shape={Ring} isAnimationActive={false} />
+          <Scatter data={currentSeries} shape={Cross} isAnimationActive={false} />
         </ScatterChart>
       </ResponsiveContainer>
     </Card>
