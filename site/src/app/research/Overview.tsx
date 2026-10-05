@@ -4,6 +4,7 @@
 // price, a one-line "at a glance" once the playbook has read the news and
 // numbers, jump links to each section, and the reading controls.
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Card, Chip } from "@/components/ui";
 import { QuoteBadge, type Company } from "./Fundamentals";
 import { StockChart } from "./StockChart";
@@ -21,6 +22,7 @@ const SECTIONS: { id: string; label: string }[] = [
 export function Overview({
   company,
   glance,
+  meter,
   simple,
   onSimple,
   onExpandAll,
@@ -28,6 +30,7 @@ export function Overview({
 }: {
   company: Company;
   glance: string | null;
+  meter?: ReactNode;
   simple: boolean;
   onSimple: (v: boolean) => void;
   onExpandAll: () => void;
@@ -49,6 +52,8 @@ export function Overview({
         <span className="text-[10px] caps text-zinc-500">At a glance · </span>
         {glance ? <JargonText text={glance} /> : <span className="text-zinc-500">Reading the latest filing, price, and headlines...</span>}
       </p>
+
+      {meter}
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
         <span className="flex flex-wrap gap-1.5">

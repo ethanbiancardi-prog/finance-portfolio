@@ -22,7 +22,7 @@ type Option = {
   starterSizePct: number | null;
   invalidation: string;
 };
-type Playbook = {
+export type Playbook = {
   catalysts: Catalyst[];
   financialHealth: { verdict: "strong" | "solid" | "mixed" | "weak"; points: string[] };
   options: Option[];
@@ -59,7 +59,7 @@ function actionLink(o: Option, ticker: string): { href: string; label: string } 
   }
 }
 
-export function PlaybookPanel({ ticker, onLoaded }: { ticker: string; onLoaded?: (summary: string) => void }) {
+export function PlaybookPanel({ ticker, onLoaded }: { ticker: string; onLoaded?: (summary: string, playbook: Playbook) => void }) {
   const [data, setData] = useState<Playbook | null>(null);
   const [error, setError] = useState("");
   // Latest callback without re-running the fetch when the parent re-renders.
@@ -83,7 +83,7 @@ export function PlaybookPanel({ ticker, onLoaded }: { ticker: string; onLoaded?:
       .then((json: Playbook) => {
         if (cancelled) return;
         setData(json);
-        onLoadedRef.current?.(glance(json));
+        onLoadedRef.current?.(glance(json), json);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Couldn't build the playbook");

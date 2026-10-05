@@ -7,7 +7,8 @@ import { Dashboard, RedFlagsPanel, type Company, type Dashboard as DashboardData
 import { NewsPanel } from "./NewsPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { BusinessSummary } from "./BusinessSummary";
-import { PlaybookPanel } from "./PlaybookPanel";
+import { PlaybookPanel, type Playbook } from "./PlaybookPanel";
+import { StockMeter } from "./StockMeter";
 import { SignalsPanel } from "./SignalsPanel";
 import { Overview } from "./Overview";
 import { SimpleProvider } from "./SimpleMode";
@@ -38,6 +39,9 @@ function ResearchPage() {
   const [simple, setSimple] = useState(false);
   const [force, setForce] = useState<{ open: boolean; seq: number } | undefined>(undefined);
   const [glance, setGlance] = useState<string | null>(null);
+  // Inputs the Bull/Bear Meter picks up from panels as they load.
+  const [playbook, setPlaybook] = useState<Playbook | null>(null);
+  const [redFlags, setRedFlags] = useState<number | null>(null);
 
   const [category, setCategory] = useState<string>(CATEGORIES[0].key);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -49,6 +53,8 @@ function ResearchPage() {
     setDashboard(null);
     setCompany(null);
     setGlance(null);
+    setPlaybook(null);
+    setRedFlags(null);
     setForce(undefined);
 
     const res = await fetch(`/api/statement-analyzer/lookup?ticker=${encodeURIComponent(symbol)}`);
@@ -137,6 +143,7 @@ function ResearchPage() {
               <Overview
                 company={company}
                 glance={glance}
+                meter={<StockMeter key={`meter-${company.ticker}`} ticker={company.ticker} dashboard={dashboard} playbook={playbook} redFlags={redFlags} />}
                 simple={simple}
                 onSimple={setSimple}
                 onExpandAll={() => setForce({ open: true, seq: (force?.seq ?? 0) + 1 })}
@@ -144,9 +151,16 @@ function ResearchPage() {
               />
               <SectionForce.Provider value={force}>
                 <BusinessSummary key={`about-${company.ticker}`} ticker={company.ticker} name={company.title} />
-                <PlaybookPanel key={`playbook-${company.ticker}`} ticker={company.ticker} onLoaded={setGlance} />
+                <PlaybookPanel
+                  key={`playbook-${company.ticker}`}
+                  ticker={company.ticker}
+                  onLoaded={(summary, data) => {
+                    setGlance(summary);
+                    setPlaybook(data);
+                  }}
+                />
                 <Dashboard company={company} dashboard={dashboard} />
-                <RedFlagsPanel key={`flags-${company.ticker}`} ticker={company.ticker} />
+                <RedFlagsPanel key={`flags-${company.ticker}`} ticker={company.ticker} onScanned={setRedFlags} />
                 <NewsPanel key={`news-${company.ticker}`} ticker={company.ticker} />
                 <AnalysisPanel key={`ai-${company.ticker}`} ticker={company.ticker} />
               </SectionForce.Provider>

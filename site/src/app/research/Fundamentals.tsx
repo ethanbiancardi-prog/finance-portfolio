@@ -81,7 +81,7 @@ const RATING_THRESHOLDS: Record<string, { direction: "higher-is-better" | "lower
   "Operating Cash Flow Margin": { direction: "higher-is-better", good: 0.15, bad: 0.05 },
 };
 
-function rateRatio(label: string, value: number | null): Rating | null {
+export function rateRatio(label: string, value: number | null): Rating | null {
   if (value == null) return null;
   const t = RATING_THRESHOLDS[label];
   if (!t) return null;
@@ -233,7 +233,7 @@ export function Dashboard({ company, dashboard }: { company: Company; dashboard:
 
 type RedFlag = { pattern: string; why: string };
 
-export function RedFlagsPanel({ ticker }: { ticker: string }) {
+export function RedFlagsPanel({ ticker, onScanned }: { ticker: string; onScanned?: (count: number) => void }) {
   const [flags, setFlags] = useState<RedFlag[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -258,6 +258,7 @@ export function RedFlagsPanel({ ticker }: { ticker: string }) {
     const data = await res.json();
     setFlags(data.flags ?? []);
     setLoading(false);
+    onScanned?.((data.flags ?? []).length);
   }
 
   const summary = flags
