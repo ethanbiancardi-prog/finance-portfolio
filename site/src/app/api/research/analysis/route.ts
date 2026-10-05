@@ -1,74 +1,99 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { buildBriefing } from "@/lib/researchBriefing";
+import { getRedis, kvConfigured } from "@/lib/kv";
 
 const anthropic = new Anthropic();
 
-// The model only knows what it was trained on, so without a briefing every
-// take would be months stale and read like a Wikipedia summary. We hand it
-// the same three things the research page shows — the 10-K ratio dashboard,
-// the latest price, and recent headlines — and require each persona to cite
-// them. Anything we can't fetch is labelled "not available" so the model
-// says so instead of inventing a figure.
-const SYSTEM_PROMPT = `You are a panel of six investing personas analyzing one stock ticker for a
-retail investor deciding whether to buy it. Stay in character for each persona, and write each
-take as 2-3 sentences. Every persona's take must end with a concrete statement of what evidence
-or event would change that persona's mind; this keeps the panel analytical instead of a vibes
-battle.
+// Six AI analysts, each answering a different question from its own slice of
+// the briefing (the 10-K ratios, current price, and relevance-filtered
+// headlines), so the takes can't all retell the same story. Each returns a
+// stance, a one-line verdict, 2-3 numbered reasons that quote real numbers,
+// and what would change its mind. Anything not in the briefing is "not
+// available" rather than invented.
+const SYSTEM_PROMPT = `You are a panel of six analysts explaining one stock to a beginner investor who is
+learning, not deciding what to trade. Each analyst answers ONE question using ONLY its own slice of the
+briefing below. You will be given a briefing with the company's latest annual financials (from its
+10-K filing with the SEC), the current share price, and recent headlines about this company.
 
-You will be given a briefing with the company's latest annual financials (from its 10-K filing
-with the SEC), the current share price, and recent headlines. Ground every take in that briefing:
-quote the specific numbers and headlines you are reacting to, and treat the briefing as more
-current than anything you remember about the company. Where the briefing says a figure is not
-available, say so rather than guessing. Note that the financials are annual, if the headlines
-describe something that happened after the fiscal year end, say which is newer.
+The analysts, in this order (use these exact role values):
+1. "business": Is the business growing and becoming more profitable? Use only revenue, revenue
+   growth, gross / operating / net margin, ROE, ROIC. Nothing about debt, the share price, or news.
+2. "safety": Could the company survive a bad year? Use only the current, quick and cash ratios,
+   debt-to-equity, debt-to-assets, interest coverage, free cash flow, operating cash flow margin.
+3. "price": Is the stock expensive for what you get? Use the current price, market cap and
+   trailing P/E, and compare them with the growth and margins (for example, a high P/E with slow
+   growth means the price already assumes a lot). If the P/E is not available, say so.
+4. "news": What changed recently? Use only the headlines in the briefing. If the briefing says
+   there is no relevant news, the stance is "neutral", the verdict is "No relevant news about this
+   company right now.", and the one reason says so. Never use headlines about other companies.
+5. "skeptic": What is the single biggest thing that could go wrong? Pick the strongest risk in the
+   briefing and back it with evidence. Do not restate a reason another analyst already gave; find
+   the risk they missed or understated.
+6. "summary": What does it all mean? In plain everyday English with no jargon, weigh the five
+   answers above, say which way the evidence leans overall and why, and name the one thing worth
+   watching. Add no new facts.
 
-The personas, in order:
-1. The Bull, makes the strongest honest case for buying. What's the upside story, what has to
-   go right, why now.
-2. The Devil's Advocate (Bear), the most important voice on the panel. Strongest case against:
-   what breaks the thesis, what the bulls are ignoring, why this could drop 50%.
-3. The Accountant, ignores stories entirely, only looks at numbers: revenue trend, margins,
-   debt, cash burn, whether it's even profitable, anything fishy in the filings.
-4. The Risk Manager, doesn't care if it's a good company, cares what it does to the portfolio:
-   position size, volatility, correlation with what's already held, worst-case loss.
-5. The Historian, zooms out. How has this stock or sector behaved in past cycles, what happened
-   to similar hype waves before, base rates.
-6. The Indexer, the killjoy every panel needs: why is this better than just holding SPY? Forces
-   the pick to justify its existence against the benchmark.
+For each analyst return:
+- stance: "bullish", "neutral" or "bearish", following from its own reasons only.
+- verdict: one short sentence answering its question directly.
+- reasons: 2 or 3 short sentences (at most 25 words each), each quoting a specific number or
+  headline from the briefing with its period or date. Each reason must explain WHY the number
+  matters ("net margin of 23% means it keeps 23 cents of every sales dollar"), not just repeat it.
+  The verdict must follow logically from the reasons.
+- change_mind: one sentence naming the specific number or event that would flip this stance.
 
-After all six takes, write one final section naming the single sharpest disagreement between
-the personas: the one place where two of them look at the same fact and draw opposite
-conclusions.
+Rules: no two analysts may make the same point. Ground everything in the briefing and treat it as
+more current than anything you remember; where a figure is not available, say so instead of
+guessing. The financials are annual: if a headline is newer than the fiscal year end, say so.
+Describe evidence, never tell the reader to buy or sell.
 
 Never use em dashes or en dashes (— or –) anywhere in your output. Use a comma, colon, semicolon, full stop, or parentheses instead. A hyphen inside a compound word is fine.`;
+
+const ANALYST_ROLES =["business", "safety", "price", "news", "skeptic", "summary"] as const;
 
 const RESPONSE_SCHEMA = {
   type: "object",
   properties: {
-    personas: {
+    analysts: {
       type: "array",
       items: {
         type: "object",
         properties: {
-          name: { type: "string" },
-          take: { type: "string" },
+          role: { type: "string", enum: ANALYST_ROLES },
+          stance: { type: "string", enum: ["bullish", "neutral", "bearish"] },
+          verdict: { type: "string" },
+          reasons: { type: "array", items: { type: "string" } },
+          change_mind: { type: "string" },
         },
-        required: ["name", "take"],
+        required: ["role", "stance", "verdict", "reasons", "change_mind"],
         additionalProperties: false,
       },
     },
-    key_disagreement: { type: "string" },
   },
-  required: ["personas", "key_disagreement"],
+  required: ["analysts"],
   additionalProperties: false,
 };
+
+// Same window as the playbook: headlines move through the day, but flipping
+// between tickers and back shouldn't re-bill six takes.
+const CACHE_TTL_SECONDS = 60 * 60 * 3;
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const ticker = String(body.ticker ?? "").trim().toUpperCase();
   if (!/^[A-Z.\-]{1,10}$/.test(ticker)) {
     return NextResponse.json({ error: "Invalid ticker" }, { status: 400 });
+  }
+
+  const cacheKey = `analysis:v2:${ticker}`;
+  if (kvConfigured()) {
+    try {
+      const cached = await getRedis().get<Record<string, unknown>>(cacheKey);
+      if (cached) return NextResponse.json({ ...cached, cached: true });
+    } catch {
+      // cache is an optimisation, never a reason to fail
+    }
   }
 
   const briefing = await buildBriefing(ticker, 10);
@@ -79,9 +104,8 @@ export async function POST(request: Request) {
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: briefing.text }],
     output_config: {
-      // Six short takes over a briefing we already assembled — medium effort
-      // keeps the reasoning without the wait a research-report-length answer
-      // would need.
+      // Six short structured takes over a briefing we already assembled —
+      // medium effort keeps the reasoning without a report-length wait.
       effort: "medium",
       format: { type: "json_schema", schema: RESPONSE_SCHEMA },
     },
@@ -92,8 +116,9 @@ export async function POST(request: Request) {
 
   // Tell the UI what the takes were actually based on, so a reader can see
   // "priced as of 3:58pm, filing FY2025, 8 headlines" next to the output.
-  return NextResponse.json({
-    ...parsed,
-    basedOn: briefing.basedOn,
-  });
+  const result = { ...parsed, basedOn: briefing.basedOn, generatedAt: new Date().toISOString() };
+  if (kvConfigured()) {
+    await getRedis().set(cacheKey, result, { ex: CACHE_TTL_SECONDS }).catch(() => {});
+  }
+  return NextResponse.json({ ...result, cached: false });
 }

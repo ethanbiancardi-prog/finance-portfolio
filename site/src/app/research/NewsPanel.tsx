@@ -23,6 +23,7 @@ function timeAgo(iso: string) {
 export function NewsPanel({ ticker }: { ticker: string }) {
   const [items, setItems] = useState<NewsItem[] | null>(null);
   const [sources, setSources] = useState<string[]>([]);
+  const [hidden, setHidden] = useState(0);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export function NewsPanel({ ticker }: { ticker: string }) {
         if (cancelled) return;
         setItems(data.items ?? []);
         setSources(data.sources ?? []);
+        setHidden(data.hidden ?? 0);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -55,13 +57,14 @@ export function NewsPanel({ ticker }: { ticker: string }) {
     : items === null
       ? undefined
       : items.length === 0
-        ? "No recent headlines"
+        ? "No relevant news"
         : `${items.length} headlines · latest ${timeAgo(items[0].publishedAt)} ago: "${items[0].headline}"`;
 
   return (
     <Section id="news" label="News" status={error ? "error" : items === null ? "loading" : "ready"} summary={summary}>
       <p className="text-[11px] text-zinc-500">
         {sources.length ? `Merged from ${sources.join(" + ")}, newest first, duplicates removed.` : "Yahoo Finance RSS + Alpaca (Benzinga)."}
+        {hidden > 0 && ` Only stories about this company are shown; ${hidden} general market ${hidden === 1 ? "story was" : "stories were"} filtered out.`}
       </p>
 
       {items === null && (
@@ -69,7 +72,7 @@ export function NewsPanel({ ticker }: { ticker: string }) {
           Fetching headlines...
         </p>
       )}
-      {items && items.length === 0 && !error && <p className="mt-3 text-xs text-zinc-500">No recent headlines</p>}
+      {items && items.length === 0 && !error && <p className="mt-3 text-xs text-zinc-500">No relevant news about this company right now.</p>}
 
       {items && items.length > 0 && (
         <ul className="mt-3 divide-y divide-border/60">

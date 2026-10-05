@@ -50,9 +50,11 @@ function quoteBlock(quote: Quote | null, shares: number | null, netIncome: numbe
 }
 
 function newsBlock(items: NewsItem[] | null) {
-  if (!items || items.length === 0) return "Recent headlines: not available.";
+  if (!items) return "Recent headlines: not available.";
+  // getNews() already dropped stories that aren't about this company.
+  if (items.length === 0) return "Recent headlines: no relevant news about this company (general market stories were filtered out).";
   const lines = items.map((n) => `- [${n.publishedAt.slice(0, 10)}] ${n.headline}${n.summary ? `, ${n.summary.slice(0, 200)}` : ""}`);
-  return `Recent headlines (newest first):\n${lines.join("\n")}`;
+  return `Recent headlines about this company (newest first):\n${lines.join("\n")}`;
 }
 
 // Each source can fail independently (EDGAR is down, the market is closed

@@ -111,7 +111,7 @@ export function PlaybookPanel({ ticker, onLoaded }: { ticker: string; onLoaded?:
           <div>
             <p className="text-[10px] caps text-zinc-500">Catalysts in the news</p>
             {data.catalysts.length === 0 ? (
-              <p className="mt-2 text-xs text-zinc-500">Nothing material in the recent headlines, no launches, deals, or guidance changes.</p>
+              <p className="mt-2 text-xs text-zinc-500">No relevant news. Nothing in recent headlines about this company could move the stock.</p>
             ) : (
               <ul className="mt-2 space-y-2.5">
                 {data.catalysts.map((c, i) => (
@@ -195,7 +195,7 @@ export function PlaybookPanel({ ticker, onLoaded }: { ticker: string; onLoaded?:
 // One line for the section header and the page's overview strip.
 function glance(d: Playbook): string {
   const health = `Financials look ${d.financialHealth.verdict}`;
-  const catalyst = d.catalysts[0] ? `Latest: ${d.catalysts[0].headline}` : "No material catalysts in recent news";
+  const catalyst = d.catalysts[0] ? `Latest: ${d.catalysts[0].headline}` : "No relevant news";
   const top = d.options[0] ? `Top option: ${d.options[0].title.toLowerCase()}` : "";
   return [health, catalyst, top].filter(Boolean).join(" · ");
 }

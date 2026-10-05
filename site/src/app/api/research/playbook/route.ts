@@ -21,8 +21,10 @@ Produce:
    or launch, an earnings or guidance change, a deal, a regulatory or legal event, a management
    change, or a macro factor. For each: the type, a one-line headline in your own words, why it
    matters for the share price, and whether it's positive, negative, or mixed. Skip headlines that
-   are noise (generic "stocks to watch" listicles, analyst-rating churn without new information).
-   If the headlines contain nothing material, return an empty list, do not pad.
+   are noise (generic "stocks to watch" listicles, analyst-rating churn without new information),
+   and headlines where this company is only mentioned in passing while the story is about another
+   company or the market as a whole. Every catalyst must be about this company specifically.
+   If the headlines contain nothing material about it, return an empty list, do not pad.
 
 2. financialHealth, one word verdict (strong / solid / mixed / weak) and 2-4 short points backed
    by the ratios: growth, profitability, balance sheet, cash generation. Quote the numbers.
@@ -97,7 +99,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid ticker" }, { status: 400 });
   }
 
-  const cacheKey = `playbook:${ticker}`;
+  // v2: built from relevance-filtered headlines; v1 entries may cite unrelated stories.
+  const cacheKey = `playbook:v2:${ticker}`;
   if (kvConfigured()) {
     try {
       const cached = await getRedis().get<Record<string, unknown>>(cacheKey);

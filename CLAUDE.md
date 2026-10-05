@@ -65,7 +65,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 
 **API** (all server-side; no key ever reaches the browser)
 - `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
-- `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-persona panel), `simplify` (AI), `meter` (free trend/momentum/Congress inputs for the per-stock Bull/Bear Meter, scored in `lib/stockMeter.ts`)
+- `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-analyst panel: business, safety, price, news, skeptic, summary; 3h cache), `simplify` (AI), `meter` (free trend/momentum/Congress inputs for the per-stock Bull/Bear Meter, scored in `lib/stockMeter.ts`)
 - `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `industry`, `red-flags` (AI)
 - `/api/dcf/prefill` — DCF assumptions from EDGAR facts, pure XBRL math; `/api/optimizer/frontier` and `/api/monte-carlo/simulate` — the two solvers
 - `/api/rotation/status` — recomputes picks, places no orders; `/api/rotation/check` — manual regime check, secret-gated
