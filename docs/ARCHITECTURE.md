@@ -43,7 +43,7 @@ trade journal, with Row Level Security enforcing ownership
 | `/` | Homepage — project cards with screenshot thumbnails, contact links |
 | `/about` | Bio, coursework, skills, contact |
 | `/research` | **Stock Research** — three tabs: Search, Browse by Sector, Research Signals |
-| `/paper-trading` | Live Alpaca paper account: equity, positions, buy/sell, risk metrics |
+| `/paper-trading` | Live Alpaca paper account, view-only: equity, positions, orders, risk metrics |
 | `/login` | Email + password sign-in / sign-up (Supabase) |
 | `/dashboard` | Signed-in only: name, paper portfolio, strategy, trade journal |
 | `/contact` | Contact form (bug / question / opportunity / other) |
@@ -71,7 +71,7 @@ reaches the browser.
 **Paper trading (Alpaca)**
 - `GET /api/paper-trading/account` — account equity/buying power
 - `GET /api/paper-trading/positions` — positions, enriched with EDGAR company names
-- `GET /api/paper-trading/orders` — recent orders (`?limit=`)
+- `GET /api/paper-trading/orders` — recent orders (`?limit=`); read-only, no POST
 - `GET /api/paper-trading/history` — 1-month equity curve for the chart
 - `GET /api/paper-trading/risk-metrics` — Sharpe / vol / max drawdown / beta over 3M
 - `GET /api/paper-trading/search` — ticker autocomplete from Alpaca assets
@@ -108,7 +108,6 @@ reaches the browser.
 **Strategy**
 - `GET /api/rotation/status` — recomputes this month's picks live; places no orders
 - `GET /api/rotation/run` — **executes trades.** Gated by `CRON_SECRET`. Monthly cron
-- `POST /api/rotation/run` — manual "Run Rebalance Now" button (no secret)
 - `GET /api/rotation/check` — manual regime check; secret-gated
 
 **Signals**

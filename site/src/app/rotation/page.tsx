@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import { SECTOR_KEYS, SECTORS, type SectorKey as StockSectorKey } from "@/lib/sectors";
 import {
-  Button,
   Card,
   GeometricLoader,
   Icon,
@@ -60,7 +59,6 @@ type Status = {
   lastRebalance: RebalanceRecord | null;
 };
 
-type RunResult = { blocked: boolean; reason?: string; placedOrders: unknown[]; failedOrders: unknown[] };
 
 type Order = {
   id: string;
@@ -94,8 +92,6 @@ export default function SectorRotation() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [running, setRunning] = useState(false);
-  const [runMessage, setRunMessage] = useState("");
 
   async function load() {
     setLoading(true);
@@ -119,26 +115,6 @@ export default function SectorRotation() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time fetch on mount
     load();
   }, []);
-
-  async function runNow() {
-    setRunning(true);
-    setError("");
-    try {
-      const res = await fetch("/api/rotation/run", { method: "POST" });
-      if (!res.ok) throw new Error("Rebalance run failed");
-      const result: RunResult = await res.json();
-      setRunMessage(
-        result.blocked
-          ? result.reason ?? "Blocked."
-          : `Placed ${result.placedOrders.length} orders${result.failedOrders.length ? `, ${result.failedOrders.length} failed` : ""}.`,
-      );
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Rebalance run failed");
-    } finally {
-      setRunning(false);
-    }
-  }
 
   const rotationOrders = orders.filter((o) => o.client_order_id?.startsWith("rotation-"));
 
@@ -315,17 +291,6 @@ export default function SectorRotation() {
                 {rotationOrders.length === 0 && <EmptyRow colSpan={5}>No rebalance orders yet.</EmptyRow>}
               </tbody>
             </table>
-          </section>
-
-          <section className="mt-4">
-            <SectionHeader
-              label="run rebalance"
-              description="Manually trigger the same rebalance the scheduled job runs monthly. It refuses to place anything that would need margin, sell positions outside the strategy first."
-            />
-            <Button className="mt-3" loading={running} loadingLabel="Running..." onClick={runNow}>
-              Run Rebalance Now
-            </Button>
-            {runMessage && <p className="mt-3 max-w-2xl text-xs leading-5 text-zinc-500">{runMessage}</p>}
           </section>
         </>
       )}

@@ -92,12 +92,13 @@ company-facts JSON.
 
 ## Paper trading (`/paper-trading`)
 
-Live Alpaca **paper** account: equity, positions, buy/sell, auto-refresh every
+Live Alpaca **paper** account, **view-only**: equity, positions, recent orders, auto-refresh every
 60s with an "updated" stamp. Risk metrics: Sharpe,
 annualised volatility, max drawdown, beta vs SPY over 3 months.
 
-The research playbook's action buttons deep-link into this page:
-`/paper-trading?ticker=&side=&thesis=` or `?journal=&thesis=`.
+The account is traded only by the monthly rebalance (and `scripts/` run by
+hand); there is no order form and no public order route. The research
+playbook's action buttons go to `/dashboard#portfolio` or `/dashboard#journal`.
 
 ## Paper portfolio (`/dashboard`)
 
@@ -160,7 +161,7 @@ risk / high reward. Formerly called "Sector Rotation".
 
 Execution lives in `lib/rotationRun.ts`. **Not yet executed** — the old passive
 ETF core (VOO/BND/VEA/VXF/VWO/VNQ/GLD, ~$80k) has to be sold first via
-`site/scripts/sell-core.js --execute`, then Run Rebalance. Full write-up:
+`site/scripts/sell-core.js --execute`; the next monthly cron then rebalances. Full write-up:
 `projects/paper-trading/STRATEGY.md`.
 
 ## DCF builder (`/dcf-builder`)

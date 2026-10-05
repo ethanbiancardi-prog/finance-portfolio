@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { useSearchParams } from "next/navigation";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import {
   Button,
@@ -11,15 +10,11 @@ import {
   ChartLoading,
   GeometricLoader,
   useLoaderHold,
-  Field,
-  PageLoading,
   PageShell,
   SectionHeader,
-  SelectField,
   StatCard,
   StatusBadge,
   Term,
-  TickerSearch,
   tableCellClass,
   tableCellStrongClass,
   tableHeadCellClass,
@@ -77,17 +72,9 @@ type RiskMetrics = {
   periodDays: number;
 };
 
-// useSearchParams needs a Suspense boundary above it for static rendering.
+// View-only showcase of my account. Visitors trade their own accounts on
+// /dashboard, so there is no order form here.
 export default function PaperTrading() {
-  return (
-    <Suspense fallback={<PageLoading />}>
-      <PaperTradingPage />
-    </Suspense>
-  );
-}
-
-function PaperTradingPage() {
-  const params = useSearchParams();
   const [account, setAccount] = useState<Account | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -98,11 +85,6 @@ function PaperTradingPage() {
   // replaces it.
   const heldLoader = useLoaderHold(!updatedAt);
   const [refreshing, setRefreshing] = useState(false);
-  const [symbol, setSymbol] = useState("");
-  const [qty, setQty] = useState("");
-  const [side, setSide] = useState<"buy" | "sell">("buy");
-  const [message, setMessage] = useState("");
-
 
   async function loadAll() {
     setRefreshing(true);
@@ -145,52 +127,11 @@ function PaperTradingPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Arriving from a research-page option: ?ticker=X&side=buy pre-fills the
-  // order form. ?journal=X used to pre-fill a journal entry here; the journal
-  // moved to /dashboard, so that parameter now just scrolls to the pointer.
-  // Deferred a tick so the state updates don't run synchronously inside the
-  // effect.
-  useEffect(() => {
-    const orderTicker = params.get("ticker")?.toUpperCase();
-    const side = params.get("side");
-    const journalFor = params.get("journal")?.toUpperCase();
-    if (!orderTicker && !journalFor) return;
-    const id = window.setTimeout(() => {
-      if (orderTicker) {
-        setSymbol(orderTicker);
-        if (side === "buy" || side === "sell") setSide(side);
-      }
-      if (journalFor) document.getElementById("journal")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 0);
-    return () => window.clearTimeout(id);
-  }, [params]);
-
-  async function submitOrder(e: React.FormEvent) {
-    e.preventDefault();
-    setMessage("Submitting...");
-
-    const res = await fetch("/api/paper-trading/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol: symbol.toUpperCase(), qty, side }),
-    });
-
-    if (!res.ok) {
-      setMessage(`Order failed: ${await res.text()}`);
-      return;
-    }
-
-    setMessage(`Order submitted: ${side} ${qty} ${symbol.toUpperCase()}`);
-    setSymbol("");
-    setQty("");
-    loadAll();
-  }
-
   return (
     <PageShell
       eyebrow="live paper account"
       title="Paper Trading"
-      description="Live fake-money account via Alpaca's paper trading API."
+      description="My live fake-money account via Alpaca's paper trading API, traded by the Momentum + Leverage strategy's monthly rebalance. View-only: sign in to get your own $100,000 account and trade it from your dashboard."
     >
       <div className="mt-3 flex items-center gap-3 text-[10px] caps text-zinc-500">
         <span>
@@ -354,53 +295,6 @@ function PaperTradingPage() {
           </table>
         </div>
       </Card>
-
-      <div className="mt-4">
-        <Card as="section">
-          <SectionHeader label="place order" description="Market order, fills immediately at the current price." />
-          {/* Market order = buy/sell immediately at the current price. A limit order
-              (not implemented in Phase 1) only fills at a price you set or better. */}
-          <form onSubmit={submitOrder} className="mt-3 flex flex-wrap items-end gap-3">
-            <TickerSearch
-              label="Ticker"
-              value={symbol}
-              onChange={setSymbol}
-              onSelect={setSymbol}
-              endpoint="/api/paper-trading/search"
-              required
-              wrapperClassName="w-36"
-            />
-            <Field
-              label="Qty"
-              placeholder="1"
-              type="number"
-              min="1"
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              required
-              className="w-16"
-            />
-            <SelectField
-              label="Side"
-              value={side}
-              onChange={(e) => setSide(e.target.value as "buy" | "sell")}
-              options={[
-                { value: "buy", label: "Buy" },
-                { value: "sell", label: "Sell" },
-              ]}
-            />
-            <Button type="submit">Submit</Button>
-          </form>
-          {message && (
-            <p className="mt-3 text-xs text-zinc-400">
-              <span className="text-zinc-600">&gt; </span>
-              {message}
-            </p>
-          )}
-        </Card>
-
-      </div>
-
     </PageShell>
   );
 }

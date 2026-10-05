@@ -43,16 +43,15 @@ const TYPE_LABEL: Record<Catalyst["type"], string> = {
 const DIRECTION_RATING: Record<Catalyst["direction"], Rating> = { positive: "good", negative: "bad", mixed: "average" };
 const HEALTH_RATING: Record<Playbook["financialHealth"]["verdict"], Rating> = { strong: "good", solid: "good", mixed: "average", weak: "bad" };
 
-// Where each option's button goes. The paper-trading page reads these
-// params and pre-fills the order or journal form.
+// Where each option's button goes. Trading and the journal live on the
+// signed-in dashboard (signed-out visitors are sent to /login first).
 function actionLink(o: Option, ticker: string): { href: string; label: string } | null {
-  const thesis = encodeURIComponent(`${o.title}. ${o.rationale} Wrong if: ${o.invalidation}`);
   switch (o.action) {
     case "buy":
-      return { href: `/paper-trading?ticker=${ticker}&side=buy&thesis=${thesis}`, label: "Buy in paper account" };
+      return { href: "/dashboard#portfolio", label: "Buy in paper account" };
     case "journal":
     case "watch":
-      return { href: `/paper-trading?journal=${ticker}&thesis=${thesis}#journal`, label: "Log this in the journal" };
+      return { href: "/dashboard#journal", label: "Log this in the journal" };
     case "dcf":
       return { href: `/dcf-builder?ticker=${ticker}`, label: "Build a DCF" };
     default:

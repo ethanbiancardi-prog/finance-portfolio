@@ -93,8 +93,8 @@ strategy only manages positions it has recorded itself, so the core has to be
 sold once, by hand, before the first rebalance will run:
 
 1. Sell VOO, BND, VEA, VXF, VWO, VNQ, GLD and the stray AAPL (paper-trading
-   page → Place Order, or `node scripts/sell-core.js` in `site/`).
-2. Press **Run Rebalance Now** on the strategy page (or wait for the 1st).
+   `node scripts/sell-core.js --execute` in `site/`).
+2. Wait for the monthly cron on the 1st (there is no public run button).
    Until step 1 is done the run reports itself as blocked and places nothing.
 
 ## Benchmark

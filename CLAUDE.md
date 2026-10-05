@@ -48,8 +48,8 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/` — homepage: masthead, live account snapshot, ruled index of the projects
 - `/about` — bio, coursework, skills
 - `/research` — Stock Research: Search · Browse by Sector · Research Signals
-- `/paper-trading` — live Alpaca paper account: equity, positions, buy/sell, risk metrics
-- `/rotation` — Momentum + Leverage strategy: current picks, regime state, rebalance
+- `/paper-trading` — live Alpaca paper account, view-only: equity, positions, orders, risk metrics
+- `/rotation` — Momentum + Leverage strategy: current picks, regime state, rebalance history
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
 - `/optimizer` — efficient frontier across user-entered tickers
 - `/monte-carlo` — 10,000 simulated portfolio paths and goal probability
@@ -64,12 +64,12 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`
 
 **API** (all server-side; no key ever reaches the browser)
-- `/api/paper-trading/*` — `account`, `positions`, `orders`, `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
+- `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
 - `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-persona panel), `simplify` (AI)
 - `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `industry`, `red-flags` (AI)
 - `/api/dcf/prefill` — DCF assumptions from EDGAR facts, pure XBRL math; `/api/optimizer/frontier` and `/api/monte-carlo/simulate` — the two solvers
 - `/api/rotation/status` — recomputes picks, places no orders; `/api/rotation/check` — manual regime check, secret-gated
-- `/api/rotation/run` — **executes trades**; `CRON_SECRET`-gated on GET, open on POST for the demo button
+- `/api/rotation/run` — **executes trades**; GET only, `CRON_SECRET`-gated (monthly cron). No public trigger
 - `/api/signals` — read-only, serves the Redis cache; `/api/signals/refresh` — forces a refresh, secret-gated
 - `/api/cron/daily` — weekday regime check + all five signal refreshes; `/api/client-work/auth` — passcode → 30-day session cookie
 
