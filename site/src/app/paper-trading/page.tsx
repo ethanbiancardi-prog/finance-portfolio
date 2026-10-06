@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
+import type { Showcase } from "@/lib/showcase";
 import {
   Button,
   Card,
@@ -21,186 +22,140 @@ import {
   tableHeadRowClass,
   tableRowClass,
   EmptyRow,
-  type Rating,
 } from "@/components/ui";
 
-const Chart = dynamic(() => import("./Chart"), {
+const PortfolioChart = dynamic(() => import("../dashboard/PortfolioChart"), {
   ssr: false,
-  loading: () => <ChartLoading className="h-64" />,
+  loading: () => <ChartLoading className="h-56" />,
 });
 
-type Account = {
-  equity: string;
-  buying_power: string;
-};
+// Signed percentage change against the starting cash, coloured good/bad.
+function Change({ value, base }: { value: number; base: number }) {
+  const pct = (value - base) / base;
+  return (
+    <span style={{ color: `var(--status-${pct >= 0 ? "good" : "bad"})` }}>
+      {pct >= 0 ? "+" : ""}
+      {formatPercent(pct, { decimals: 2 })}
+    </span>
+  );
+}
 
-type Position = {
-  symbol: string;
-  name?: string;
-  qty: string;
-  avg_entry_price: string;
-  current_price: string;
-  unrealized_pl: string;
-  unrealized_plpc: string;
-};
-
-type Order = {
-  id: string;
-  symbol: string;
-  name?: string;
-  qty: string;
-  side: string;
-  status: string;
-  submitted_at: string;
-};
-
-type EquityPoint = {
-  date: string;
-  equity: number;
-};
-
-type PortfolioHistory = {
-  timestamp: number[];
-  equity: (number | null)[];
-};
-
-type RiskMetrics = {
-  sharpe: number;
-  annualizedVolatility: number;
-  maxDrawdown: number;
-  beta: number;
-  periodDays: number;
-};
-
-// View-only showcase of my account. Visitors trade their own accounts on
-// /dashboard, so there is no order form here.
+// View-only showcase of my own dashboard paper portfolio, the account I trade
+// by hand. Visitors get their own account to trade on /dashboard.
 export default function PaperTrading() {
-  const [account, setAccount] = useState<Account | null>(null);
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [equityHistory, setEquityHistory] = useState<EquityPoint[]>([]);
-  const [riskMetrics, setRiskMetrics] = useState<RiskMetrics | null>(null);
+  const [data, setData] = useState<Showcase | null>(null);
+  const [error, setError] = useState("");
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   // Hold the mark on screen while it reassembles, before the timestamp
   // replaces it.
-  const heldLoader = useLoaderHold(!updatedAt);
+  const heldLoader = useLoaderHold(!updatedAt && !error);
   const [refreshing, setRefreshing] = useState(false);
 
-  async function loadAll() {
+  async function load() {
     setRefreshing(true);
-    const [accountRes, positionsRes, ordersRes, historyRes, riskMetricsRes] =
-      await Promise.all([
-        fetch("/api/paper-trading/account"),
-        fetch("/api/paper-trading/positions"),
-        fetch("/api/paper-trading/orders"),
-        fetch("/api/paper-trading/history"),
-        fetch("/api/paper-trading/risk-metrics"),
-      ]);
-    setAccount(await accountRes.json());
-    setPositions(await positionsRes.json());
-    setOrders(await ordersRes.json());
-    setRiskMetrics(await riskMetricsRes.json());
-
-    const history: PortfolioHistory = await historyRes.json();
-    setEquityHistory(
-      history.timestamp
-        .map((t, i) => ({ t, equity: history.equity[i] }))
-        .filter((point): point is { t: number; equity: number } => point.equity != null)
-        .map((point) => ({
-          date: new Date(point.t * 1000).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          }),
-          equity: point.equity,
-        })),
-    );
-    setUpdatedAt(new Date());
-    setRefreshing(false);
+    try {
+      const res = await fetch("/api/showcase");
+      if (!res.ok) throw new Error("The portfolio couldn't load right now.");
+      setData(await res.json());
+      setError("");
+      setUpdatedAt(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The portfolio couldn't load right now.");
+    } finally {
+      setRefreshing(false);
+    }
   }
 
-  // Positions and P&L move with the market, so re-pull every minute while
-  // the tab is open instead of showing whatever was true at page load.
+  // Prices move through the day, so re-pull every minute while the tab is
+  // open (the server caches for two, so this never hammers anything).
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount, then poll
-    loadAll();
-    const timer = setInterval(loadAll, 60_000);
+    load();
+    const timer = setInterval(load, 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  const opened = data && new Date(data.openedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const risk = data?.risk ?? null;
 
   return (
     <PageShell
       eyebrow="live paper account"
       title="Paper Trading"
-      description="My live fake-money account via Alpaca's paper trading API, traded by the Momentum + Leverage strategy's monthly rebalance. View-only: sign in to get your own $100,000 account and trade it from your dashboard."
+      description="My own practice portfolio: $100,000 of simulated cash that I trade by hand, priced live and compared against putting the same money into the S&P 500. View-only. Sign in to get your own $100,000 account and trade it from your dashboard."
     >
       <div className="mt-3 flex items-center gap-3 text-[10px] caps text-zinc-500">
         <span>
           {heldLoader ? (
-            <GeometricLoader loading={!updatedAt} size={11} label="Loading" />
-          ) : (
-            `Updated ${updatedAt?.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
-          )}
+            <GeometricLoader loading={!updatedAt && !error} size={11} label="Loading" />
+          ) : updatedAt ? (
+            `Updated ${updatedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+          ) : null}
         </span>
         <span>Refreshes every minute</span>
-        <Button variant="outline" onClick={loadAll} loading={refreshing} loadingLabel="Refreshing">
+        <Button variant="outline" onClick={load} loading={refreshing} loadingLabel="Refreshing">
           Refresh
         </Button>
       </div>
-      {/* Equity is total account value (cash + position value). Buying power is
-          how much you can spend right now; it can exceed cash on hand because
-          a margin account lets you borrow against your equity. */}
-      <section className="mt-4 grid grid-cols-2 gap-3">
-        <StatCard card size="lg" label="Equity" term="equity" value={account ? formatCurrency(account.equity) : "..."} />
-        <StatCard
-          card
-          size="lg"
-          label="Buying Power"
-          term="buyingPower"
-          value={account ? formatCurrency(account.buying_power) : "..."}
+
+      {error && (
+        <Card className="mt-3" padding="sm">
+          <p className="text-xs text-bad">{error}</p>
+        </Card>
+      )}
+
+      <section className="mt-4">
+        <SectionHeader
+          label="the portfolio"
+          description={opened ? `Opened ${opened} with ${formatCurrency(data!.startingCash)}. The S&P 500 line is what the same money would be worth had it all gone into SPY that day.` : undefined}
         />
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard card label="Starting cash" value={data ? formatCurrency(data.startingCash) : "..."} />
+          <StatCard
+            card
+            label="Account value"
+            term="equity"
+            value={data ? formatCurrency(data.equity) : "..."}
+            hint={data && <Change value={data.equity} base={data.startingCash} />}
+          />
+          <StatCard card label="Cash" value={data ? formatCurrency(data.cash) : "..."} />
+          <StatCard
+            card
+            label="Same $ in SPY"
+            value={data ? formatCurrency(data.spyEquity) : "..."}
+            hint={data && <Change value={data.spyEquity} base={data.startingCash} />}
+          />
+        </div>
+        {data && <PortfolioChart history={data.history} />}
       </section>
 
       <Card as="section" className="mt-4">
         <SectionHeader
           label="risk metrics"
           description={
-            riskMetrics
-              ? `Based on ~${riskMetrics.periodDays} trading days, Sharpe/beta on this short a window are noisy, treat as directional, not precise.`
-              : undefined
+            risk
+              ? `Based on ${risk.periodDays} trading days since the account opened. On this short a window Sharpe and beta are noisy, treat them as directional, not precise.`
+              : data
+                ? "Shown once the account has a few trading days of history."
+                : undefined
           }
         />
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard
             label="Sharpe Ratio"
             term="sharpe"
-            value={riskMetrics ? formatRatio(riskMetrics.sharpe) : "..."}
+            value={risk ? formatRatio(risk.sharpe) : "..."}
             hint={
-              riskMetrics && (
-                <StatusBadge
-                  rating={riskMetrics.sharpe >= 0 ? "good" : "bad"}
-                  label={riskMetrics.sharpe >= 0 ? "Positive" : "Negative"}
-                />
+              risk && (
+                <StatusBadge rating={risk.sharpe >= 0 ? "good" : "bad"} label={risk.sharpe >= 0 ? "Positive" : "Negative"} />
               )
             }
           />
-          <StatCard
-            label="Volatility (ann.)"
-            term="volatility"
-            value={riskMetrics ? formatPercent(riskMetrics.annualizedVolatility) : "..."}
-          />
-          <StatCard
-            label="Max Drawdown"
-            term="drawdown"
-            value={riskMetrics ? formatPercent(riskMetrics.maxDrawdown) : "..."}
-          />
-          <StatCard label="Beta vs SPY" term="beta" value={riskMetrics ? formatRatio(riskMetrics.beta) : "..."} />
+          <StatCard label="Volatility (ann.)" term="volatility" value={risk ? formatPercent(risk.annualizedVolatility) : "..."} />
+          <StatCard label="Max Drawdown" term="drawdown" value={risk ? formatPercent(risk.maxDrawdown) : "..."} />
+          <StatCard label="Beta vs SPY" term="beta" value={risk ? formatRatio(risk.beta) : "..."} />
         </div>
       </Card>
-
-      <section className="mt-4">
-        <SectionHeader label="equity (last month)" />
-        <Chart equityHistory={equityHistory} />
-      </section>
 
       <Card as="section" className="mt-4">
         <SectionHeader label="open positions" />
@@ -211,61 +166,41 @@ export default function PaperTrading() {
                 <th className={tableHeadCellClass}>Symbol</th>
                 <th className={`${tableHeadCellClass} text-right`}>Qty</th>
                 <th className={`${tableHeadCellClass} text-right`}>
-                  <Term term="avgEntry">Avg Entry</Term>
+                  <Term term="avgEntry">Avg Cost</Term>
                 </th>
                 <th className={`${tableHeadCellClass} text-right`}>Current</th>
+                <th className={`${tableHeadCellClass} text-right`}>Value</th>
                 <th className={`${tableHeadCellClass} text-right`}>
                   <Term term="pnl">P&L</Term>
                 </th>
               </tr>
             </thead>
             <tbody>
-              {positions.map((p) => {
-                const pl = Number(p.unrealized_pl);
-                const plRating: Rating = pl >= 0 ? "good" : "bad";
-                return (
-                  <tr key={p.symbol} className={tableRowClass}>
-                    <td className="py-1">
-                      <span className="text-xs text-foreground">{p.symbol}</span>
-                      {p.name && <span className="block text-[10px] text-zinc-600">{p.name}</span>}
-                    </td>
-                    <td className={`${tableCellClass} text-right`}>{p.qty}</td>
-                    <td className={`${tableCellClass} text-right`}>{formatCurrency(p.avg_entry_price)}</td>
-                    <td className={`${tableCellStrongClass} text-right`}>{formatCurrency(p.current_price)}</td>
-                    <td
-                      className="py-1 text-right text-xs tabular-nums"
-                      style={{ color: `var(--status-${plRating})` }}
-                    >
-                      {pl >= 0 ? "+" : ""}
-                      {formatCurrency(p.unrealized_pl)}
-                      <span className="ml-1.5 opacity-70">
-                        {formatPercent(Number(p.unrealized_plpc), { decimals: 2 })}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {positions.length === 0 && <EmptyRow colSpan={5}>no open positions</EmptyRow>}
+              {data?.positions.map((p) => (
+                <tr key={p.symbol} className={tableRowClass}>
+                  <td className="py-1 text-xs text-foreground">{p.symbol}</td>
+                  <td className={`${tableCellClass} text-right`}>{p.qty}</td>
+                  <td className={`${tableCellClass} text-right`}>{formatCurrency(p.avgCost)}</td>
+                  <td className={`${tableCellStrongClass} text-right`}>{formatCurrency(p.price)}</td>
+                  <td className={`${tableCellClass} text-right`}>{formatCurrency(p.marketValue)}</td>
+                  <td
+                    className="py-1 text-right text-xs tabular-nums"
+                    style={{ color: `var(--status-${p.unrealizedPl >= 0 ? "good" : "bad"})` }}
+                  >
+                    {p.unrealizedPl >= 0 ? "+" : ""}
+                    {formatCurrency(p.unrealizedPl)}
+                    <span className="ml-1.5 opacity-70">{formatPercent(p.unrealizedPlPct, { decimals: 2 })}</span>
+                  </td>
+                </tr>
+              ))}
+              {data && data.positions.length === 0 && <EmptyRow colSpan={6}>no open positions</EmptyRow>}
             </tbody>
           </table>
         </div>
       </Card>
 
-      <Card as="section" className="mt-4" id="journal">
-        <SectionHeader label="trade journal" />
-        <p className="mt-3 max-w-2xl text-xs leading-5 text-zinc-400">
-          The journal moved to your{" "}
-          <Link href="/dashboard#journal" className="text-accent underline decoration-accent/40 underline-offset-4">
-            dashboard
-          </Link>
-          . Entries are private to your account now, so they live behind a sign-in
-          rather than on this public page.
-        </p>
-      </Card>
-
-
       <Card as="section" className="mt-4">
-        <SectionHeader label="recent orders" />
+        <SectionHeader label="trade history" />
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[480px] text-left">
             <thead>
@@ -273,27 +208,36 @@ export default function PaperTrading() {
                 <th className={tableHeadCellClass}>Symbol</th>
                 <th className={tableHeadCellClass}>Side</th>
                 <th className={`${tableHeadCellClass} text-right`}>Qty</th>
-                <th className={`${tableHeadCellClass} pl-4`}>Status</th>
-                <th className={`${tableHeadCellClass} text-right`}>Submitted</th>
+                <th className={`${tableHeadCellClass} text-right`}>Price</th>
+                <th className={`${tableHeadCellClass} text-right`}>Time</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map((o) => (
-                <tr key={o.id} className={tableRowClass}>
-                  <td className="py-1">
-                    <span className="text-xs text-foreground">{o.symbol}</span>
-                    {o.name && <span className="block text-[10px] text-zinc-600">{o.name}</span>}
-                  </td>
-                  <td className={`${tableCellClass} caps ${o.side === "buy" ? "text-good" : "text-bad"}`}>{o.side}</td>
-                  <td className={`${tableCellStrongClass} text-right`}>{o.qty}</td>
-                  <td className={`${tableCellClass} pl-4 text-[10px] caps-tight`}>{o.status}</td>
-                  <td className={`${tableCellClass} whitespace-nowrap text-right`}>{new Date(o.submitted_at).toLocaleString()}</td>
-                </tr>
-              ))}
-              {orders.length === 0 && <EmptyRow colSpan={5}>no orders yet</EmptyRow>}
+              {/* buildPortfolio() already returns these newest first. */}
+              {data?.trades.map((t) => (
+                  <tr key={t.id} className={tableRowClass}>
+                    <td className="py-1 text-xs text-foreground">{t.symbol}</td>
+                    <td className={`${tableCellClass} caps ${t.side === "buy" ? "text-good" : "text-bad"}`}>{t.side}</td>
+                    <td className={`${tableCellStrongClass} text-right`}>{t.qty}</td>
+                    <td className={`${tableCellClass} text-right`}>{formatCurrency(t.price)}</td>
+                    <td className={`${tableCellClass} whitespace-nowrap text-right`}>{new Date(t.executedAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              {data && data.trades.length === 0 && <EmptyRow colSpan={5}>no trades yet</EmptyRow>}
             </tbody>
           </table>
         </div>
+      </Card>
+
+      <Card as="section" className="mt-4">
+        <SectionHeader label="your own account" />
+        <p className="mt-3 max-w-2xl text-xs leading-5 text-zinc-400">
+          Want to try it?{" "}
+          <Link href="/dashboard#portfolio" className="text-accent underline decoration-accent/40 underline-offset-4">
+            Sign in
+          </Link>{" "}
+          and you get your own $100,000 paper account to trade, a trade journal, and automated strategies, all private to you.
+        </p>
       </Card>
     </PageShell>
   );

@@ -43,7 +43,7 @@ trade journal, with Row Level Security enforcing ownership
 | `/` | Homepage — project cards with screenshot thumbnails, contact links |
 | `/about` | Bio, coursework, skills, contact |
 | `/research` | **Stock Research** — three tabs: Search, Browse by Sector, Research Signals |
-| `/paper-trading` | Live Alpaca paper account, view-only: equity, positions, orders, risk metrics |
+| `/paper-trading` | Showcase portfolio, view-only: Ethan's dashboard paper account vs. SPY, risk metrics, positions, trades |
 | `/login` | Email + password sign-in / sign-up (Supabase) |
 | `/dashboard` | Signed-in only: name, paper portfolio, strategy, trade journal |
 | `/contact` | Contact form (bug / question / opportunity / other) |
@@ -69,7 +69,8 @@ All under `site/src/app/api`. Everything runs server-side; no API key ever
 reaches the browser.
 
 **Paper trading (Alpaca)**
-- `GET /api/paper-trading/account` — account equity/buying power
+- `GET /api/showcase` — the showcase portfolio for `/paper-trading` and the homepage (`lib/showcase.ts`, 2-min cache)
+- `GET /api/paper-trading/account` — Alpaca account equity/buying power
 - `GET /api/paper-trading/positions` — positions, enriched with EDGAR company names
 - `GET /api/paper-trading/orders` — recent orders (`?limit=`); read-only, no POST
 - `GET /api/paper-trading/history` — 1-month equity curve for the chart

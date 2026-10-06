@@ -45,11 +45,11 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 ## Every route
 
 **Pages**
-- `/` — homepage: masthead, live account snapshot, ruled index of the projects
+- `/` — homepage: masthead, live snapshot of the showcase portfolio, ruled index of the projects
 - `/about` — bio, coursework, skills
 - `/research` — Stock Research: Search · Browse by Sector · Research Signals
-- `/paper-trading` — live Alpaca paper account, view-only: equity, positions, orders, risk metrics
-- `/rotation` — Momentum + Leverage strategy: current picks, regime state, rebalance history
+- `/paper-trading` — the showcase portfolio, view-only: Ethan's own dashboard paper account (`SHOWCASE_USER_ID`) vs. SPY, risk metrics, positions, trades
+- `/rotation` — Momentum + Leverage strategy on the Alpaca paper account: current picks, regime state, rebalance history
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
 - `/optimizer` — efficient frontier across user-entered tickers
 - `/monte-carlo` — 10,000 simulated portfolio paths and goal probability
@@ -67,6 +67,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
 - `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-analyst panel: business, safety, price, news, skeptic, summary; 3h cache), `simplify` (AI), `meter` (free trend/momentum/Congress inputs for the per-stock Bull/Bear Meter, scored in `lib/stockMeter.ts`)
 - `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `industry`, `red-flags` (AI)
+- `/api/showcase` — read-only showcase portfolio (`lib/showcase.ts`), 2-minute Redis cache; also feeds the homepage snapshot
 - `/api/dcf/prefill` — DCF assumptions from EDGAR facts, pure XBRL math; `/api/optimizer/frontier` and `/api/monte-carlo/simulate` — the two solvers
 - `/api/rotation/status` — recomputes picks, places no orders; `/api/rotation/check` — manual regime check, secret-gated
 - `/api/rotation/run` — **executes trades**; GET only, `CRON_SECRET`-gated (monthly cron). No public trigger
@@ -92,7 +93,8 @@ Local: `site/.env.local`, gitignored. Production: Vercel project settings.
 it dashboard trading returns 503). **Optional** `RESEND_API_KEY` (contact-form email via Resend;
 without it messages are only saved to `contact_messages`), `CONTACT_TO_EMAIL`,
 `CONTACT_FROM_EMAIL`, `CLIENT_WORK_PASSCODE`,
-`CLIENT_WORK_SECRET`, `SIGNALS_DEBUG`. `KV_URL`, `REDIS_URL`,
+`CLIENT_WORK_SECRET`, `SIGNALS_DEBUG`, `SHOWCASE_USER_ID` (the dashboard account shown
+on `/paper-trading` and the homepage; not a secret, without it both hide). `KV_URL`, `REDIS_URL`,
 `KV_REST_API_READ_ONLY_TOKEN` and `VERCEL_OIDC_TOKEN` are Vercel-provisioned
 and unread by app code.
 
@@ -103,9 +105,11 @@ and unread by app code.
    Supabase anon key: it is designed to be public and is useless without a
    session, because Row Level Security decides what each user can read. The
    Supabase **secret key** (`SUPABASE_SECRET_KEY`) bypasses RLS and must never
-   reach the browser. It lives only in `lib/supabase/admin.ts` and is used only
-   to write paper trades via `place_paper_trade()`; all reads use the user's
-   own session.
+   reach the browser. It lives only in `lib/supabase/admin.ts` and is used to
+   write paper trades via `place_paper_trade()`, by the strategy runner and the
+   contact form, and for one read: `lib/showcase.ts` reads the single account
+   named by `SHOWCASE_USER_ID` for the public `/paper-trading` page. Every other
+   read uses the user's own session.
 2. **Cache external data. Never call a paid API on page load.** `/api/signals`
    reads cache only; refreshes run on the cron or a secret-gated route. Redis
    via `lib/kv.ts` (`getRedis()`, guarded by `kvConfigured()`).

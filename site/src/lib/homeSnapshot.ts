@@ -1,73 +1,36 @@
-import { alpaca } from "./alpaca";
-import { getRedis, kvConfigured } from "./kv";
+import { getShowcase } from "./showcase";
 
-// The one live number on the homepage: what the paper account is actually
-// worth, and how it has moved over three months. Everything here is server
-// side and cached — a visitor loading the homepage never triggers an Alpaca
-// call of their own (see the caching rule in CLAUDE.md).
+// The one live number on the homepage: what my practice portfolio (the
+// dashboard account shown on /paper-trading) is worth, and how it has moved
+// since it opened. Server side and cached in lib/showcase.ts — a visitor
+// loading the homepage never triggers a price fetch of their own (see the
+// caching rule in CLAUDE.md).
 
 export type HomeSnapshot = {
-  /** Account equity in dollars, latest close. */
+  /** Account value in dollars, at live prices. */
   equity: number;
-  /** Change over the window as a decimal, e.g. 0.124 = +12.4%. */
+  /** Change since the account opened as a decimal, e.g. 0.054 = +5.4%. */
   changePct: number;
-  /** Equity curve, oldest to newest, for the sparkline. */
+  /** Daily account value, oldest to newest, for the sparkline. */
   points: number[];
-  /** When this snapshot was built (ISO). */
-  asOf: string;
+  /** The day the account opened (ISO). */
+  openedAt: string;
 };
 
-const CACHE_KEY = "home:snapshot";
-const TTL_SECONDS = 60 * 15;
-const PERIOD = "3M";
-
-async function fetchSnapshot(): Promise<HomeSnapshot | null> {
-  const history = await alpaca(`/account/portfolio/history?period=${PERIOD}&timeframe=1D`);
-
-  // Alpaca pads the series with nulls on non-trading days; drop them and any
-  // zero rows from before the account was funded.
-  const equities: number[] = (history.equity ?? []).filter(
-    (v: unknown): v is number => typeof v === "number" && v > 0,
-  );
-  if (equities.length < 2) return null;
-
-  const first = equities[0];
-  const last = equities[equities.length - 1];
-
-  return {
-    equity: last,
-    changePct: (last - first) / first,
-    points: equities,
-    asOf: new Date().toISOString(),
-  };
-}
-
 /**
- * Cached snapshot for the homepage. Returns null — and the panel hides —
- * whenever the keys are missing or Alpaca is unreachable, so a data outage
- * degrades the page instead of breaking it.
+ * Snapshot for the homepage. Returns null — and the panel hides — whenever
+ * the portfolio can't be loaded, so a data outage degrades the page instead
+ * of breaking it.
  */
 export async function getHomeSnapshot(): Promise<HomeSnapshot | null> {
-  if (!process.env.APCA_API_KEY_ID) return null;
-
-  if (kvConfigured()) {
-    try {
-      const cached = await getRedis().get<HomeSnapshot>(CACHE_KEY);
-      if (cached) return cached;
-    } catch {
-      // Cache read failed — fall through and fetch it live this once.
-    }
-  }
-
-  try {
-    const snapshot = await fetchSnapshot();
-    if (snapshot && kvConfigured()) {
-      await getRedis().set(CACHE_KEY, snapshot, { ex: TTL_SECONDS });
-    }
-    return snapshot;
-  } catch {
-    return null;
-  }
+  const showcase = await getShowcase();
+  if (!showcase || showcase.history.length < 2) return null;
+  return {
+    equity: showcase.equity,
+    changePct: (showcase.equity - showcase.startingCash) / showcase.startingCash,
+    points: showcase.history.map((p) => p.equity),
+    openedAt: showcase.openedAt,
+  };
 }
 
 /**

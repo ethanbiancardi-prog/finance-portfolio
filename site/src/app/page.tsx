@@ -17,7 +17,7 @@ type Project = {
 const projects: Project[] = [
   {
     name: "Paper Trading",
-    blurb: "Real Alpaca account, trade journal, Sharpe, drawdown, beta.",
+    blurb: "My own $100K practice portfolio vs. the S&P 500, live.",
     href: "/paper-trading",
     status: "Live",
   },
@@ -118,8 +118,8 @@ export default async function Home() {
           {/* PRISM's artwork; which design is set in components/Motif.ts. */}
           <MotifHero className="hidden aspect-[16/10] w-full min-w-0 max-w-[560px] self-center md:block" />
 
-          {/* Hidden entirely when Alpaca is unreachable, rather than showing
-              an empty frame or a fake number. */}
+          {/* Hidden entirely when the portfolio can't be loaded, rather than
+              showing an empty frame or a fake number. */}
           {snapshot && (
             <div className="home-reveal w-full shrink-0 border border-border bg-panel p-4 sm:w-[248px]" style={{ animationDelay: "0.65s" }}>
               <div className="flex items-center justify-between">
@@ -145,7 +145,7 @@ export default async function Home() {
                 width="100%"
                 height={SPARK_H}
                 role="img"
-                aria-label={`Paper account equity over three months, ${up ? "up" : "down"} ${Math.abs(snapshot.changePct * 100).toFixed(1)} percent`}
+                aria-label={`Paper account value since it opened, ${up ? "up" : "down"} ${Math.abs(snapshot.changePct * 100).toFixed(1)} percent`}
                 className="mt-3 block"
                 preserveAspectRatio="none"
               >
@@ -161,8 +161,9 @@ export default async function Home() {
               </svg>
 
               <p className="mt-3 border-t border-border pt-2.5 text-[10px] leading-4 text-zinc-500">
-                Three months, straight from the account. Paper money: the
-                strategy is real, the dollars are not.
+                My own trades since{" "}
+                {new Date(snapshot.openedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}, at live
+                prices. Paper money: the decisions are real, the dollars are not.
               </p>
             </div>
           )}

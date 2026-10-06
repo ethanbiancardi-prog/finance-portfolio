@@ -92,13 +92,20 @@ company-facts JSON.
 
 ## Paper trading (`/paper-trading`)
 
-Live Alpaca **paper** account, **view-only**: equity, positions, recent orders, auto-refresh every
-60s with an "updated" stamp. Risk metrics: Sharpe,
-annualised volatility, max drawdown, beta vs SPY over 3 months.
+The **showcase portfolio**, view-only: Ethan's own dashboard paper account
+(the `/dashboard` account named by `SHOWCASE_USER_ID`), which he trades by
+hand. Same numbers as his dashboard: value vs. the $100,000 start, the
+"same $ in SPY" line and chart, cash, positions and trade history, plus
+Sharpe, annualised volatility, max drawdown and beta vs SPY computed from
+the account's daily value since it opened. Auto-refreshes every 60s;
+`lib/showcase.ts` reads the account server-side (admin client, that one
+account only) and caches it for two minutes. The homepage's live-account
+panel uses the same data.
 
-The account is traded only by the monthly rebalance (and `scripts/` run by
-hand); there is no order form and no public order route. The research
-playbook's action buttons go to `/dashboard#portfolio` or `/dashboard#journal`.
+There is no order form and no public order route. Visitors trade their own
+accounts on `/dashboard`; the research playbook's action buttons go to
+`/dashboard#portfolio` or `/dashboard#journal`. The Momentum + Leverage
+strategy still runs on the separate Alpaca paper account, shown on `/rotation`.
 
 ## Paper portfolio (`/dashboard`)
 
