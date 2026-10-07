@@ -195,7 +195,13 @@ export async function runSignalTrader(opts: { dryRun?: boolean } = {}): Promise<
   const base = { ranAt: new Date().toISOString(), live, orders: [], failed: [], kept: [], skipped: [] };
 
   const clock: { is_open: boolean } = await alpaca("/clock");
-  if (!clock.is_open && !opts.dryRun) return { ...base, marketOpen: false, note: "Market closed." };
+  if (!clock.is_open && !opts.dryRun) {
+    // Saved anyway, so the page's "last check" shows the schedule is alive
+    // even overnight and at weekends.
+    const closed: RunReport = { ...base, marketOpen: false, note: "Market closed." };
+    if (kvConfigured()) await getRedis().set(REPORT_KEY, closed).catch(() => {});
+    return closed;
+  }
 
   // Two overlapping runs could both see the same cash and double-buy.
   if (live && kvConfigured()) {
