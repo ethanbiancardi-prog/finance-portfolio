@@ -11,11 +11,13 @@ import { getRedis, kvConfigured } from "./kv";
 import { getDailyBars } from "./marketdata";
 import { buildPortfolio, type PaperAccountRow, type PaperTradeRow, type PortfolioSummary } from "./portfolio";
 import { computeRiskMetrics, type RiskMetrics } from "./riskMetrics";
+import { REPORT_KEY, type RunReport } from "./signalTrader";
+import type { AlgoStatus, SignalOrder } from "./signalTraderRules";
 import { createAdminClient } from "./supabase/admin";
 
-export type Showcase = PortfolioSummary & { risk: RiskMetrics | null };
+export type Showcase = PortfolioSummary & { risk: RiskMetrics | null; algo: AlgoStatus };
 
-const CACHE_KEY = "showcase:portfolio:v1";
+const CACHE_KEY = "showcase:portfolio:v2";
 const TTL_SECONDS = 60 * 2; // live prices, but no need to re-price on every visit
 
 async function loadShowcase(): Promise<Showcase | null> {
@@ -41,7 +43,29 @@ async function loadShowcase(): Promise<Showcase | null> {
       spyBars,
     );
   }
-  return { ...portfolio, risk };
+  return { ...portfolio, risk, algo: await loadAlgoStatus(userId) };
+}
+
+// The Signal Trader's side of the page: its last check (Redis, written by
+// every scheduled run) and its recent orders with their reasons (the runs
+// it logged to paper_strategy_runs).
+async function loadAlgoStatus(userId: string): Promise<AlgoStatus> {
+  const admin = createAdminClient()!;
+  const [report, { data: runs }] = await Promise.all([
+    kvConfigured() ? getRedis().get<RunReport>(REPORT_KEY).catch(() => null) : Promise.resolve(null),
+    admin
+      .from("paper_strategy_runs")
+      .select("ran_at, orders, reason")
+      .eq("user_id", userId)
+      .like("reason", "Signal Trader:%")
+      .order("ran_at", { ascending: false })
+      .limit(10),
+  ]);
+  return {
+    live: process.env.SIGNAL_TRADER_ENABLED === "true",
+    lastCheck: report ? { ranAt: report.ranAt, note: report.note, orders: report.orders.length } : null,
+    recent: (runs ?? []).flatMap((r) => (r.orders as SignalOrder[]).map((o) => ({ ...o, ranAt: r.ran_at as string }))).slice(0, 25),
+  };
 }
 
 export async function getShowcase(): Promise<Showcase | null> {

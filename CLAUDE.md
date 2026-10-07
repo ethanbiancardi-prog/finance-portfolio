@@ -48,7 +48,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/` — homepage: masthead, live snapshot of the showcase portfolio, ruled index of the projects
 - `/about` — bio, coursework, skills
 - `/research` — Stock Research: Search · Browse by Sector · Research Signals
-- `/paper-trading` — the showcase portfolio, view-only: Ethan's own dashboard paper account (`SHOWCASE_USER_ID`) vs. SPY, risk metrics, positions, trades
+- `/paper-trading` — the showcase portfolio, view-only: Ethan's own dashboard paper account (`SHOWCASE_USER_ID`), traded by the Signal Trader algorithm, vs. SPY; the algorithm's rules and recent orders with reasons, risk metrics, positions, trades
 - `/rotation` — Momentum + Leverage strategy on the Alpaca paper account: current picks, regime state, rebalance history
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
 - `/optimizer` — efficient frontier across user-entered tickers
@@ -71,6 +71,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/api/dcf/prefill` — DCF assumptions from EDGAR facts, pure XBRL math; `/api/optimizer/frontier` and `/api/monte-carlo/simulate` — the two solvers
 - `/api/rotation/status` — recomputes picks, places no orders; `/api/rotation/check` — manual regime check, secret-gated
 - `/api/rotation/run` — **executes trades**; GET only, `CRON_SECRET`-gated (monthly cron). No public trigger
+- `/api/signal-trader/run` — **executes trades** on the showcase account (`lib/signalTrader.ts`); GET only, `CRON_SECRET`-gated, called every 15 min in market hours by `.github/workflows/signal-trader.yml`; `?dryRun=1` trades nothing
 - `/api/signals` — read-only, serves the Redis cache; `/api/signals/refresh` — forces a refresh, secret-gated
 - `/api/cron/daily` — weekday regime check + all five signal refreshes; `/api/client-work/auth` — passcode → 30-day session cookie
 
@@ -94,7 +95,8 @@ it dashboard trading returns 503). **Optional** `RESEND_API_KEY` (contact-form e
 without it messages are only saved to `contact_messages`), `CONTACT_TO_EMAIL`,
 `CONTACT_FROM_EMAIL`, `CLIENT_WORK_PASSCODE`,
 `CLIENT_WORK_SECRET`, `SIGNALS_DEBUG`, `SHOWCASE_USER_ID` (the dashboard account shown
-on `/paper-trading` and the homepage; not a secret, without it both hide). `KV_URL`, `REDIS_URL`,
+on `/paper-trading` and the homepage; not a secret, without it both hide), `SIGNAL_TRADER_ENABLED`
+(`true` lets the Signal Trader place trades; anything else and every run is a dry run). `KV_URL`, `REDIS_URL`,
 `KV_REST_API_READ_ONLY_TOKEN` and `VERCEL_OIDC_TOKEN` are Vercel-provisioned
 and unread by app code.
 
@@ -115,6 +117,8 @@ and unread by app code.
    via `lib/kv.ts` (`getRedis()`, guarded by `kvConfigured()`).
 3. **Cron budget is 2 on Vercel's free tier and both are used** — monthly
    rebalance and `api/cron/daily`. Add new daily work *inside* `api/cron/daily`.
+   Anything more frequent runs from GitHub Actions instead (the Signal Trader,
+   `.github/workflows/signal-trader.yml`, using the `CRON_SECRET` repo secret).
 4. **Every AI claim needs a source and a date.** AI features are grounded on
    `lib/researchBriefing.ts` and must cite it; unfetchable data is labelled
    "not available" rather than invented. AI signals are dropped unless the
@@ -177,4 +181,4 @@ it unless he raises it. Details in `docs/DATA_AND_ENV.md`.
 - `docs/ARCHITECTURE.md` — repo shape, every route and API, key libraries, UI conventions, visual identity
 - `docs/FEATURES.md` — each feature in depth, including the EDGAR rules that must not be broken
 - `docs/DATA_AND_ENV.md` — data sources, caching and TTLs, cron budget, env var names, local setup
-- `docs/ROADMAP.md` build plan · `docs/PROJECT_IDEAS.md` backlog · `projects/paper-trading/STRATEGY.md` the live strategy
+- `docs/ROADMAP.md` build plan · `docs/PROJECT_IDEAS.md` backlog · `projects/paper-trading/STRATEGY.md` the live strategy · `projects/paper-trading/SIGNAL_TRADER.md` the showcase account's algorithm

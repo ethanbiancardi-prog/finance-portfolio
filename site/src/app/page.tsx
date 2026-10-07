@@ -17,7 +17,7 @@ type Project = {
 const projects: Project[] = [
   {
     name: "Paper Trading",
-    blurb: "My own $100K practice portfolio vs. the S&P 500, live.",
+    blurb: "My $100K practice portfolio, traded by my own algorithm, vs. the S&P 500.",
     href: "/paper-trading",
     status: "Live",
   },
@@ -161,9 +161,9 @@ export default async function Home() {
               </svg>
 
               <p className="mt-3 border-t border-border pt-2.5 text-[10px] leading-4 text-zinc-500">
-                My own trades since{" "}
-                {new Date(snapshot.openedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}, at live
-                prices. Paper money: the decisions are real, the dollars are not.
+                Since{" "}
+                {new Date(snapshot.openedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}, traded by
+                my algorithm at live prices. Paper money: the decisions are real, the dollars are not.
               </p>
             </div>
           )}

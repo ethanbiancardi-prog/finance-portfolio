@@ -93,8 +93,8 @@ company-facts JSON.
 ## Paper trading (`/paper-trading`)
 
 The **showcase portfolio**, view-only: Ethan's own dashboard paper account
-(the `/dashboard` account named by `SHOWCASE_USER_ID`), which he trades by
-hand. Same numbers as his dashboard: value vs. the $100,000 start, the
+(the `/dashboard` account named by `SHOWCASE_USER_ID`), traded by the
+**Signal Trader** algorithm (below). Same numbers as his dashboard: value vs. the $100,000 start, the
 "same $ in SPY" line and chart, cash, positions and trade history, plus
 Sharpe, annualised volatility, max drawdown and beta vs SPY computed from
 the account's daily value since it opened. Auto-refreshes every 60s;
@@ -106,6 +106,20 @@ There is no order form and no public order route. Visitors trade their own
 accounts on `/dashboard`; the research playbook's action buttons go to
 `/dashboard#portfolio` or `/dashboard#journal`. The Momentum + Leverage
 strategy still runs on the separate Alpaca paper account, shown on `/rotation`.
+
+### Signal Trader (`lib/signalTrader.ts`)
+
+Trades the showcase account with no human in the loop. Full rules in
+`projects/paper-trading/SIGNAL_TRADER.md`; the numbers live in
+`lib/signalTraderRules.ts`. Every 15 minutes in market hours GitHub Actions
+(`.github/workflows/signal-trader.yml`) calls the `CRON_SECRET`-gated
+`/api/signal-trader/run`. It scores tickers from the cached Research Signals,
+sells on stops / broken trend / faded signal, buys the strongest names above
+their 50- and 200-day averages, and writes trades through
+`place_paper_trade()` at the latest IEX price. Orders and reasons go to
+`paper_strategy_runs` (reason prefixed "Signal Trader:"); the last check goes
+to Redis `signal-trader:last`. The page's "the algorithm" section shows both.
+Off unless `SIGNAL_TRADER_ENABLED=true`: until then every run is a dry run.
 
 ## Paper portfolio (`/dashboard`)
 

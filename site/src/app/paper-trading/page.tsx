@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import type { Showcase } from "@/lib/showcase";
+import { RULES } from "@/lib/signalTraderRules";
 import {
   Button,
   Card,
@@ -40,8 +41,9 @@ function Change({ value, base }: { value: number; base: number }) {
   );
 }
 
-// View-only showcase of my own dashboard paper portfolio, the account I trade
-// by hand. Visitors get their own account to trade on /dashboard.
+// View-only showcase of my own dashboard paper portfolio, traded by the
+// Signal Trader algorithm (lib/signalTrader.ts). Visitors get their own
+// account to trade on /dashboard.
 export default function PaperTrading() {
   const [data, setData] = useState<Showcase | null>(null);
   const [error, setError] = useState("");
@@ -82,7 +84,7 @@ export default function PaperTrading() {
     <PageShell
       eyebrow="live paper account"
       title="Paper Trading"
-      description="My own practice portfolio: $100,000 of simulated cash that I trade by hand, priced live and compared against putting the same money into the S&P 500. View-only. Sign in to get your own $100,000 account and trade it from your dashboard."
+      description="My own practice portfolio: $100,000 of simulated cash traded by an algorithm I wrote, priced live and compared against putting the same money into the S&P 500. View-only. Sign in to get your own $100,000 account and trade it from your dashboard."
     >
       <div className="mt-3 flex items-center gap-3 text-[10px] caps text-zinc-500">
         <span>
@@ -154,6 +156,63 @@ export default function PaperTrading() {
           <StatCard label="Volatility (ann.)" term="volatility" value={risk ? formatPercent(risk.annualizedVolatility) : "..."} />
           <StatCard label="Max Drawdown" term="drawdown" value={risk ? formatPercent(risk.maxDrawdown) : "..."} />
           <StatCard label="Beta vs SPY" term="beta" value={risk ? formatRatio(risk.beta) : "..."} />
+        </div>
+      </Card>
+
+      <Card as="section" className="mt-4">
+        <SectionHeader
+          label="the algorithm"
+          description={
+            !data
+              ? undefined
+              : data.algo.live
+              ? `Trading on its own every 15 minutes while the market is open.${data.algo.lastCheck ? ` Last check ${new Date(data.algo.lastCheck.ranAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}: ${data.algo.lastCheck.note}` : ""}`
+              : "Built and checking the market, but not switched on yet: it reports what it would do and places nothing."
+          }
+        />
+        <ul className="mt-3 max-w-2xl list-disc space-y-1 pl-4 text-xs leading-5 text-zinc-400">
+          <li>
+            Scores each stock from the Research Signals: Congress members&apos; disclosed trades (more buyers, no
+            sellers and committee oversight score higher), the latest 10-K&apos;s story, and the President&apos;s trades.
+          </li>
+          <li>
+            Buys a score of {RULES.entryScore} or more, only while the price is above its 50- and 200-day averages, about{" "}
+            {RULES.positionWeight * 100}% of the account each, at most {RULES.maxPositions} stocks.
+          </li>
+          <li>
+            Sells at {RULES.stopLoss * 100}% below cost, {RULES.trailingStop * 100}% below its high since buying, when the price
+            falls under its 200-day average, or when the score drops below {RULES.holdScore}.
+          </li>
+          <li>Paper money and educational, not investment advice. Congress trades are disclosed up to 45 days late.</li>
+        </ul>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left">
+            <thead>
+              <tr className={tableHeadRowClass}>
+                <th className={tableHeadCellClass}>Time</th>
+                <th className={tableHeadCellClass}>Side</th>
+                <th className={tableHeadCellClass}>Symbol</th>
+                <th className={`${tableHeadCellClass} text-right`}>Qty</th>
+                <th className={`${tableHeadCellClass} text-right`}>Price</th>
+                <th className={tableHeadCellClass}>Why</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data?.algo.recent.map((o, i) => (
+                <tr key={`${o.ranAt}-${o.symbol}-${i}`} className={tableRowClass}>
+                  <td className={`${tableCellClass} whitespace-nowrap`}>
+                    {new Date(o.ranAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </td>
+                  <td className={`${tableCellClass} caps ${o.side === "buy" ? "text-good" : "text-bad"}`}>{o.side}</td>
+                  <td className="py-1 text-xs text-foreground">{o.symbol}</td>
+                  <td className={`${tableCellStrongClass} text-right`}>{o.qty}</td>
+                  <td className={`${tableCellClass} text-right`}>{formatCurrency(o.price)}</td>
+                  <td className={`${tableCellClass} min-w-[220px]`}>{o.reason}</td>
+                </tr>
+              ))}
+              {data && data.algo.recent.length === 0 && <EmptyRow colSpan={6}>no algorithm trades yet</EmptyRow>}
+            </tbody>
+          </table>
         </div>
       </Card>
 
