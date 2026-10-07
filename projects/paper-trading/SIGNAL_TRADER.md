@@ -36,8 +36,10 @@ which way the news cuts for the stock.
 
 ## How it runs
 
-Every 15 minutes on weekdays, GitHub Actions calls `/api/signal-trader/run`
-(Vercel's free plan only allows two scheduled jobs and both are used). The
+Every 15 minutes on weekdays, cron-job.org calls `/api/signal-trader/run`
+(Vercel's free plan only allows two scheduled jobs and both are used). A
+GitHub Actions schedule does the same as a backup; on its own it never fired
+on day one, which is why cron-job.org runs it. The
 route checks Alpaca's clock and does nothing when the market is closed.
 Signals refresh once a night, so new buys mostly happen on the first run of
 the morning; the runs during the day mostly watch the stops. Prices are the

@@ -109,7 +109,9 @@ strategy still runs on the separate Alpaca paper account, shown on `/rotation`.
 
 ### Signal Trader (`lib/signalTrader.ts`)
 
-Trades the showcase account with no human in the loop. Full rules in
+Trades the showcase account with no human in the loop. Called every 15 min by
+cron-job.org (sends `SIGNAL_TRADER_SECRET`, which unlocks only this route) and
+by a GitHub Actions backup. Full rules in
 `projects/paper-trading/SIGNAL_TRADER.md`; the numbers live in
 `lib/signalTraderRules.ts`. Every 15 minutes in market hours GitHub Actions
 (`.github/workflows/signal-trader.yml`) calls the `CRON_SECRET`-gated
