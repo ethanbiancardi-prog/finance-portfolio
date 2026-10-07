@@ -6,11 +6,13 @@
 #
 # Needs one repository secret: CRON_SECRET (same value as in Vercel).
 # GitHub can start scheduled runs a few minutes late, which is fine here.
+# The minutes are deliberately off the :00/:15/:30/:45 marks: GitHub is
+# busiest then and delays or drops scheduled runs.
 name: Signal Trader
 
 on:
   schedule:
-    - cron: "*/15 13-21 * * 1-5"
+    - cron: "7,22,37,52 13-21 * * 1-5"
   workflow_dispatch: # the "Run workflow" button, for testing by hand
 
 jobs:
