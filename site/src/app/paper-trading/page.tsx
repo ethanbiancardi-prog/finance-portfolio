@@ -194,7 +194,7 @@ export default function PaperTrading() {
                 <th className={tableHeadCellClass}>Symbol</th>
                 <th className={`${tableHeadCellClass} text-right`}>Qty</th>
                 <th className={`${tableHeadCellClass} text-right`}>Price</th>
-                <th className={tableHeadCellClass}>Why</th>
+                <th className={`${tableHeadCellClass} pl-4`}>Why</th>
               </tr>
             </thead>
             <tbody>
@@ -207,7 +207,7 @@ export default function PaperTrading() {
                   <td className="py-1 text-xs text-foreground">{o.symbol}</td>
                   <td className={`${tableCellStrongClass} text-right`}>{o.qty}</td>
                   <td className={`${tableCellClass} text-right`}>{formatCurrency(o.price)}</td>
-                  <td className={`${tableCellClass} min-w-[220px]`}>{o.reason}</td>
+                  <td className={`${tableCellClass} min-w-[220px] pl-4`}>{o.reason}</td>
                 </tr>
               ))}
               {data && data.algo.recent.length === 0 && <EmptyRow colSpan={6}>no algorithm trades yet</EmptyRow>}
