@@ -1,0 +1,27 @@
+# Runs the Signal Trader (site/src/lib/signalTrader.ts) every 15 minutes on
+# weekdays. Vercel's free tier only allows two crons and both are taken, so
+# GitHub's scheduler calls the route instead. The hours are in UTC and cover
+# the US session in both summer and winter time; the route checks Alpaca's
+# market clock and does nothing when the market is closed.
+#
+# Needs one repository secret: CRON_SECRET (same value as in Vercel).
+# GitHub can start scheduled runs a few minutes late, which is fine here.
+name: Signal Trader
+
+on:
+  schedule:
+    - cron: "*/15 13-21 * * 1-5"
+  workflow_dispatch: # the "Run workflow" button, for testing by hand
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call the trading route
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail-with-body -sS -m 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://site-theta-drab-22.vercel.app/api/signal-trader/run
