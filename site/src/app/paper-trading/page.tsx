@@ -6,7 +6,8 @@ import dynamic from "next/dynamic";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import type { Showcase } from "@/lib/showcase";
 import { RULES } from "@/lib/signalTraderRules";
-import ThoughtLog from "./ThoughtLog";
+import { Collapsible } from "./Collapsible";
+import DecisionLog from "./DecisionLog";
 import {
   Button,
   Card,
@@ -42,8 +43,8 @@ function Change({ value, base }: { value: number; base: number }) {
   );
 }
 
-// Long tables show their newest rows until "show all" is clicked.
-const ROWS = 5;
+// Long tables, once opened, show their newest rows until "show all" is clicked.
+const ROWS = 10;
 
 function ShowAll({ total, open, onToggle, noun }: { total: number; open: boolean; onToggle: () => void; noun: string }) {
   if (total <= ROWS) return null;
@@ -204,6 +205,15 @@ export default function PaperTrading() {
           </li>
           <li>Paper money and educational, not investment advice. Congress trades are disclosed up to 45 days late.</li>
         </ul>
+      </Card>
+
+      <DecisionLog history={data?.history ?? []} />
+
+      <Collapsible
+        label="algorithm trades"
+        description="Every trade the algorithm has made, newest first, with its reason."
+        meta={data ? `${data.algo.recent.length} trades` : undefined}
+      >
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[560px] text-left">
             <thead>
@@ -234,9 +244,7 @@ export default function PaperTrading() {
           </table>
         </div>
         <ShowAll total={data?.algo.recent.length ?? 0} open={allAlgo} onToggle={() => setAllAlgo((v) => !v)} noun="algorithm trades" />
-      </Card>
-
-      <ThoughtLog />
+      </Collapsible>
 
       <Card as="section" className="mt-4">
         <SectionHeader label="open positions" />
@@ -280,18 +288,7 @@ export default function PaperTrading() {
         </div>
       </Card>
 
-      <Card as="section" className="mt-4">
-        <details open className="group">
-          <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-            <span aria-hidden className="text-xs text-zinc-500 transition-transform group-open:rotate-90">›</span>
-            <span className="flex-1">
-              <SectionHeader label="trade history" />
-            </span>
-            <span className="text-[10px] caps text-zinc-500">
-              <span className="group-open:hidden">Show {data ? `${data.trades.length} trades` : ""}</span>
-              <span className="hidden group-open:inline">Hide</span>
-            </span>
-          </summary>
+      <Collapsible label="trade history" meta={data ? `${data.trades.length} trades` : undefined}>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[480px] text-left">
             <thead>
@@ -319,8 +316,7 @@ export default function PaperTrading() {
           </table>
         </div>
         <ShowAll total={data?.trades.length ?? 0} open={allTrades} onToggle={() => setAllTrades((v) => !v)} noun="trades" />
-        </details>
-      </Card>
+      </Collapsible>
 
       <Card as="section" className="mt-4">
         <SectionHeader label="your own account" />
