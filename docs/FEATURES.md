@@ -339,7 +339,7 @@ every ticker in `lib/sectors.ts`, using Alpaca's **SIP** feed (IEX history is
 too short) with `adjustment=all`; `getDailyBars` takes `start`, `feed` and
 `adjustment` options for this. The free plan can't read the last 15 minutes
 of SIP, so SIP requests end 20 minutes ago. Computed in ~5s, cached in Redis
-(`strategy-lab:v2`, 26h), recomputed by `api/cron/daily`; an empty cache is
+(`strategy-lab:v3`, 26h), recomputed by `api/cron/daily`; an empty cache is
 filled by the first visitor.
 
 Sanity check: buy-and-hold's yearly returns match SPY's published total

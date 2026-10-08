@@ -133,7 +133,7 @@ function Backtest() {
       <Card as="section" className="mt-4">
         <SectionHeader
           label="results"
-          description="Sharpe is return per unit of risk (higher is better; cash earns nothing here, so it's measured against 0%). Max drawdown is the worst fall from a peak. Trades counts every buy and every sell."
+          description="Sharpe is return per unit of risk (higher is better; cash earns nothing here, so it's measured against 0%). Max drawdown is the worst fall from a peak. Trades counts every buy and every sell. Avg. cash is how much of the account sat in cash on a typical day, earning nothing."
         />
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[760px] text-left">
@@ -147,7 +147,7 @@ function Backtest() {
                 <th className={`${tableHeadCellClass} text-right`}>Max drawdown</th>
                 <th className={`${tableHeadCellClass} text-right`}>Worst year</th>
                 <th className={`${tableHeadCellClass} text-right`}>Trades</th>
-                <th className={`${tableHeadCellClass} text-right`}>Invested</th>
+                <th className={`${tableHeadCellClass} text-right`}>Avg. cash</th>
               </tr>
             </thead>
             <tbody>
@@ -170,7 +170,7 @@ function Backtest() {
                       <Signed value={m.worstYear.ret} /> <span className="opacity-70">{m.worstYear.year}</span>
                     </td>
                     <td className={`${tableCellClass} text-right`}>{m.trades.toLocaleString()}</td>
-                    <td className={`${tableCellClass} text-right`}>{formatPercent(m.timeInvested, { decimals: 0 })}</td>
+                    <td className={`${tableCellClass} text-right`}>{formatPercent(m.avgCash, { decimals: 0 })}</td>
                   </tr>
                 );
               })}

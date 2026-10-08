@@ -10,7 +10,7 @@ import { getDailyBars } from "./marketdata";
 import { SECTOR_KEYS, SECTORS } from "./sectors";
 import { buildTable, runLab, type LabResult } from "./strategyLab";
 
-const CACHE_KEY = "strategy-lab:v2"; // bump when the engine changes, so old results are never served
+const CACHE_KEY = "strategy-lab:v3"; // bump when the engine changes, so old results are never served
 const TTL_SECONDS = 60 * 60 * 26; // a day, plus slack so a late cron never leaves it empty
 const HISTORY_START = "2016-01-01"; // as far back as Alpaca's free consolidated feed goes
 

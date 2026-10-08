@@ -204,14 +204,14 @@ export const STRATEGIES: Strategy[] = [
 
 // --- Simulator ---------------------------------------------------------------
 
-type SimResult = { equity: number[]; trades: number; daysInvested: number };
+type SimResult = { equity: number[]; trades: number; cashShare: number[] };
 
 function simulate(strategy: Strategy, ctx: Ctx, from: number): SimResult {
   const { table } = ctx;
   const shares = new Map<string, number>();
   let cash = START_CASH;
   let trades = 0;
-  let daysInvested = 0;
+  const cashShare: number[] = []; // each day's cash as a share of account value
   let pending: Decision = null;
   const equity: number[] = [];
 
@@ -246,13 +246,14 @@ function simulate(strategy: Strategy, ctx: Ctx, from: number): SimResult {
       pending = null;
     }
 
-    equity.push(value(t));
-    if (shares.size > 0) daysInvested++;
+    const v = value(t);
+    equity.push(v);
+    cashShare.push(v > 0 ? cash / v : 0);
 
     // 2. Decide on today's close, to be filled tomorrow.
     if (t < table.dates.length - 1) pending = strategy.decide(t, new Set(shares.keys()), { ...ctx, first: t === from });
   }
-  return { equity, trades, daysInvested };
+  return { equity, trades, cashShare };
 }
 
 // --- Results -----------------------------------------------------------------
@@ -267,7 +268,7 @@ export type Metrics = {
   bestYear: { year: string; ret: number };
   worstYear: { year: string; ret: number };
   trades: number;
-  timeInvested: number; // share of days holding anything
+  avgCash: number; // average share of the account sitting in cash
 };
 
 export type LabStrategy = Omit<Strategy, "decide"> & { metrics: Metrics; yearly: Record<string, number> };
@@ -318,7 +319,7 @@ function metrics(dates: string[], sim: SimResult): { metrics: Metrics; yearly: R
       bestYear: { year: best[0], ret: best[1] },
       worstYear: { year: worst[0], ret: worst[1] },
       trades: sim.trades,
-      timeInvested: sim.daysInvested / eq.length,
+      avgCash: pm.mean(sim.cashShare),
     },
   };
 }
