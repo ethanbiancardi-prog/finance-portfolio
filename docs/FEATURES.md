@@ -357,12 +357,15 @@ and was converted in place: same user, shares and opening time, email
 renamed to `algo-buyhold@example.com`. Each account trades its own
 $100,000 paper account (`lib/algoPortfolios.ts`) with the same
 `STRATEGIES[].decide` code the backtest runs, so the two can't drift apart.
-Once a day: `/api/signal-trader/run` (cron-job.org, every 15 min) calls
-`runAlgoPortfolios()`, which acts only between 3:40 and 3:58pm New York time,
-only when the market is open, and only once a day (Redis `algo:ran:<date>`).
+Every 15 minutes: `/api/signal-trader/run` (cron-job.org) calls
+`runAlgoPortfolios()` alongside the Signal Trader; with the market open it
+checks every portfolio (overlap lock `algo:lock`). Momentum's monthly rule
+fires all day on the month's first trading day, so it rebalances only on the
+first check that day (`algo:momentum-rebalanced:<date>`). Until Oct 8 2026
+they ran once a day at 3:45pm.
 Prices: ~300 completed days of split-adjusted IEX bars plus a "today" column
 of latest trades; a stock without a fresh (<30 min) price gets NaN, so no rule
-fires on a stale price. Live decides and fills on the 3:45pm price (the
+fires on a stale price. Live decides and fills on the latest price (the
 backtest fills next close) with no trading costs.
 
 Accounts belong to robot users (`algo-<key>@example.com`, created with a

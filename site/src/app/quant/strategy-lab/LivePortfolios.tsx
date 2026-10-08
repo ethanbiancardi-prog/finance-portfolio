@@ -83,9 +83,8 @@ export default function LivePortfolios() {
         <SectionHeader label="not trading yet" />
         <p className="mt-3 max-w-2xl text-xs leading-5 text-zinc-400">
           Three of these strategies (momentum, breakout and mean reversion) each get their own $100,000 paper portfolio and
-          trade it automatically, once a day at {data.startsAt}, by exactly the rules on the Backtest tab. A fourth portfolio
-          is the control: $100,000 in the S&amp;P 500, never sold. The first trades happen at the next 3:45pm on a trading
-          day; this tab fills in from then.
+          trade it automatically, checked {data.startsAt}, by the rules on the Backtest tab. A fourth portfolio is the
+          control: $100,000 in the S&amp;P 500, never sold. This tab fills in from the first trades.
         </p>
       </Card>
     );
@@ -117,7 +116,7 @@ export default function LivePortfolios() {
       <Card as="section" className="mt-4">
         <SectionHeader
           label="live since"
-          description={`Each portfolio opened with $100,000 on ${new Date(opened).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} and trades once a day at ${data.startsAt}, by the Backtest tab's rules, at real prices. Values update every minute while this page is open.${data.lastRun ? ` Last trading run: ${when(data.lastRun.ranAt)}.` : ""}`}
+          description={`Each portfolio opened with $100,000 on ${new Date(opened).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} and is checked ${data.startsAt} against the Backtest tab's rules, at real prices. Momentum rebalances on the first trading day of each month; the S&P 500 control never trades. Values update every minute while this page is open.${data.lastRun ? ` Last trading run: ${when(data.lastRun.ranAt)}.` : ""}`}
         />
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
           {visible.map((k) => (
@@ -222,8 +221,9 @@ export default function LivePortfolios() {
       </section>
 
       <p className="mt-4 text-[10px] leading-4 text-zinc-500">
-        Paper money, educational, not investment advice. Live fills use the 3:45pm price for both the decision and the trade,
-        where the backtest decides on one close and fills at the next; there are no trading costs here.
+        Paper money, educational, not investment advice. Live checks use the latest price for both the decision and the
+        trade, every 15 minutes, where the backtest decides on one day&apos;s close and fills at the next; there are no
+        trading costs here.
       </p>
     </>
   );

@@ -7,8 +7,8 @@ import { runSignalTrader } from "@/lib/signalTrader";
 // .github/workflows/signal-trader.yml, because both Vercel crons are taken.
 // Each call runs:
 //   - the Signal Trader on the showcase account (lib/signalTrader.ts), and
-//   - the algo portfolios (lib/algoPortfolios.ts), which only act once a
-//     day in the 3:40-3:58pm window and return straight away otherwise.
+//   - the algo portfolios (lib/algoPortfolios.ts), each checked against its
+//     strategy's rules while the market is open.
 // The two are independent: one failing never stops the other.
 // ?dryRun=1 reports what the Signal Trader would do and trades nothing
 // (the algo portfolios have their own dry run at /api/algo/run).

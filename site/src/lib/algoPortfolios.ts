@@ -8,19 +8,22 @@
 // same opening time) rather than reopened.
 //
 // The rules are the Strategy Lab's own (STRATEGIES in lib/strategyLab.ts),
-// run once a day at ~3:45pm New York time, close to the daily closes the
-// backtest used. One difference: the backtest decides on a close and fills
-// at the next day's close; live, the decision and the fill both use the
-// 3:45pm price, since waiting a day would mean trading on a stale signal.
+// checked every 15 minutes while the market is open, with the latest price
+// standing in for "today's close", so a stock that breaks out or drops
+// mid-morning is acted on then rather than at the end of the day. (Until
+// Oct 8 2026 they ran once a day at 3:45pm; the backtest uses daily closes
+// and fills at the next day's close, so live results now differ from it by
+// design.) Momentum still rebalances only on the first trading day of each
+// month, once that day; the S&P 500 control never trades after day one.
 //
 // Each strategy's account belongs to a server-created "robot" user in
 // Supabase (random password, never stored, so nobody can sign in as it).
 // The accounts are created on the first live run, so each one opens the day
 // it starts trading. Trades go through place_paper_trade(), like everyone's.
 //
-// Triggered by /api/signal-trader/run (cron-job.org, every 15 minutes): it
-// calls runAlgoPortfolios(), which acts only inside the 3:40-3:58pm window
-// and only once a day. ALGO_PORTFOLIOS_ENABLED=false pauses trading.
+// Triggered by /api/signal-trader/run (cron-job.org, every 15 minutes), which
+// calls runAlgoPortfolios() alongside the Signal Trader.
+// ALGO_PORTFOLIOS_ENABLED=false pauses trading.
 
 import { randomBytes } from "node:crypto";
 import { alpaca } from "./alpaca";
@@ -92,7 +95,7 @@ async function getAccounts(admin: Admin, create: boolean): Promise<Map<AlgoKey, 
 
 // The last ~300 completed trading days. While the market is open, a final
 // "today" column holds the latest trade price, so the strategies decide on
-// 3:45pm prices. A stock without a fresh price gets NaN there, which every
+// live prices. A stock without a fresh price gets NaN there, which every
 // rule reads as "no signal": copying yesterday's close forward instead would
 // fake a flat day (and an "oversold" reading after a down day). With the
 // market closed (a dry run), the last real close is "today".
@@ -113,37 +116,38 @@ async function livePrices(symbols: string[], marketOpen: boolean): Promise<Price
   return table;
 }
 
-// --- The daily run -----------------------------------------------------------
+// --- The 15-minute run --------------------------------------------------------
 
-function inWindow(now = new Date()): boolean {
-  const [h, m] = now
-    .toLocaleTimeString("en-GB", { timeZone: "America/New_York", hour12: false })
-    .split(":")
-    .map(Number);
-  const minutes = h * 60 + m;
-  return minutes >= 15 * 60 + 40 && minutes <= 15 * 60 + 58;
-}
+const LOCK_KEY = "algo:lock";
 
-export async function runAlgoPortfolios(opts: { dryRun?: boolean; force?: boolean } = {}): Promise<AlgoRunReport> {
+export async function runAlgoPortfolios(opts: { dryRun?: boolean } = {}): Promise<AlgoRunReport> {
   const live = !opts.dryRun && process.env.ALGO_PORTFOLIOS_ENABLED !== "false";
   const base = { ranAt: new Date().toISOString(), live, bots: [] as AlgoRunReport["bots"] };
-  if (!opts.force && !opts.dryRun && !inWindow()) return { ...base, note: "Outside the 3:40-3:58pm window." };
 
   const clock: { is_open: boolean } = await alpaca("/clock");
   if (!clock.is_open && !opts.dryRun) return { ...base, note: "Market closed." };
 
-  // Once a day, whichever scheduler call lands in the window first.
-  const today = nyDate(new Date());
+  // Two overlapping runs (cron-job.org and the GitHub backup) could both
+  // see the same cash and double-buy.
   if (live && kvConfigured()) {
-    const first = await getRedis().set(`algo:ran:${today}`, base.ranAt, { nx: true, ex: 60 * 60 * 20 });
-    if (!first) return { ...base, note: "Already ran today." };
+    const got = await getRedis().set(LOCK_KEY, base.ranAt, { nx: true, ex: 240 });
+    if (!got) return { ...base, note: "Another run is in progress." };
   }
+  try {
+    return await runOnce(base, live, clock.is_open);
+  } finally {
+    if (live && kvConfigured()) await getRedis().del(LOCK_KEY).catch(() => {});
+  }
+}
+
+async function runOnce(base: Omit<AlgoRunReport, "note">, live: boolean, marketOpen: boolean): Promise<AlgoRunReport> {
+  const today = nyDate(new Date());
 
   const admin = createAdminClient();
   if (!admin) throw new Error("SUPABASE_SECRET_KEY is not set");
   const accounts = await getAccounts(admin, live);
   const universe = labUniverse();
-  const table = await livePrices(["SPY", ...universe], clock.is_open);
+  const table = await livePrices(["SPY", ...universe], marketOpen);
   const t = table.dates.length - 1;
   const ctx = { table, universe: universe.filter((s) => table.close.has(s)), spy: table.close.get("SPY")! };
   const price = (s: string) => table.close.get(s)?.[t] ?? NaN;
@@ -166,7 +170,13 @@ export async function runAlgoPortfolios(opts: { dryRun?: boolean; force?: boolea
       }
       const { cash, holdings } = replay(trades, 100_000);
       const held = new Set(holdings.keys());
-      const decision = strategy.decide(t, held, { ...ctx, first: trades.length === 0 });
+      let decision = strategy.decide(t, held, { ...ctx, first: trades.length === 0 });
+      // Momentum's rule fires all day on the first trading day of a month;
+      // rebalance on the first check that day only, not every 15 minutes.
+      if (decision && key === "momentum" && trades.length > 0 && live && kvConfigured()) {
+        const first = await getRedis().set(`algo:momentum-rebalanced:${today}`, base.ranAt, { nx: true, ex: 60 * 60 * 20 });
+        if (!first) decision = null;
+      }
       if (!decision) {
         bot.note = key === "momentum" ? "Holds until the first trading day of next month." : "No change.";
         continue;
@@ -218,7 +228,8 @@ export async function runAlgoPortfolios(opts: { dryRun?: boolean; force?: boolea
   const report: AlgoRunReport = { ...base, note: live ? "Ran." : "Dry run, nothing traded." };
   if (live && kvConfigured()) {
     await getRedis().set(REPORT_KEY, report).catch(() => {});
-    await getRedis().del(VIEW_KEY).catch(() => {}); // show the new trades straight away
+    // Show new trades straight away; quiet checks leave the 2-minute cache be.
+    if (base.bots.some((b) => b.orders.length)) await getRedis().del(VIEW_KEY).catch(() => {});
   }
   return report;
 }
@@ -253,7 +264,7 @@ export async function getAlgoPortfolios(): Promise<AlgoView> {
     portfolios.push({ ...summary, key, name: STRATEGIES.find((s) => s.key === key)!.name });
   }
   const lastRun = kvConfigured() ? await getRedis().get<AlgoRunReport>(REPORT_KEY).catch(() => null) : null;
-  const view: AlgoView = { portfolios, lastRun, startsAt: "3:45pm New York time, weekdays" };
+  const view: AlgoView = { portfolios, lastRun, startsAt: "every 15 minutes while the market is open" };
   if (kvConfigured()) await getRedis().set(VIEW_KEY, view, { ex: VIEW_TTL_SECONDS }).catch(() => {});
   return view;
 }

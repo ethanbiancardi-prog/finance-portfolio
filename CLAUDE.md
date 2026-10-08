@@ -53,7 +53,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
 - `/optimizer` — efficient frontier across user-entered tickers
 - `/monte-carlo` — 10,000 simulated portfolio paths and goal probability
-- `/quant/strategy-lab` — five strategies (buy-and-hold SPY, trend following, momentum, mean reversion, breakout) backtested on real daily prices since 2017 across the ~94-stock universe; a "Live portfolios" tab shows momentum, breakout and mean reversion trading their own $100K paper accounts daily against a buy-and-hold S&P 500 control account
+- `/quant/strategy-lab` — five strategies (buy-and-hold SPY, trend following, momentum, mean reversion, breakout) backtested on real daily prices since 2017 across the ~94-stock universe; a "Live portfolios" tab shows momentum, breakout and mean reversion trading their own $100K paper accounts every 15 minutes against a buy-and-hold S&P 500 control account
 - `/quant/backtester` — the live strategy run through four synthetic regimes
 - `/quant/factor-risk` — market/rates/inflation variance attribution
 - `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta
@@ -71,7 +71,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/api/strategy-lab` — read-only Strategy Lab results (`lib/strategyLab.ts` engine, `lib/strategyLabData.ts` data + 26h Redis cache, refreshed by `api/cron/daily`)
 - `/api/signal-trader/log` — read-only, Redis only: the Signal Trader's last 78 market-hours checks (`signal-trader:log`), shown as the "thought process" log on `/paper-trading`
 - `/api/algo-portfolios` — read-only live algo portfolios (`lib/algoPortfolios.ts`), 2-minute cache
-- `/api/algo/run` — **executes trades** for the algo portfolios; secret-gated manual trigger (`?dryRun=1`, `?force=1`). The scheduled run comes via `/api/signal-trader/run`, which calls it every 15 min and it acts once a day in the 3:40–3:58pm NY window
+- `/api/algo/run` — **executes trades** for the algo portfolios; secret-gated manual trigger (`?dryRun=1`). The scheduled run comes via `/api/signal-trader/run`, which calls it every 15 min; it checks every portfolio each time the market is open (momentum rebalances once, on the month's first trading day)
 - `/api/showcase` — read-only showcase portfolio (`lib/showcase.ts`), 2-minute Redis cache; also feeds the homepage snapshot
 - `/api/dcf/prefill` — DCF assumptions from EDGAR facts, pure XBRL math; `/api/optimizer/frontier` and `/api/monte-carlo/simulate` — the two solvers
 - `/api/rotation/status` — recomputes picks, places no orders; `/api/rotation/check` — manual regime check, secret-gated
