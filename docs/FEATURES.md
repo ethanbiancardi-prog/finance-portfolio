@@ -349,7 +349,12 @@ flatters the stock-picking strategies, momentum most of all.
 
 ### Live portfolios (Strategy Lab's second tab)
 
-Momentum, trend following, breakout and mean reversion each trade their own
+Momentum, breakout and mean reversion each trade their own $100,000 paper
+account, against a control account holding SPY (buy-and-hold, never sold;
+the "Vs. control" column compares with its actual value). The control was
+the trend-following account on its first day (Oct 8 2026, holding only SPY)
+and was converted in place: same user, shares and opening time, email
+renamed to `algo-buyhold@example.com`. Each account trades its own
 $100,000 paper account (`lib/algoPortfolios.ts`) with the same
 `STRATEGIES[].decide` code the backtest runs, so the two can't drift apart.
 Once a day: `/api/signal-trader/run` (cron-job.org, every 15 min) calls

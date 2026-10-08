@@ -1,6 +1,11 @@
-// Algo portfolios: four of the Strategy Lab's strategies each trading their
+// Algo portfolios: three of the Strategy Lab's strategies each trading their
 // own live $100,000 paper account, so the backtest's claims get tested on
-// prices nobody had seen when the rules were written.
+// prices nobody had seen when the rules were written, plus a control: the
+// same $100,000 in SPY, bought on day one and never sold.
+//
+// The control was the trend-following account until Oct 8 2026, its first
+// day: it held only SPY then, so it was converted in place (same shares,
+// same opening time) rather than reopened.
 //
 // The rules are the Strategy Lab's own (STRATEGIES in lib/strategyLab.ts),
 // run once a day at ~3:45pm New York time, close to the daily closes the
@@ -26,7 +31,8 @@ import { STRATEGIES, buildTable, type PriceTable, type StrategyKey } from "./str
 import { labUniverse } from "./strategyLabData";
 import { createAdminClient } from "./supabase/admin";
 
-export const ALGO_KEYS = ["momentum", "trend", "breakout", "meanrev"] as const satisfies readonly StrategyKey[];
+// "buyhold" is the control. Listed first so the page draws it first.
+export const ALGO_KEYS = ["buyhold", "momentum", "breakout", "meanrev"] as const satisfies readonly StrategyKey[];
 export type AlgoKey = (typeof ALGO_KEYS)[number];
 
 const ACCOUNTS_KEY = "algo:accounts:v1"; // Redis hash: strategy key -> robot user id

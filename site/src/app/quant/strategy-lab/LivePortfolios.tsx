@@ -45,8 +45,9 @@ function Swatch({ k }: { k: StrategyKey }) {
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-// The four live algo portfolios (lib/algoPortfolios.ts): same rules as the
-// backtest, trading real prices from the day they opened.
+// The live algo portfolios (lib/algoPortfolios.ts): three strategies on the
+// backtest's rules, trading real prices from the day they opened, against a
+// control portfolio that simply holds the S&P 500 (SPY).
 export default function LivePortfolios() {
   const [data, setData] = useState<AlgoView | null>(null);
   const [error, setError] = useState("");
@@ -81,30 +82,34 @@ export default function LivePortfolios() {
       <Card as="section" className="mt-4">
         <SectionHeader label="not trading yet" />
         <p className="mt-3 max-w-2xl text-xs leading-5 text-zinc-400">
-          Four of these strategies (momentum, trend following, breakout and mean reversion) each get their own $100,000 paper
-          portfolio and trade it automatically, once a day at {data.startsAt}, by exactly the rules on the Backtest tab. The
-          first trades happen at the next 3:45pm on a trading day; this tab fills in from then.
+          Three of these strategies (momentum, breakout and mean reversion) each get their own $100,000 paper portfolio and
+          trade it automatically, once a day at {data.startsAt}, by exactly the rules on the Backtest tab. A fourth portfolio
+          is the control: $100,000 in the S&amp;P 500, never sold. The first trades happen at the next 3:45pm on a trading
+          day; this tab fills in from then.
         </p>
       </Card>
     );
   }
 
-  // One row per day across all four portfolios, with SPY ("same money in
-  // the S&P 500") drawn as the dashed benchmark line.
+  // One row per day across all the portfolios. The control (buy-and-hold
+  // SPY) is a real portfolio here, drawn as the dashed benchmark line.
   const byDate = new Map<string, { date: string } & Partial<Record<StrategyKey, number>>>();
   for (const p of ports) {
     for (const h of p.history) {
       const row = byDate.get(h.date) ?? { date: h.date };
       row[p.key] = Math.round(h.equity);
-      row.buyhold ??= Math.round(h.spy);
       byDate.set(h.date, row);
     }
   }
   const curve = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
-  const names: Partial<Record<StrategyKey, string>> = { buyhold: "Same $ in SPY" };
-  for (const p of ports) names[p.key] = p.name;
-  const visible: StrategyKey[] = ["buyhold", ...ports.map((p) => p.key)];
+  const names: Partial<Record<StrategyKey, string>> = {};
+  for (const p of ports) names[p.key] = p.key === "buyhold" ? "S&P 500 (control)" : p.name;
+  const visible = ports.map((p) => p.key);
   const ranked = [...ports].sort((a, b) => b.equity - a.equity);
+  // "Vs. control" compares with the control portfolio's actual value; before
+  // it exists, with what the same money in SPY would be worth.
+  const control = ports.find((p) => p.key === "buyhold");
+  const baseline = (p: (typeof ports)[number]) => control?.equity ?? p.spyEquity;
   const opened = new Date(Math.min(...ports.map((p) => new Date(p.openedAt).getTime()))).toISOString();
 
   return (
@@ -128,7 +133,7 @@ export default function LivePortfolios() {
       </Card>
 
       <Card as="section" className="mt-4">
-        <SectionHeader label="leaderboard" description="Ranked by account value. 'Vs. S&P 500' is how far ahead of or behind the same $100,000 in SPY each portfolio is." />
+        <SectionHeader label="leaderboard" description="Ranked by account value. 'Vs. control' is how far ahead of or behind the S&P 500 control portfolio each one is." />
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[560px] text-left">
             <thead>
@@ -136,7 +141,7 @@ export default function LivePortfolios() {
                 <th className={tableHeadCellClass}>Strategy</th>
                 <th className={`${tableHeadCellClass} text-right`}>Value</th>
                 <th className={`${tableHeadCellClass} text-right`}>Return</th>
-                <th className={`${tableHeadCellClass} text-right`}>Vs. S&amp;P 500</th>
+                <th className={`${tableHeadCellClass} text-right`}>Vs. control</th>
                 <th className={`${tableHeadCellClass} text-right`}>Cash</th>
                 <th className={`${tableHeadCellClass} text-right`}>Holdings</th>
               </tr>
@@ -147,12 +152,14 @@ export default function LivePortfolios() {
                   <td className="py-1.5 pr-3 text-xs text-foreground">
                     <span className="flex items-center gap-2">
                       <Swatch k={p.key} />
-                      {p.name}
+                      {names[p.key]}
                     </span>
                   </td>
                   <td className={`${tableCellStrongClass} text-right`}>{formatCurrency(p.equity)}</td>
                   <td className={`${tableCellClass} text-right`}><Signed value={p.equity / p.startingCash - 1} /></td>
-                  <td className={`${tableCellClass} text-right`}><Signed value={(p.equity - p.spyEquity) / p.startingCash} /></td>
+                  <td className={`${tableCellClass} text-right`}>
+                    {p.key === "buyhold" ? "—" : <Signed value={(p.equity - baseline(p)) / p.startingCash} />}
+                  </td>
                   <td className={`${tableCellClass} text-right`}>{formatCurrency(p.cash)}</td>
                   <td className={`${tableCellClass} text-right`}>{p.positions.length}</td>
                 </tr>
@@ -171,7 +178,7 @@ export default function LivePortfolios() {
               <Card key={p.key} padding="sm">
                 <div className="flex items-center gap-2">
                   <Swatch k={p.key} />
-                  <h3 className="text-sm text-foreground">{p.name}</h3>
+                  <h3 className="text-sm text-foreground">{names[p.key]}</h3>
                 </div>
                 {note && <p className="mt-0.5 text-[10px] text-zinc-500">Last run: {note}</p>}
                 <div className="mt-2 overflow-x-auto">
