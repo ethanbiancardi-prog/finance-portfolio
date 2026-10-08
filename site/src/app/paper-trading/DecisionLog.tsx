@@ -8,6 +8,7 @@ import { Fragment, useEffect, useState } from "react";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import type { HistoryPoint } from "@/lib/portfolio";
 import type { RunReport } from "@/lib/signalTrader";
+import type { AlgoStatus } from "@/lib/signalTraderRules";
 import { tableCellClass, tableHeadCellClass, tableHeadRowClass, tableRowClass } from "@/components/ui";
 import { Collapsible } from "./Collapsible";
 
@@ -74,8 +75,13 @@ function marketClosedFor(day: string): boolean {
   return h * 60 + m >= 16 * 60;
 }
 
-function daySummary(day: string, entries: RunReport[], history: HistoryPoint[]): string {
-  const orders = [...entries].reverse().flatMap((e) => e.orders);
+type AlgoTrade = AlgoStatus["recent"][number];
+
+// The day's trades come from the account's trade record, not the check log,
+// so a trade from before the log began (or from a check that failed to log)
+// still counts.
+function daySummary(day: string, entries: RunReport[], history: HistoryPoint[], trades: AlgoTrade[]): string {
+  const orders = trades.filter((t) => nyDate(t.ranAt) === day).reverse(); // oldest first
   const buys = orders.filter((o) => o.side === "buy");
   const sells = orders.filter((o) => o.side === "sell");
   const quiet = entries.filter((e) => e.orders.length === 0).length;
@@ -91,7 +97,8 @@ function daySummary(day: string, entries: RunReport[], history: HistoryPoint[]):
           .join("; ")}.`
       : "No trades.",
   );
-  parts.push(`${entries.length} check${entries.length === 1 ? "" : "s"}, ${quiet} with nothing to do.`);
+  const since = time(entries[entries.length - 1].ranAt);
+  parts.push(`${entries.length} check${entries.length === 1 ? "" : "s"} logged since ${since}, ${quiet} with nothing to do.`);
 
   // The day's move, from the account's daily values (the "now" point stands
   // in for today until the close).
@@ -154,7 +161,17 @@ function Detail({ e }: { e: RunReport }) {
   );
 }
 
-function DayTable({ day, entries, history }: { day: string; entries: RunReport[]; history: HistoryPoint[] }) {
+function DayTable({
+  day,
+  entries,
+  history,
+  trades,
+}: {
+  day: string;
+  entries: RunReport[];
+  history: HistoryPoint[];
+  trades: AlgoTrade[];
+}) {
   const [open, setOpen] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const shown = showAll ? entries : entries.slice(0, ROWS_PER_DAY);
@@ -163,7 +180,7 @@ function DayTable({ day, entries, history }: { day: string; entries: RunReport[]
     <>
       <div className="mt-3 rounded-[var(--radius-sm)] border border-border px-3 py-2">
         <p className="text-[10px] caps text-accent">{closed ? "Day summary · market closed" : "So far today"}</p>
-        <p className="mt-1 text-xs leading-5 text-zinc-400">{daySummary(day, entries, history)}</p>
+        <p className="mt-1 text-xs leading-5 text-zinc-400">{daySummary(day, entries, history, trades)}</p>
       </div>
       <div className="mt-2 overflow-x-auto">
         <table className="w-full min-w-[640px] text-left">
@@ -229,7 +246,7 @@ function DayTable({ day, entries, history }: { day: string; entries: RunReport[]
   );
 }
 
-export default function DecisionLog({ history }: { history: HistoryPoint[] }) {
+export default function DecisionLog({ history, trades }: { history: HistoryPoint[]; trades: AlgoTrade[] }) {
   const [entries, setEntries] = useState<RunReport[] | null>(null);
 
   useEffect(() => {
@@ -274,7 +291,7 @@ export default function DecisionLog({ history }: { history: HistoryPoint[] }) {
           meta={`${list.length} checks`}
           defaultOpen={i === 0}
         >
-          <DayTable day={day} entries={list} history={history} />
+          <DayTable day={day} entries={list} history={history} trades={trades} />
         </Collapsible>
       ))}
     </>

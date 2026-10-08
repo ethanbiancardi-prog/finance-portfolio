@@ -207,7 +207,7 @@ export default function PaperTrading() {
         </ul>
       </Card>
 
-      <DecisionLog history={data?.history ?? []} />
+      <DecisionLog history={data?.history ?? []} trades={data?.algo.recent ?? []} />
 
       <Collapsible
         label="algorithm trades"
