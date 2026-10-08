@@ -53,6 +53,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
 - `/optimizer` — efficient frontier across user-entered tickers
 - `/monte-carlo` — 10,000 simulated portfolio paths and goal probability
+- `/quant/strategy-lab` — five strategies (buy-and-hold SPY, trend following, momentum, mean reversion, breakout) backtested on real daily prices since 2017 across the ~94-stock universe
 - `/quant/backtester` — the live strategy run through four synthetic regimes
 - `/quant/factor-risk` — market/rates/inflation variance attribution
 - `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta
@@ -67,13 +68,14 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
 - `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-analyst panel: business, safety, price, news, skeptic, summary; 3h cache), `simplify` (AI), `meter` (free trend/momentum/Congress inputs for the per-stock Bull/Bear Meter, scored in `lib/stockMeter.ts`)
 - `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `industry`, `red-flags` (AI)
+- `/api/strategy-lab` — read-only Strategy Lab results (`lib/strategyLab.ts` engine, `lib/strategyLabData.ts` data + 26h Redis cache, refreshed by `api/cron/daily`)
 - `/api/showcase` — read-only showcase portfolio (`lib/showcase.ts`), 2-minute Redis cache; also feeds the homepage snapshot
 - `/api/dcf/prefill` — DCF assumptions from EDGAR facts, pure XBRL math; `/api/optimizer/frontier` and `/api/monte-carlo/simulate` — the two solvers
 - `/api/rotation/status` — recomputes picks, places no orders; `/api/rotation/check` — manual regime check, secret-gated
 - `/api/rotation/run` — **executes trades**; GET only, `CRON_SECRET`-gated (monthly cron). No public trigger
 - `/api/signal-trader/run` — **executes trades** on the showcase account (`lib/signalTrader.ts`); GET only, gated by `SIGNAL_TRADER_SECRET` (cron-job.org) or `CRON_SECRET` (GitHub Actions), called every 15 min in market hours; `?dryRun=1` trades nothing
 - `/api/signals` — read-only, serves the Redis cache; `/api/signals/refresh` — forces a refresh, secret-gated
-- `/api/cron/daily` — weekday regime check + all five signal refreshes; `/api/client-work/auth` — passcode → 30-day session cookie
+- `/api/cron/daily` — weekday regime check + all five signal refreshes + the Strategy Lab recompute; `/api/client-work/auth` — passcode → 30-day session cookie
 
 ## Data sources
 

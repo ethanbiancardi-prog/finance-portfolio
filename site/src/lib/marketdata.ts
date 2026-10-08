@@ -7,14 +7,24 @@ const MAX_SYMBOLS_PER_REQUEST = 50; // keeps the query string small; batches if 
 // Fetches daily closing prices for many symbols in as few requests as
 // possible (Alpaca's bars endpoint accepts a comma-separated symbol list),
 // covering roughly `lookbackTradingDays` of trading history per symbol.
+//
+// Defaults suit live pages: the free IEX feed, split-adjusted. Long history
+// (the Strategy Lab's backtests) passes `start` and the consolidated "sip"
+// feed, which goes back to 2016 where IEX covers only a few years, plus
+// adjustment "all" so dividends count in each stock's return.
 export async function getDailyBars(
   symbols: string[],
   lookbackTradingDays: number,
+  opts: { start?: string; feed?: "iex" | "sip"; adjustment?: "split" | "all" } = {},
 ): Promise<Map<string, DailyBar[]>> {
-  const end = new Date();
+  const feed = opts.feed ?? "iex";
+  // The free plan can't read the last 15 minutes of SIP data, so stop short.
+  const end = feed === "sip" ? new Date(Date.now() - 20 * 60_000) : new Date();
   const start = new Date(end);
   // Trading days are ~5/7 of calendar days; pad further for holidays.
   start.setDate(start.getDate() - Math.ceil(lookbackTradingDays * 1.6) - 10);
+  const startParam = opts.start ?? start.toISOString().slice(0, 10);
+  const endParam = feed === "sip" ? end.toISOString() : end.toISOString().slice(0, 10);
 
   const bars = new Map<string, DailyBar[]>();
 
@@ -26,12 +36,12 @@ export async function getDailyBars(
       const params = new URLSearchParams({
         symbols: batch.join(","),
         timeframe: "1Day",
-        start: start.toISOString().slice(0, 10),
-        end: end.toISOString().slice(0, 10),
-        feed: "iex",
+        start: startParam,
+        end: endParam,
+        feed,
         // Split-adjusted: without this a 2-for-1 split reads as a 50% crash
         // in every return, momentum score, and "since trade" figure.
-        adjustment: "split",
+        adjustment: opts.adjustment ?? "split",
         limit: "10000",
         ...(pageToken ? { page_token: pageToken } : {}),
       });

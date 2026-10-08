@@ -27,6 +27,14 @@
   --chart-grid: #e4dccb;
   --chart-muted: #8a8173;
   --chart-tooltip-bg: #faf6ee;
+  /* Categorical series, for charts comparing several named things at once
+     (the Strategy Lab). Identity only, never meaning; always in this order,
+     always with a legend and a table. Checked for colorblind separation on
+     both surfaces. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
   --status-good: #0ca30c;
   --status-average: #b8860b;
   --status-bad: #d03b3b;
@@ -78,6 +86,10 @@
   --chart-grid: #1c1c1f;
   --chart-muted: #6f6f6b;
   --chart-tooltip-bg: #0c0c0e;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
   --status-good: #22c55e;
   --status-average: #eab308;
   --status-bad: #ef4444;

@@ -322,3 +322,27 @@ gap, and hasn't been done.
 Thumbnails live in `site/public/screenshots/` and are hidden on phones.
 Regenerate with `site/scripts/screenshots.js` when pages change — the script
 needs `playwright-core` on `NODE_PATH`. Add an entry there for any new tool page.
+
+## Strategy Lab (`/quant/strategy-lab`)
+
+Five classic strategies replayed on real prices, each starting with $100,000
+on the same day (~Jan 2017, after a one-year warm-up from Jan 2016 data):
+buy-and-hold SPY (benchmark), trend following (SPY vs. its 200-day average),
+12-1 momentum (top 10 monthly), mean reversion (2-day RSI < 10 above the
+200-day, exit above the 5-day) and a 55/20-day breakout. Engine:
+`lib/strategyLab.ts`, pure and fetch-free. Fairness rules: decide on day t's
+close, fill at t+1's close (no look-ahead); 0.05% cost per trade; long only;
+cash earns 0%; dividend-adjusted prices.
+
+Data: `lib/strategyLabData.ts` pulls daily bars from Jan 2016 for SPY plus
+every ticker in `lib/sectors.ts`, using Alpaca's **SIP** feed (IEX history is
+too short) with `adjustment=all`; `getDailyBars` takes `start`, `feed` and
+`adjustment` options for this. The free plan can't read the last 15 minutes
+of SIP, so SIP requests end 20 minutes ago. Computed in ~5s, cached in Redis
+(`strategy-lab:v1`, 26h), recomputed by `api/cron/daily`; an empty cache is
+filled by the first visitor.
+
+Sanity check: buy-and-hold's yearly returns match SPY's published total
+returns (2018 −5.0%, 2022 −18.2%, 2024 +24.9%). The page leads its caveats
+with **survivorship bias**: the universe is today's hand-picked names, which
+flatters the stock-picking strategies, momentum most of all.

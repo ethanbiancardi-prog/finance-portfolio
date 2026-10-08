@@ -14,6 +14,7 @@ const TOOLS = [
   { href: "/dcf-builder", label: "DCF Builder", hint: "Valuation with sensitivity table" },
   { href: "/optimizer", label: "Optimizer", hint: "Efficient frontier across your tickers" },
   { href: "/monte-carlo", label: "Monte Carlo", hint: "10,000 simulated portfolio paths" },
+  { href: "/quant/strategy-lab", label: "Strategy Lab", hint: "Five trading strategies tested on 10 years of real prices" },
   { href: "/quant/backtester", label: "Regime Backtester", hint: "The strategy through 2008, 2020, 2022 and a bull run" },
   { href: "/quant/factor-risk", label: "Factor Risk", hint: "Equity, rates and inflation risk in a multi-asset mix" },
   { href: "/quant/vol-smile", label: "Vol Smile", hint: "Implied volatility across strikes, with dials" },
