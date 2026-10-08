@@ -21,7 +21,8 @@ const list = (items: string[]) =>
 function reasonCounts(e: RunReport): string {
   const counts = new Map<string, number>();
   for (const s of e.skipped) {
-    const r = s.reason.replace(/\.$/, "").toLowerCase();
+    const raw = s.reason.replace(/\.$/, "");
+    const r = raw.charAt(0).toLowerCase() + raw.slice(1); // keeps names like "Alpaca" capitalised
     const key = /^already up/.test(r) ? "already ran up since Congress bought" : /^sold within/.test(r) ? "sold recently" : r;
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
