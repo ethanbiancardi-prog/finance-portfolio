@@ -4,8 +4,9 @@ import { Suspense, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { FilingLoader, FilingSources, type LoadedFiling } from "./FilingLoader";
+import { SensitivityTable } from "./SensitivityTable";
 import { runDcf, sensitivityGrid, stepsAround, type DcfInputs } from "@/lib/dcf";
-import { formatCurrency, formatMoneyMillions, formatPercent } from "@/lib/format";
+import { formatCurrency, formatMoneyMillions } from "@/lib/format";
 import {
   Card,
   Field,
@@ -81,18 +82,6 @@ function rateVsPrice(value: number | null, price: number | null): Rating | null 
   if (diff > 0.1) return "good";
   if (diff < -0.1) return "bad";
   return "average";
-}
-
-// Presentation only: sensitivity cells are shaded like a heatmap, with color
-// intensity proportional to how far the cell sits from the reference value
-// (current price when given, otherwise the base case). ±30% saturates.
-function heatStyle(value: number | null, reference: number | null) {
-  if (value == null || reference == null || Number.isNaN(reference) || reference <= 0) return undefined;
-  const diff = (value - reference) / reference;
-  const intensity = Math.min(Math.abs(diff) / 0.3, 1);
-  if (intensity < 0.02) return undefined;
-  const color = diff > 0 ? "var(--status-good)" : "var(--status-bad)";
-  return { backgroundColor: `color-mix(in srgb, ${color} ${Math.round(intensity * 38)}%, transparent)` };
 }
 
 // useSearchParams needs a Suspense boundary above it for static rendering.
@@ -338,7 +327,7 @@ function DcfBuilderPage() {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {valueComparisonData && (
           <Card as="section">
-            <SectionHeader label="intrinsic value vs. price" />
+            <SectionHeader label="intrinsic value and price" />
             <ValueComparisonChart data={valueComparisonData} />
           </Card>
         )}
@@ -346,7 +335,7 @@ function DcfBuilderPage() {
         {evCompositionData && (
           <Card as="section">
             <SectionHeader
-              label="ev composition"
+              label="enterprise value breakdown"
               description="Explicit 5-year FCF vs. terminal value (everything after year 5, capitalized with Gordon growth)."
             />
             <EvCompositionChart data={evCompositionData} />
@@ -357,46 +346,9 @@ function DcfBuilderPage() {
       <Card as="section" className="mt-4">
         <SectionHeader
           label="sensitivity: value per share"
-          description={`Rows are WACC, columns are terminal growth, 0.5pt steps around your assumptions. Outlined cell is the base case; shading scales with ${
-            currentPrice != null ? "upside (green) or downside (red) vs. your current share price" : "distance from the base case"
-          }.`}
+          description="Value per share if WACC and terminal growth were each a little higher or lower, in 0.5-point steps around your assumptions. These two inputs move a DCF more than any others."
         />
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[520px] border-separate border-spacing-0 text-left">
-            <thead>
-              <tr className={tableHeadRowClass}>
-                <th className={`${tableHeadCellClass} pr-3`}>WACC \ g</th>
-                {terminalSteps.map((g, i) => (
-                  <th key={i} className={`${tableHeadCellClass} px-2 text-right tabular-nums`}>
-                    {formatPercent(g)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {waccSteps.map((wacc, rowIndex) => (
-                <tr key={rowIndex}>
-                  <td className={`${tableCellStrongClass} pr-3`}>{formatPercent(wacc)}</td>
-                  {grid[rowIndex].map((value, colIndex) => {
-                    const isBase = rowIndex === 2 && colIndex === 2;
-                    const reference = currentPrice ?? grid[2][2];
-                    return (
-                      <td
-                        key={colIndex}
-                        style={heatStyle(value, reference)}
-                        className={`border border-background px-2 py-1.5 text-right text-xs tabular-nums text-foreground ${
-                          isBase ? "ring-1 ring-inset ring-accent" : ""
-                        }`}
-                      >
-                        {formatCurrency(value)}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SensitivityTable waccSteps={waccSteps} growthSteps={terminalSteps} grid={grid} currentPrice={currentPrice} />
       </Card>
     </PageShell>
   );

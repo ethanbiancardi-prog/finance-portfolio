@@ -13,6 +13,9 @@ import {
   chartTooltipStyle,
 } from "@/components/ui";
 
+// Legend text stays in the muted ink; the square beside it carries the series color.
+const legendText = (value: string) => <span style={{ color: "var(--chart-muted)" }}>{value}</span>;
+
 const tooltipCursor = { fill: "color-mix(in srgb, var(--foreground) 4%, transparent)" };
 
 export function FcfChart({ data }: { data: { year: string; fcf: number; pvFcf: number }[] }) {
@@ -28,8 +31,8 @@ export function FcfChart({ data }: { data: { year: string; fcf: number; pvFcf: n
             formatter={(value) => formatMoneyMillions(Number(value))}
             contentStyle={chartTooltipStyle}
           />
-          <Legend wrapperStyle={chartLegendStyle} iconType="square" iconSize={8} />
-          <Bar dataKey="fcf" name="FCF" fill="var(--chart-line)" fillOpacity={0.35} />
+          <Legend wrapperStyle={chartLegendStyle} iconType="square" iconSize={8} formatter={legendText} />
+          <Bar dataKey="fcf" name="FCF" fill="color-mix(in srgb, var(--chart-line) 35%, transparent)" />
           <Bar dataKey="pvFcf" name="PV of FCF" fill="var(--chart-line-2)" />
         </BarChart>
       </ResponsiveContainer>
@@ -81,8 +84,8 @@ export function EvCompositionChart({
             formatter={(value) => formatMoneyMillions(Number(value))}
             contentStyle={chartTooltipStyle}
           />
-          <Legend wrapperStyle={chartLegendStyle} iconType="square" iconSize={8} />
-          <Bar dataKey="PV of Y1-Y5 FCF" stackId="ev" fill="var(--chart-line)" fillOpacity={0.35} barSize={18} />
+          <Legend wrapperStyle={chartLegendStyle} iconType="square" iconSize={8} formatter={legendText} />
+          <Bar dataKey="PV of Y1-Y5 FCF" stackId="ev" fill="color-mix(in srgb, var(--chart-line) 35%, transparent)" barSize={18} />
           <Bar dataKey="PV of Terminal Value" stackId="ev" fill="var(--chart-line-2)" barSize={18} />
         </BarChart>
       </ResponsiveContainer>
