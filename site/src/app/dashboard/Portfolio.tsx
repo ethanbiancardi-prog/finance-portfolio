@@ -148,7 +148,7 @@ export default function Portfolio() {
         />
       </div>
 
-      {data && <PortfolioChart history={data.history} />}
+      {data && <PortfolioChart history={data.history} percent />}
 
       <Card as="section" className="mt-4">
         <SectionHeader

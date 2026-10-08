@@ -3,10 +3,11 @@
 // Lazy-loaded from Portfolio.tsx so recharts stays out of the dashboard's
 // first load, same as the paper-trading chart.
 //
-// Two scales. Dollars (the dashboard's default) shows account value. With
-// `percent` (the public /paper-trading page) the axis is the % gained or
-// lost since the start, on round steps with a line at 0%, so "am I ahead of
-// SPY, and by how much" reads straight off the chart.
+// Two scales. With `percent` (used by both the dashboard and
+// /paper-trading) the axis is the % gained or lost since the start, on round
+// steps with a line at 0%, so "am I ahead of SPY, and by how much" reads
+// straight off the chart; the tooltip keeps the dollars. Without it, the
+// axis is plain account value in dollars.
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatCurrency, formatCurrencyCompact, formatPercent } from "@/lib/format";
 import { Card, chartAxisProps, chartGridProps, chartTooltipStyle } from "@/components/ui";
