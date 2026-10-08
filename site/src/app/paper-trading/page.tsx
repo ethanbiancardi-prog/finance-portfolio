@@ -281,7 +281,17 @@ export default function PaperTrading() {
       </Card>
 
       <Card as="section" className="mt-4">
-        <SectionHeader label="trade history" />
+        <details open className="group">
+          <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+            <span aria-hidden className="text-xs text-zinc-500 transition-transform group-open:rotate-90">›</span>
+            <span className="flex-1">
+              <SectionHeader label="trade history" />
+            </span>
+            <span className="text-[10px] caps text-zinc-500">
+              <span className="group-open:hidden">Show {data ? `${data.trades.length} trades` : ""}</span>
+              <span className="hidden group-open:inline">Hide</span>
+            </span>
+          </summary>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[480px] text-left">
             <thead>
@@ -309,6 +319,7 @@ export default function PaperTrading() {
           </table>
         </div>
         <ShowAll total={data?.trades.length ?? 0} open={allTrades} onToggle={() => setAllTrades((v) => !v)} noun="trades" />
+        </details>
       </Card>
 
       <Card as="section" className="mt-4">

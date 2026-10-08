@@ -116,7 +116,8 @@ and unread by app code.
    Supabase **secret key** (`SUPABASE_SECRET_KEY`) bypasses RLS and must never
    reach the browser. It lives only in `lib/supabase/admin.ts` and is used to
    write paper trades via `place_paper_trade()`, by the strategy runner and the
-   contact form, and for one read: `lib/showcase.ts` reads the single account
+   contact form, by the Signal Trader to journal its own fills on the showcase
+   account (`journal_entries`, thesis = its reason), and for one read: `lib/showcase.ts` reads the single account
    named by `SHOWCASE_USER_ID` for the public `/paper-trading` page. Every other
    read uses the user's own session.
 2. **Cache external data. Never call a paid API on page load.** `/api/signals`

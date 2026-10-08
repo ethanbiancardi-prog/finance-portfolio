@@ -189,6 +189,25 @@ export type RunReport = {
   note: string;
 };
 
+// A trade journal row (supabase/migrations/0001_journal_entries.sql) for one
+// of the Signal Trader's fills: the reason it traded is the thesis, and for
+// a buy the exit condition is the sell rules with this fill's stop-loss price.
+export function journalEntry(userId: string, o: Order, executedAt = new Date()) {
+  return {
+    user_id: userId,
+    date: nyDate(executedAt),
+    ticker: o.symbol,
+    action: o.side,
+    thesis: `Signal Trader ${o.side === "buy" ? "bought" : "sold"} ${o.qty} at $${o.price.toFixed(2)}. ${o.reason}`,
+    exit_condition:
+      o.side === "buy"
+        ? `Sell if it falls ${RULES.stopLoss * 100}% below cost ($${(o.price * (1 - RULES.stopLoss)).toFixed(2)}), ` +
+          `${RULES.trailingStop * 100}% below its highest close since buying, below its 200-day average, ` +
+          `or its signal score drops under ${RULES.holdScore}.`
+        : `Position closed. Can be bought again after ${RULES.cooldownDays} days if it qualifies.`,
+  };
+}
+
 const sma = (bars: DailyBar[], n: number) =>
   bars.length >= n ? bars.slice(-n).reduce((s, b) => s + b.c, 0) / n : null;
 
@@ -293,6 +312,12 @@ export async function runSignalTrader(opts: { dryRun?: boolean } = {}): Promise<
           reason: `Signal Trader: ${filled.length} order${filled.length === 1 ? "" : "s"}${failed.length ? `, ${failed.length} failed` : ""}.`,
           orders: filled,
         });
+      }
+      // Every filled trade goes in the account's trade journal too, so the
+      // journal stays a complete record without anyone writing it by hand.
+      if (filled.length) {
+        const { error: journalError } = await admin.from("journal_entries").insert(filled.map((o) => journalEntry(userId, o)));
+        if (journalError) failed.push(`journal: ${journalError.message}`);
       }
     }
 
