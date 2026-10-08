@@ -128,7 +128,7 @@ export default function PaperTrading() {
             hint={data && <Change value={data.spyEquity} base={data.startingCash} />}
           />
         </div>
-        {data && <PortfolioChart history={data.history} />}
+        {data && <PortfolioChart history={data.history} percent />}
       </section>
 
       <Card as="section" className="mt-4">
