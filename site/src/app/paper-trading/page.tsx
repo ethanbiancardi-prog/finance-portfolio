@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import type { Showcase } from "@/lib/showcase";
 import { RULES } from "@/lib/signalTraderRules";
+import ThoughtLog from "./ThoughtLog";
 import {
   Button,
   Card,
@@ -41,6 +42,22 @@ function Change({ value, base }: { value: number; base: number }) {
   );
 }
 
+// Long tables show their newest rows until "show all" is clicked.
+const ROWS = 5;
+
+function ShowAll({ total, open, onToggle, noun }: { total: number; open: boolean; onToggle: () => void; noun: string }) {
+  if (total <= ROWS) return null;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="mt-3 text-xs text-accent underline decoration-border underline-offset-4 hover:decoration-accent"
+    >
+      {open ? "Show fewer" : `Show all ${total} ${noun}`}
+    </button>
+  );
+}
+
 // View-only showcase of my own dashboard paper portfolio, traded by the
 // Signal Trader algorithm (lib/signalTrader.ts). Visitors get their own
 // account to trade on /dashboard.
@@ -52,6 +69,8 @@ export default function PaperTrading() {
   // replaces it.
   const heldLoader = useLoaderHold(!updatedAt && !error);
   const [refreshing, setRefreshing] = useState(false);
+  const [allAlgo, setAllAlgo] = useState(false);
+  const [allTrades, setAllTrades] = useState(false);
 
   async function load() {
     setRefreshing(true);
@@ -198,7 +217,7 @@ export default function PaperTrading() {
               </tr>
             </thead>
             <tbody>
-              {data?.algo.recent.map((o, i) => (
+              {data?.algo.recent.slice(0, allAlgo ? undefined : ROWS).map((o, i) => (
                 <tr key={`${o.ranAt}-${o.symbol}-${i}`} className={tableRowClass}>
                   <td className={`${tableCellClass} whitespace-nowrap`}>
                     {new Date(o.ranAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
@@ -214,7 +233,10 @@ export default function PaperTrading() {
             </tbody>
           </table>
         </div>
+        <ShowAll total={data?.algo.recent.length ?? 0} open={allAlgo} onToggle={() => setAllAlgo((v) => !v)} noun="algorithm trades" />
       </Card>
+
+      <ThoughtLog />
 
       <Card as="section" className="mt-4">
         <SectionHeader label="open positions" />
@@ -273,7 +295,7 @@ export default function PaperTrading() {
             </thead>
             <tbody>
               {/* buildPortfolio() already returns these newest first. */}
-              {data?.trades.map((t) => (
+              {data?.trades.slice(0, allTrades ? undefined : ROWS).map((t) => (
                   <tr key={t.id} className={tableRowClass}>
                     <td className="py-1 text-xs text-foreground">{t.symbol}</td>
                     <td className={`${tableCellClass} caps ${t.side === "buy" ? "text-good" : "text-bad"}`}>{t.side}</td>
@@ -286,6 +308,7 @@ export default function PaperTrading() {
             </tbody>
           </table>
         </div>
+        <ShowAll total={data?.trades.length ?? 0} open={allTrades} onToggle={() => setAllTrades((v) => !v)} noun="trades" />
       </Card>
 
       <Card as="section" className="mt-4">

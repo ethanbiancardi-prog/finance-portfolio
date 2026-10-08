@@ -172,6 +172,11 @@ export function decide(input: {
 
 const LOCK_KEY = "signal-trader:lock";
 export const REPORT_KEY = "signal-trader:last";
+// Every market-hours check, newest first, for the page's "thought process"
+// log. Three trading days of 15-minute checks; "market closed" checks aren't
+// kept (only the latest one, above).
+export const LOG_KEY = "signal-trader:log";
+const LOG_LENGTH = 78;
 
 export type RunReport = {
   ranAt: string;
@@ -301,7 +306,13 @@ export async function runSignalTrader(opts: { dryRun?: boolean } = {}): Promise<
       note: live ? (orders.length ? "Traded." : "Nothing to do.") : "Dry run, nothing traded.",
     };
     // Scheduled runs are saved for the page, dry or live; a ?dryRun=1 test isn't.
-    if (!opts.dryRun && kvConfigured()) await getRedis().set(REPORT_KEY, report).catch(() => {});
+    if (!opts.dryRun && kvConfigured()) {
+      await getRedis().set(REPORT_KEY, report).catch(() => {});
+      await getRedis()
+        .lpush(LOG_KEY, report)
+        .then(() => getRedis().ltrim(LOG_KEY, 0, LOG_LENGTH - 1))
+        .catch(() => {});
+    }
     return report;
   } finally {
     if (live && kvConfigured()) await getRedis().del(LOCK_KEY).catch(() => {});
