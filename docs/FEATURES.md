@@ -339,10 +339,35 @@ every ticker in `lib/sectors.ts`, using Alpaca's **SIP** feed (IEX history is
 too short) with `adjustment=all`; `getDailyBars` takes `start`, `feed` and
 `adjustment` options for this. The free plan can't read the last 15 minutes
 of SIP, so SIP requests end 20 minutes ago. Computed in ~5s, cached in Redis
-(`strategy-lab:v1`, 26h), recomputed by `api/cron/daily`; an empty cache is
+(`strategy-lab:v2`, 26h), recomputed by `api/cron/daily`; an empty cache is
 filled by the first visitor.
 
 Sanity check: buy-and-hold's yearly returns match SPY's published total
 returns (2018 −5.0%, 2022 −18.2%, 2024 +24.9%). The page leads its caveats
 with **survivorship bias**: the universe is today's hand-picked names, which
 flatters the stock-picking strategies, momentum most of all.
+
+### Live portfolios (Strategy Lab's second tab)
+
+Momentum, trend following, breakout and mean reversion each trade their own
+$100,000 paper account (`lib/algoPortfolios.ts`) with the same
+`STRATEGIES[].decide` code the backtest runs, so the two can't drift apart.
+Once a day: `/api/signal-trader/run` (cron-job.org, every 15 min) calls
+`runAlgoPortfolios()`, which acts only between 3:40 and 3:58pm New York time,
+only when the market is open, and only once a day (Redis `algo:ran:<date>`).
+Prices: ~300 completed days of split-adjusted IEX bars plus a "today" column
+of latest trades; a stock without a fresh (<30 min) price gets NaN, so no rule
+fires on a stale price. Live decides and fills on the 3:45pm price (the
+backtest fills next close) with no trading costs.
+
+Accounts belong to robot users (`algo-<key>@example.com`, created with a
+random unsaved password via the Supabase admin API) made on the first live
+run, so each opens the day it starts trading; ids cached in Redis
+`algo:accounts:v1`, found again by email if Redis is wiped. Trades go through
+`place_paper_trade()` and are logged to `paper_strategy_runs` ("Algo ..."
+reasons). `ALGO_PORTFOLIOS_ENABLED=false` pauses trading.
+
+Momentum normally acts only on the first trading day of a month; a
+portfolio's first day (`ctx.first`) counts too, so it invests on day one. The
+backtest uses the same flag, so its momentum line now starts invested in
+January 2017 instead of waiting for February.

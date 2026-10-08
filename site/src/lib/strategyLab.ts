@@ -26,7 +26,7 @@ export type PriceTable = {
 // What a strategy wants to hold after the close on day t: the full set of
 // names, plus the share of account value to put into each name it doesn't
 // already own. Names it owns and keeps are left alone (no rebalancing churn).
-type Decision = { hold: Set<string>; entryWeight: number } | null; // null = no change
+export type Decision = { hold: Set<string>; entryWeight: number } | null; // null = no change
 
 type Strategy = {
   key: StrategyKey;
@@ -41,7 +41,10 @@ export type StrategyKey = "buyhold" | "trend" | "momentum" | "meanrev" | "breako
 
 // --- Indicators (each reads only data up to and including day t) ------------
 
-type Ctx = { table: PriceTable; universe: string[]; spy: number[] };
+// `first` marks a portfolio's first trading day, so a strategy that only
+// acts on a schedule (momentum, monthly) still invests on day one instead of
+// sitting in cash until the next first-of-the-month.
+export type Ctx = { table: PriceTable; universe: string[]; spy: number[]; first?: boolean };
 
 const at = (series: number[] | undefined, t: number) => (series ? series[t] : NaN);
 
@@ -119,8 +122,8 @@ export const STRATEGIES: Strategy[] = [
       "First trading day of each month: rank every stock by its return over the last 12 months, skipping the most recent month.",
       "Hold the top 10, about 10% each. Sell any that drop out of the top 10.",
     ],
-    decide: (t, _held, { table, universe }) => {
-      if (!newMonth(table.dates, t)) return null;
+    decide: (t, _held, { table, universe, first }) => {
+      if (!newMonth(table.dates, t) && !first) return null;
       // 12-1 momentum: price 21 trading days ago vs. 252 days ago. Skipping
       // the last month avoids the short-term reversal that muddies it.
       const ranked = universe
@@ -247,7 +250,7 @@ function simulate(strategy: Strategy, ctx: Ctx, from: number): SimResult {
     if (shares.size > 0) daysInvested++;
 
     // 2. Decide on today's close, to be filled tomorrow.
-    if (t < table.dates.length - 1) pending = strategy.decide(t, new Set(shares.keys()), ctx);
+    if (t < table.dates.length - 1) pending = strategy.decide(t, new Set(shares.keys()), { ...ctx, first: t === from });
   }
   return { equity, trades, daysInvested };
 }

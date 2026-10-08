@@ -53,7 +53,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
 - `/optimizer` — efficient frontier across user-entered tickers
 - `/monte-carlo` — 10,000 simulated portfolio paths and goal probability
-- `/quant/strategy-lab` — five strategies (buy-and-hold SPY, trend following, momentum, mean reversion, breakout) backtested on real daily prices since 2017 across the ~94-stock universe
+- `/quant/strategy-lab` — five strategies (buy-and-hold SPY, trend following, momentum, mean reversion, breakout) backtested on real daily prices since 2017 across the ~94-stock universe; a "Live portfolios" tab shows four of them trading their own $100K paper accounts daily
 - `/quant/backtester` — the live strategy run through four synthetic regimes
 - `/quant/factor-risk` — market/rates/inflation variance attribution
 - `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta
@@ -69,6 +69,8 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-analyst panel: business, safety, price, news, skeptic, summary; 3h cache), `simplify` (AI), `meter` (free trend/momentum/Congress inputs for the per-stock Bull/Bear Meter, scored in `lib/stockMeter.ts`)
 - `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `industry`, `red-flags` (AI)
 - `/api/strategy-lab` — read-only Strategy Lab results (`lib/strategyLab.ts` engine, `lib/strategyLabData.ts` data + 26h Redis cache, refreshed by `api/cron/daily`)
+- `/api/algo-portfolios` — read-only live algo portfolios (`lib/algoPortfolios.ts`), 2-minute cache
+- `/api/algo/run` — **executes trades** for the algo portfolios; secret-gated manual trigger (`?dryRun=1`, `?force=1`). The scheduled run comes via `/api/signal-trader/run`, which calls it every 15 min and it acts once a day in the 3:40–3:58pm NY window
 - `/api/showcase` — read-only showcase portfolio (`lib/showcase.ts`), 2-minute Redis cache; also feeds the homepage snapshot
 - `/api/dcf/prefill` — DCF assumptions from EDGAR facts, pure XBRL math; `/api/optimizer/frontier` and `/api/monte-carlo/simulate` — the two solvers
 - `/api/rotation/status` — recomputes picks, places no orders; `/api/rotation/check` — manual regime check, secret-gated
@@ -99,7 +101,8 @@ without it messages are only saved to `contact_messages`), `CONTACT_TO_EMAIL`,
 `CLIENT_WORK_SECRET`, `SIGNALS_DEBUG`, `SHOWCASE_USER_ID` (the dashboard account shown
 on `/paper-trading` and the homepage; not a secret, without it both hide), `SIGNAL_TRADER_ENABLED`
 (`true` lets the Signal Trader place trades; anything else and every run is a dry run), `SIGNAL_TRADER_SECRET`
-(unlocks only `/api/signal-trader/run`; the password cron-job.org sends). `KV_URL`, `REDIS_URL`,
+(unlocks only `/api/signal-trader/run` and `/api/algo/run`; the password cron-job.org sends),
+`ALGO_PORTFOLIOS_ENABLED` (`false` pauses the algo portfolios; on by default). `KV_URL`, `REDIS_URL`,
 `KV_REST_API_READ_ONLY_TOKEN` and `VERCEL_OIDC_TOKEN` are Vercel-provisioned
 and unread by app code.
 

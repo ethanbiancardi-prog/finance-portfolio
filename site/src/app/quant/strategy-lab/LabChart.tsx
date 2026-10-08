@@ -1,9 +1,11 @@
 "use client";
 
 // Lazy-loaded from StrategyLab.tsx so recharts stays out of the first load.
-// Log scale: over ten years the best strategy ends ~19x up and the worst ~2x,
-// and on a normal scale everything but the leader would be squashed flat.
-// On a log scale the same % move is the same height anywhere on the chart.
+// The backtest uses a log scale: over ten years the best strategy ends ~19x
+// up and the worst ~2x, and on a normal scale everything but the leader would
+// be squashed flat. On a log scale the same % move is the same height
+// anywhere on the chart. The Live tab's weeks-long history uses a normal
+// scale and day labels (`short`).
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/format";
 import { chartAxisProps, chartGridProps, chartTooltipStyle } from "@/components/ui";
@@ -14,10 +16,12 @@ export default function LabChart({
   curve,
   names,
   visible,
+  short = false,
 }: {
-  curve: LabResult["curve"];
-  names: Record<StrategyKey, string>;
+  curve: ({ date: string } & Partial<Record<StrategyKey, number>>)[] | LabResult["curve"];
+  names: Partial<Record<StrategyKey, string>>;
   visible: StrategyKey[];
+  short?: boolean;
 }) {
   return (
     <div className="h-72 sm:h-80">
@@ -28,12 +32,16 @@ export default function LabChart({
             dataKey="date"
             {...chartAxisProps}
             minTickGap={40}
-            tickFormatter={(d: string) => d.slice(0, 4)}
+            tickFormatter={(d: string) =>
+              short
+                ? new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                : d.slice(0, 4)
+            }
           />
           <YAxis
             {...chartAxisProps}
             width={52}
-            scale="log"
+            scale={short ? "auto" : "log"}
             domain={["auto", "auto"]}
             allowDataOverflow
             tickFormatter={(v) => formatCurrencyCompact(v)}

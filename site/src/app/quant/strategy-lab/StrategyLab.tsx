@@ -15,7 +15,9 @@ import {
   tableHeadCellClass,
   tableHeadRowClass,
   tableRowClass,
+  Tabs,
 } from "@/components/ui";
+import LivePortfolios from "./LivePortfolios";
 import { SERIES } from "./series";
 
 const LabChart = dynamic(() => import("./LabChart"), {
@@ -45,7 +47,28 @@ function Swatch({ k }: { k: StrategyKey }) {
   );
 }
 
+type Tab = "backtest" | "live";
+
 export default function StrategyLab() {
+  const [tab, setTab] = useState<Tab>("backtest");
+  return (
+    <>
+      <div className="mt-4">
+        <Tabs<Tab>
+          tabs={[
+            { key: "backtest", label: "Backtest (since 2017)" },
+            { key: "live", label: "Live portfolios" },
+          ]}
+          active={tab}
+          onChange={setTab}
+        />
+      </div>
+      {tab === "backtest" ? <Backtest /> : <LivePortfolios />}
+    </>
+  );
+}
+
+function Backtest() {
   const [data, setData] = useState<LabResult | null>(null);
   const [error, setError] = useState("");
   const [hidden, setHidden] = useState<Set<StrategyKey>>(new Set());
