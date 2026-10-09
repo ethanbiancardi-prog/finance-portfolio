@@ -16,6 +16,7 @@ import {
   tableRowClass,
 } from "@/components/ui";
 import { SERIES } from "./series";
+import { Ticker } from "@/components/Ticker";
 
 const LabChart = dynamic(() => import("./LabChart"), {
   ssr: false,
@@ -192,7 +193,7 @@ export default function LivePortfolios() {
                     <tbody>
                       {p.positions.map((pos) => (
                         <tr key={pos.symbol} className={tableRowClass}>
-                          <td className="py-1 text-xs text-foreground">{pos.symbol}</td>
+                          <td className="py-1 text-xs"><Ticker symbol={pos.symbol} /></td>
                           <td className={`${tableCellClass} text-right`}>{formatCurrency(pos.marketValue)}</td>
                           <td className={`${tableCellClass} text-right`}><Signed value={pos.unrealizedPlPct} /></td>
                         </tr>

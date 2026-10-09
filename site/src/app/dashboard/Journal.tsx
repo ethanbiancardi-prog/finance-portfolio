@@ -15,6 +15,7 @@ import {
   tableCellStrongClass,
 } from "@/components/ui";
 import type { JournalEntry } from "@/lib/journal";
+import { useCompanyName } from "@/components/Ticker";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -93,11 +94,7 @@ export default function Journal() {
                 <td className={`${tableCellClass} whitespace-nowrap pr-3`}>{entry.date}</td>
                 <td className={`${tableCellStrongClass} pr-3`}>
                   {entry.ticker}
-                  {entry.companyName && (
-                    <span className="block text-[10px] font-normal text-zinc-500">
-                      {entry.companyName}
-                    </span>
-                  )}
+                  <CompanyLine symbol={entry.ticker} saved={entry.companyName} />
                 </td>
                 <td
                   className={`${tableCellClass} pr-3 caps ${entry.action === "buy" ? "text-good" : "text-bad"}`}
@@ -178,4 +175,12 @@ export default function Journal() {
       </form>
     </Card>
   );
+}
+
+// The name saved with the entry when there is one; otherwise (e.g. entries
+// the Signal Trader writes) the looked-up name.
+function CompanyLine({ symbol, saved }: { symbol: string; saved: string | null }) {
+  const looked = useCompanyName(symbol);
+  const name = saved ?? looked;
+  return name ? <span className="block text-[10px] font-normal text-zinc-500">{name}</span> : null;
 }

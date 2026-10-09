@@ -1,4 +1,5 @@
 "use client";
+import { Ticker } from "@/components/Ticker";
 
 import { useEffect, useState } from "react";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
@@ -205,7 +206,7 @@ export default function SectorRotation() {
                       {status.leveraged.map((t) => (
                         <tr key={t.symbol} className={tableRowClass}>
                           <td className="py-1">
-                            <span className="text-xs text-foreground">{t.symbol}</span>
+                            <Ticker symbol={t.symbol} className="text-xs text-foreground" />
                             <span className="block text-[10px] text-zinc-600">{t.name}</span>
                           </td>
                           <td className={`${tableCellStrongClass} text-right`}>{formatPercent(t.targetWeight, { decimals: 0 })}</td>
@@ -238,7 +239,7 @@ export default function SectorRotation() {
                         {picks.map((p) => (
                           <tr key={p.symbol} className={tableRowClass}>
                             <td className="py-1">
-                              <span className="text-xs text-foreground">{p.symbol}</span>
+                              <Ticker symbol={p.symbol} className="text-xs text-foreground" />
                               <span className="block text-[10px] text-zinc-600">{p.name}</span>
                             </td>
                             <td className={`${tableCellClass} text-right ${p.trailingReturn >= 0 ? "text-good" : "text-bad"}`}>{formatPercent(p.trailingReturn)}</td>
@@ -279,7 +280,7 @@ export default function SectorRotation() {
                 {rotationOrders.map((o) => (
                   <tr key={o.id} className={tableRowClass}>
                     <td className="py-1">
-                      <span className="text-xs text-foreground">{o.symbol}</span>
+                      <Ticker symbol={o.symbol} className="text-xs text-foreground" />
                       {o.name && <span className="block text-[10px] text-zinc-600">{o.name}</span>}
                     </td>
                     <td className={`${tableCellClass} caps ${o.side === "buy" ? "text-good" : "text-bad"}`}>{o.side}</td>

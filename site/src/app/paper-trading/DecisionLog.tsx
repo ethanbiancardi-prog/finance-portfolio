@@ -11,6 +11,7 @@ import type { RunReport } from "@/lib/signalTrader";
 import type { AlgoStatus } from "@/lib/signalTraderRules";
 import { tableCellClass, tableHeadCellClass, tableHeadRowClass, tableRowClass } from "@/components/ui";
 import { Collapsible } from "./Collapsible";
+import { Ticker } from "@/components/Ticker";
 
 const ROWS_PER_DAY = 8; // newest checks shown per day before "show all"
 
@@ -126,12 +127,12 @@ function Detail({ e }: { e: RunReport }) {
             .filter((o) => o.side === "sell")
             .map((o) => (
               <li key={`s-${o.symbol}`}>
-                <span className="text-bad">sold</span> <span className="text-foreground">{o.symbol}</span>: {o.reason}
+                <span className="text-bad">sold</span> <Ticker symbol={o.symbol} />: {o.reason}
               </li>
             ))}
           {e.kept.map((k) => (
             <li key={k.symbol}>
-              <span className="text-foreground">{k.symbol}</span> kept: {k.reason}
+              <Ticker symbol={k.symbol} /> kept: {k.reason}
             </li>
           ))}
           {e.kept.length === 0 && !e.orders.some((o) => o.side === "sell") && <li>No holdings.</li>}
@@ -144,13 +145,13 @@ function Detail({ e }: { e: RunReport }) {
             .filter((o) => o.side === "buy")
             .map((o) => (
               <li key={`b-${o.symbol}`}>
-                <span className="text-good">bought</span> {o.qty} <span className="text-foreground">{o.symbol}</span> at{" "}
+                <span className="text-good">bought</span> {o.qty} <Ticker symbol={o.symbol} /> at{" "}
                 {formatCurrency(o.price)}: {o.reason}
               </li>
             ))}
           {e.skipped.map((s) => (
             <li key={s.symbol}>
-              <span className="text-foreground">{s.symbol}</span> (score {s.score}) passed: {s.reason}
+              <Ticker symbol={s.symbol} /> (score {s.score}) passed: {s.reason}
             </li>
           ))}
           {e.skipped.length === 0 && !e.orders.some((o) => o.side === "buy") && <li>None scored high enough.</li>}

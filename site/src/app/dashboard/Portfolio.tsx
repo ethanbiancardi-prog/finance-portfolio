@@ -22,6 +22,7 @@ import {
 } from "@/components/ui";
 import type { PortfolioSummary } from "@/lib/portfolio";
 import { StockChart } from "../research/StockChart";
+import { Ticker } from "@/components/Ticker";
 
 const PortfolioChart = dynamic(() => import("./PortfolioChart"), {
   ssr: false,
@@ -261,7 +262,7 @@ export default function Portfolio() {
             <tbody>
               {data?.positions.map((p) => (
                 <tr key={p.symbol} className={tableRowClass}>
-                  <td className="py-1 text-xs text-foreground">{p.symbol}</td>
+                  <td className="py-1 text-xs"><Ticker symbol={p.symbol} /></td>
                   <td className={`${tableCellClass} text-right`}>{p.qty}</td>
                   <td className={`${tableCellClass} text-right`}>{formatCurrency(p.avgCost)}</td>
                   <td className={`${tableCellStrongClass} text-right`}>{formatCurrency(p.price)}</td>
@@ -300,7 +301,7 @@ export default function Portfolio() {
             <tbody>
               {data?.trades.map((t) => (
                 <tr key={t.id} className={tableRowClass}>
-                  <td className="py-1 text-xs text-foreground">{t.symbol}</td>
+                  <td className="py-1 text-xs"><Ticker symbol={t.symbol} /></td>
                   <td className={`${tableCellClass} caps ${t.side === "buy" ? "text-good" : "text-bad"}`}>{t.side}</td>
                   <td className={`${tableCellStrongClass} text-right`}>{t.qty}</td>
                   <td className={`${tableCellClass} text-right`}>{formatCurrency(t.price)}</td>

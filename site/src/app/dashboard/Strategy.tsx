@@ -1,4 +1,5 @@
 "use client";
+import { Ticker } from "@/components/Ticker";
 
 import { useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/format";
@@ -456,7 +457,7 @@ export default function Strategy() {
               <tbody>
                 {preview.orders.map((o) => (
                   <tr key={o.symbol} className={tableRowClass}>
-                    <td className="py-1 text-xs text-foreground">{o.symbol}</td>
+                    <td className="py-1 text-xs"><Ticker symbol={o.symbol} /></td>
                     <td className={`${tableCellClass} text-right`}>{o.targetWeight.toFixed(1)}%</td>
                     <td className={`${tableCellClass} text-right`}>{o.currentWeight.toFixed(1)}%</td>
                     <td className={`${tableCellClass} text-right`}>{formatCurrency(o.price)}</td>

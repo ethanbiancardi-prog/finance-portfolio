@@ -1,4 +1,5 @@
 "use client";
+import { Ticker } from "@/components/Ticker";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -238,7 +239,7 @@ export default function PaperTrading() {
                     {new Date(o.ranAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                   </td>
                   <td className={`${tableCellClass} caps ${o.side === "buy" ? "text-good" : "text-bad"}`}>{o.side}</td>
-                  <td className="py-1 text-xs text-foreground">{o.symbol}</td>
+                  <td className="py-1 text-xs"><Ticker symbol={o.symbol} /></td>
                   <td className={`${tableCellStrongClass} text-right`}>{o.qty}</td>
                   <td className={`${tableCellClass} text-right`}>{formatCurrency(o.price)}</td>
                   <td className={`${tableCellClass} min-w-[220px] pl-4`}>{o.reason}</td>
@@ -272,7 +273,7 @@ export default function PaperTrading() {
             <tbody>
               {data?.positions.map((p) => (
                 <tr key={p.symbol} className={tableRowClass}>
-                  <td className="py-1 text-xs text-foreground">{p.symbol}</td>
+                  <td className="py-1 text-xs"><Ticker symbol={p.symbol} /></td>
                   <td className={`${tableCellClass} text-right`}>{p.qty}</td>
                   <td className={`${tableCellClass} text-right`}>{formatCurrency(p.avgCost)}</td>
                   <td className={`${tableCellStrongClass} text-right`}>{formatCurrency(p.price)}</td>
@@ -309,7 +310,7 @@ export default function PaperTrading() {
               {/* buildPortfolio() already returns these newest first. */}
               {data?.trades.slice(0, allTrades ? undefined : ROWS).map((t) => (
                   <tr key={t.id} className={tableRowClass}>
-                    <td className="py-1 text-xs text-foreground">{t.symbol}</td>
+                    <td className="py-1 text-xs"><Ticker symbol={t.symbol} /></td>
                     <td className={`${tableCellClass} caps ${t.side === "buy" ? "text-good" : "text-bad"}`}>{t.side}</td>
                     <td className={`${tableCellStrongClass} text-right`}>{t.qty}</td>
                     <td className={`${tableCellClass} text-right`}>{formatCurrency(t.price)}</td>
