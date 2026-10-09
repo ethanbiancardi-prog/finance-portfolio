@@ -104,7 +104,6 @@ export default function PrismStage({ snapshot, universe }: { snapshot: StageSnap
     const start = last;
     let nextRing = start + 1200;
     const rings: Ring[] = [];
-    const sparks: Spark[] = Array.from({ length: SPARKS }, () => newSpark(Math.random()));
 
     // Construction. Every line has a scattered starting place somewhere
     // around the prism; `assembly` runs 0 → 1 as they fly in and lock into
@@ -182,6 +181,10 @@ export default function PrismStage({ snapshot, universe }: { snapshot: StageSnap
         held,
       };
     }
+
+    // Created after newSpark and pick above: `pick` is a const, so calling
+    // newSpark any earlier hits it before it exists and the page crashes.
+    const sparks: Spark[] = Array.from({ length: SPARKS }, () => newSpark(Math.random()));
 
     // Dust: slow specks drifting across the whole stage, for depth.
     const dust = Array.from({ length: DUST }, () => ({
