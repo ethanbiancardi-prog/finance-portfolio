@@ -48,7 +48,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/` — homepage: masthead, live snapshot of the showcase portfolio, ruled index of the projects
 - `/about` — bio, coursework, skills
 - `/research` — Stock Research: Search · Browse by Sector · Research Signals
-- `/paper-trading` — the showcase portfolio, view-only: Ethan's own dashboard paper account (`SHOWCASE_USER_ID`), traded by the Signal Trader algorithm, vs. SPY; the algorithm's rules and recent orders with reasons, risk metrics, positions, trades
+- `/paper-trading` — the showcase portfolio, view-only: Ethan's own dashboard paper account (`SHOWCASE_USER_ID`), traded by the Signal Trader algorithm (scores the ~94 sector-list stocks on insider buying, 10-K story, price trend and momentum), vs. SPY; the algorithm's rules and recent orders with reasons, risk metrics, positions, trades
 - `/rotation` — Momentum + Leverage strategy on the Alpaca paper account: current picks, regime state, rebalance history
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
 - `/optimizer` — efficient frontier across user-entered tickers
@@ -78,7 +78,7 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/api/rotation/run` — **executes trades**; GET only, `CRON_SECRET`-gated (monthly cron). No public trigger
 - `/api/signal-trader/run` — **executes trades** on the showcase account (`lib/signalTrader.ts`); GET only, gated by `SIGNAL_TRADER_SECRET` (cron-job.org) or `CRON_SECRET` (GitHub Actions), called every 15 min in market hours; `?dryRun=1` trades nothing
 - `/api/signals` — read-only, serves the Redis cache; `/api/signals/refresh` — forces a refresh, secret-gated
-- `/api/cron/daily` — weekday regime check + all five signal refreshes + the Strategy Lab recompute; `/api/client-work/auth` — passcode → 30-day session cookie
+- `/api/cron/daily` — weekday regime check + all five signal refreshes + the insider-buying refresh (Signal Trader input) + the Strategy Lab recompute; `/api/client-work/auth` — passcode → 30-day session cookie
 
 ## Data sources
 

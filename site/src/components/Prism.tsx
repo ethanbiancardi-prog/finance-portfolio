@@ -10,10 +10,10 @@ import { useEffect, useRef } from "react";
 // One geometry function feeds both the static logo (SVG) and the animated
 // homepage piece (canvas).
 
-type V3 = [number, number, number];
-type Seg = { a: V3; b: V3; accent: boolean; order: number };
+export type V3 = [number, number, number];
+export type Seg = { a: V3; b: V3; accent: boolean; order: number };
 
-const TWIST = (2 * Math.PI) / 3; // far end turned a third of a turn
+export const TWIST = (2 * Math.PI) / 3; // far end turned a third of a turn
 const RULINGS = 40; // strings per face; more, finer strings read as a smoother surface
 
 // Corner k of the triangular cross-section at position x along the bar,
@@ -24,23 +24,23 @@ function corner(k: number, x: number, twist: number, r: number): V3 {
 }
 const mix = (p: V3, q: V3, t: number): V3 => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t];
 
-function prismSegments(length = 2.4, r = 0.62): Seg[] {
+export function prismSegments(length = 2.4, r = 0.62, rulings = RULINGS, twist = TWIST): Seg[] {
   const segs: Seg[] = [];
   const x0 = -length / 2, x1 = length / 2;
   const near = [0, 1, 2].map((k) => corner(k, x0, 0, r));
-  const far = [0, 1, 2].map((k) => corner(k, x1, TWIST, r));
+  const far = [0, 1, 2].map((k) => corner(k, x1, twist, r));
 
   // Strings: from each point along a near edge to the matching point on the
   // far edge. These are what bend into the twisted surface.
   for (let k = 0; k < 3; k++) {
-    for (let i = 0; i <= RULINGS; i++) {
-      const t = i / RULINGS;
+    for (let i = 0; i <= rulings; i++) {
+      const t = i / rulings;
       segs.push({
         a: mix(near[k], near[(k + 1) % 3], t),
         b: mix(far[k], far[(k + 1) % 3], t),
         // The three long edges are drawn in the accent.
         accent: i === 0,
-        order: (k * (RULINGS + 1) + i) / (3 * (RULINGS + 1)),
+        order: (k * (rulings + 1) + i) / (3 * (rulings + 1)),
       });
     }
   }
@@ -53,7 +53,7 @@ function prismSegments(length = 2.4, r = 0.62): Seg[] {
 
 // Rotate about the long axis (spin), tilt towards the viewer, then project
 // with a little perspective.
-function project(p: V3, spin: number, tilt: number, yaw: number, scale: number, cx: number, cy: number): [number, number] {
+export function project(p: V3, spin: number, tilt: number, yaw: number, scale: number, cx: number, cy: number): [number, number] {
   let [x, y, z] = p;
   [y, z] = [y * Math.cos(spin) - z * Math.sin(spin), y * Math.sin(spin) + z * Math.cos(spin)];
   [x, z] = [x * Math.cos(yaw) + z * Math.sin(yaw), -x * Math.sin(yaw) + z * Math.cos(yaw)];

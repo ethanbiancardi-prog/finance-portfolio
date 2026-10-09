@@ -1,17 +1,21 @@
 // Signal Trader: the algorithm that trades the showcase portfolio (the
-// dashboard account named by SHOWCASE_USER_ID) on its own, from the evidence
-// the Research Signals already collect. Rules in
+// dashboard account named by SHOWCASE_USER_ID) on its own, buying from the
+// ~94 stocks in the sector lists. Each stock is scored on four drivers:
+// insider buying, the latest 10-K story, price trend and momentum (see
+// scoreSignals below). Rules in
 // projects/paper-trading/SIGNAL_TRADER.md; every number lives in RULES
 // (lib/signalTraderRules.ts).
 //
 // Runs every 15 minutes while the market is open (GitHub Actions calls
-// /api/signal-trader/run, since both Vercel crons are taken). The signals
-// themselves refresh once a day after the close, so most entries happen on
-// the first run of the morning; the intraday runs are mainly the stops.
+// /api/signal-trader/run, since both Vercel crons are taken). The scores
+// themselves change once a day (insider filings and 10-K stories refresh
+// after the close; trend and momentum use completed days), so most entries
+// happen on the first run of the morning; the intraday runs are mainly the
+// stops.
 //
 // Each run:
 //   1. Skips unless the market is open right now (Alpaca's clock).
-//   2. Scores every ticker any signal mentions (decide() below explains how).
+//   2. Scores every stock in the universe, plus current holdings.
 //   3. Sells holdings that hit a stop, broke their trend, or lost their
 //      signal; then buys the best-scoring names above their trend, up to
 //      RULES.maxPositions, at the latest IEX trade price.
@@ -25,55 +29,99 @@ import { alpaca, getTradableAssets } from "./alpaca";
 import { getRedis, kvConfigured } from "./kv";
 import { getDailyBars, getLatestPrices, type DailyBar } from "./marketdata";
 import { nyDate, replay, type PaperTradeRow } from "./portfolio";
+import { SECTOR_KEYS, SECTORS } from "./sectors";
+import { getChartScores } from "./signals/chart";
 import { getFinancialSignals } from "./signals/financial";
-import { getPoliticalSignals } from "./signals/political";
-import { getPresidentialSignals } from "./signals/presidential";
+import { getInsiderSignals, INSIDER_WINDOW_DAYS } from "./signals/insider";
 import { RULES, type SignalOrder } from "./signalTraderRules";
 import { createAdminClient } from "./supabase/admin";
 
 
 // --- Scoring -----------------------------------------------------------------
 
-export type Evidence = { source: "congress" | "filing" | "president"; points: number; text: string };
-export type Candidate = { symbol: string; score: number; evidence: Evidence[]; sinceCongress: number | null };
+export type Evidence = { source: "insider" | "filing" | "trend" | "momentum"; points: number; text: string };
+export type Candidate = { symbol: string; score: number; evidence: Evidence[] };
 
 const BEARISH_STORIES = /compressing|leverage rising/i;
+// An insider's purchases must add up to at least this to count; a director
+// buying $2,000 of stock is a gesture, not a bet.
+const MIN_INSIDER_BUY = 10_000;
+const money = (v: number) => (v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v / 1e3)}K`);
 
-// One score per ticker, summed across the signal categories that have a
-// direction. Legislation and geopolitics are left out: their AI write-ups
-// don't say which way a story cuts, and guessing would be worse than nothing.
-export async function scoreSignals(): Promise<Map<string, Candidate>> {
-  const [political, financial, presidential] = await Promise.all([
-    getPoliticalSignals(),
+// The universe the algorithm buys from: every stock in the sector lists.
+export function traderUniverse(): string[] {
+  return [...new Set(SECTOR_KEYS.flatMap((k) => [...SECTORS[k].tickers]))];
+}
+
+// One score per stock, summed across four drivers. `holdings` are scored
+// too, even if they're outside the universe, so every position can be
+// checked against the hold rule.
+//
+//   Insider buying  +2 / +4 / +6  one / two / three or more insiders bought on
+//                                 the open market in the last 60 days, +1 if
+//                                 one is the CEO, CFO or President (max +6)
+//   10-K story      +2 or −2      the latest annual report tells a good story
+//                                 (margins expanding, cash machine) or a bad one
+//   Price trend     0 to +2       above the 200-day average; and the 50-day
+//                                 above the 200-day (lib/signals/chart.ts)
+//   Momentum        0 to +2       12-month return in the universe's top fifth
+//                                 (+2) or second fifth (+1)
+export async function scoreSignals(holdings: string[] = []): Promise<Map<string, Candidate>> {
+  const universe = traderUniverse();
+  const [insider, financial, chart] = await Promise.all([
+    getInsiderSignals(),
     getFinancialSignals(),
-    getPresidentialSignals(),
+    getChartScores(universe, holdings.filter((h) => !universe.includes(h))),
   ]);
   const out = new Map<string, Candidate>();
-  const add = (symbol: string, e: Evidence, sinceCongress: number | null = null) => {
+  const add = (symbol: string, e: Evidence) => {
     const s = symbol.toUpperCase();
-    const c = out.get(s) ?? { symbol: s, score: 0, evidence: [], sinceCongress: null };
+    const c = out.get(s) ?? { symbol: s, score: 0, evidence: [] };
     c.score += e.points;
     c.evidence.push(e);
-    if (sinceCongress !== null) c.sinceCongress = sinceCongress;
     out.set(s, c);
   };
 
-  // Congress: the conviction score political.ts already computes — distinct
-  // buyers minus sellers, +1 if one-sided, +2 if a buyer sits on a committee
-  // that oversees the company. Capped so one category can't run the book.
-  for (const s of political?.items ?? []) {
-    const c = s.conviction?.score ?? 0;
-    if (c === 0) continue;
-    add(s.ticker, { source: "congress", points: Math.max(-6, Math.min(6, c)), text: `Congress: ${s.conviction!.label}` }, s.sinceTrade?.pct ?? null);
+  // Insider buying: distinct buyers per stock, each over MIN_INSIDER_BUY.
+  // When PLAN_CROWD or more insiders of one company buy on the same day,
+  // it's a company program (directors' fees paid in stock, a purchase plan),
+  // not that many separate decisions, so those days are left out.
+  const PLAN_CROWD = 4;
+  const sameDay = new Map<string, Set<string>>();
+  for (const b of insider?.buys ?? []) {
+    const k = `${b.ticker} ${b.date}`;
+    sameDay.set(k, (sameDay.get(k) ?? new Set()).add(b.insider));
   }
-  // Latest 10-K: a good story (margins expanding, cash machine, ...) +2, a bad one −2.
+  const byTicker = new Map<string, Map<string, { value: number; top: boolean }>>();
+  for (const b of insider?.buys ?? []) {
+    if ((sameDay.get(`${b.ticker} ${b.date}`)?.size ?? 0) >= PLAN_CROWD) continue;
+    const people = byTicker.get(b.ticker) ?? new Map();
+    const p = people.get(b.insider) ?? { value: 0, top: false };
+    people.set(b.insider, { value: p.value + b.value, top: p.top || b.topOfficer });
+    byTicker.set(b.ticker, people);
+  }
+  for (const [ticker, people] of byTicker) {
+    const buyers = [...people.values()].filter((p) => p.value >= MIN_INSIDER_BUY);
+    if (!buyers.length) continue;
+    const top = buyers.some((p) => p.top);
+    const points = Math.min(6, Math.min(3, buyers.length) * 2 + (top ? 1 : 0));
+    const total = buyers.reduce((s, p) => s + p.value, 0);
+    add(ticker, {
+      source: "insider",
+      points,
+      text: `Insiders: ${buyers.length} bought ${money(total)} in ${INSIDER_WINDOW_DAYS} days${top ? ", incl. a top officer" : ""}`,
+    });
+  }
+  // Latest 10-K: a good story +2, a bad one −2.
   for (const s of financial?.items ?? []) {
     const bad = BEARISH_STORIES.test(s.title ?? "");
     add(s.ticker, { source: "filing", points: bad ? -2 : 2, text: `10-K: ${s.title}` });
   }
-  // The President's disclosed trades: net buying +2, net selling −2.
-  for (const a of presidential?.netPurchases ?? []) add(a.ticker, { source: "president", points: 2, text: "President: net buyer" });
-  for (const a of presidential?.netSales ?? []) add(a.ticker, { source: "president", points: -2, text: "President: net seller" });
+  // The chart: trend and momentum, for every stock with enough history.
+  for (const [symbol, c] of chart) {
+    if (c.trend) add(symbol, { source: "trend", points: c.trend, text: c.trendText });
+    if (c.momentum) add(symbol, { source: "momentum", points: c.momentum, text: c.momentumText });
+  }
   return out;
 }
 
@@ -96,6 +144,7 @@ export function decide(input: {
   market: Map<string, Market>;
   recentlySold: Set<string>;
   tradable: Set<string>;
+  today?: string; // New York date, YYYY-MM-DD; defaults to now
 }): { orders: Order[]; kept: { symbol: string; reason: string }[]; skipped: Skip[] } {
   const { holdings, candidates, market } = input;
   const orders: Order[] = [];
@@ -142,17 +191,47 @@ export function decide(input: {
     });
   let open = staying.length;
   const target = equity * RULES.positionWeight;
+  // 3. Swaps: with the portfolio full, a candidate scoring RULES.swapMargin
+  //    or more above the weakest holding replaces it, so the book drifts
+  //    towards the strongest names instead of waiting for a stop to free a
+  //    slot. A holding is only swappable after RULES.swapMinHoldDays (no
+  //    churning what was just bought), at most RULES.maxSwapsPerRun a run,
+  //    and the one sold can't come back for RULES.cooldownDays.
+  const today = input.today ?? nyDate(new Date());
+  const daysHeld = (h: Holding) => (new Date(today).getTime() - new Date(h.openedOn).getTime()) / 86_400_000;
+  let swaps = 0;
+  const weakest = () =>
+    staying
+      .filter((h) => market.has(h.symbol) && daysHeld(h) >= RULES.swapMinHoldDays)
+      .map((h) => ({ h, score: candidates.get(h.symbol)?.score ?? 0, m: market.get(h.symbol)! }))
+      // Lowest score first; between equal scores, the one doing worst.
+      .sort((a, b) => a.score - b.score || a.m.price / a.h.avgCost - b.m.price / b.h.avgCost)[0];
   for (const c of ranked) {
     const m = market.get(c.symbol);
     const skip = (reason: string) => skipped.push({ symbol: c.symbol, score: c.score, reason });
-    if (open >= RULES.maxPositions) { skip("Portfolio full."); continue; }
     if (!input.tradable.has(c.symbol)) { skip("Not tradable on Alpaca."); continue; }
     if (input.recentlySold.has(c.symbol)) { skip(`Sold within ${RULES.cooldownDays} days.`); continue; }
     if (!m) { skip("No fresh price."); continue; }
     if (m.price < RULES.minPrice) { skip(`Under $${RULES.minPrice}.`); continue; }
     if (m.sma50 === null || m.sma200 === null) { skip("Not enough price history."); continue; }
     if (m.price < m.sma50 || m.price < m.sma200) { skip("Below its 50- or 200-day average."); continue; }
-    if (c.sinceCongress !== null && c.sinceCongress > RULES.maxChase) { skip(`Already up ${pct(c.sinceCongress)} since Congress bought.`); continue; }
+    if (open >= RULES.maxPositions) {
+      const w = swaps < RULES.maxSwapsPerRun ? weakest() : undefined;
+      if (!w || c.score < w.score + RULES.swapMargin) { skip("Portfolio full."); continue; }
+      orders.push({
+        symbol: w.h.symbol,
+        side: "sell",
+        qty: w.h.qty,
+        price: w.m.price,
+        reason: `Swapped out: score ${w.score}, replaced by ${c.symbol} at score ${c.score}.`,
+      });
+      cash += w.h.qty * w.m.price;
+      staying.splice(staying.indexOf(w.h), 1);
+      const k = kept.findIndex((x) => x.symbol === w.h.symbol);
+      if (k >= 0) kept.splice(k, 1);
+      open--;
+      swaps++;
+    }
     const qty = Math.floor(Math.min(target, cash) / m.price);
     if (qty < 1) { skip("Not enough cash."); continue; }
     orders.push({
@@ -160,7 +239,7 @@ export function decide(input: {
       side: "buy",
       qty,
       price: m.price,
-      reason: `Score ${c.score} (${c.evidence.map((e) => e.text).join("; ")}), above its 50- and 200-day averages.`,
+      reason: `Score ${c.score} (${c.evidence.map((e) => e.text.replace(/\.$/, "")).join("; ")}), above its 50- and 200-day averages.`,
     });
     cash -= qty * m.price;
     open++;
@@ -254,7 +333,7 @@ export async function runSignalTrader(opts: { dryRun?: boolean } = {}): Promise<
     const cutoff = nyDate(new Date(Date.now() - RULES.cooldownDays * 86_400_000));
     const recentlySold = new Set(rows.filter((t) => t.side === "sell" && nyDate(t.executed_at) >= cutoff).map((t) => t.symbol));
 
-    const candidates = await scoreSignals();
+    const candidates = await scoreSignals([...held.keys()]);
     const holdings: Holding[] = [...held].map(([symbol, h]) => ({
       symbol,
       qty: h.qty,

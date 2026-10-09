@@ -15,6 +15,10 @@ export type HomeSnapshot = {
   points: number[];
   /** The day the account opened (ISO). */
   openedAt: string;
+  /** Tickers held now, biggest position first. */
+  holdings: string[];
+  /** When the Signal Trader last checked the market (ISO), if known. */
+  lastCheck: string | null;
 };
 
 /**
@@ -30,6 +34,8 @@ export async function getHomeSnapshot(): Promise<HomeSnapshot | null> {
     changePct: (showcase.equity - showcase.startingCash) / showcase.startingCash,
     points: showcase.history.map((p) => p.equity),
     openedAt: showcase.openedAt,
+    holdings: [...showcase.positions].sort((a, b) => b.marketValue - a.marketValue).map((p) => p.symbol),
+    lastCheck: showcase.algo.lastCheck?.ranAt ?? null,
   };
 }
 

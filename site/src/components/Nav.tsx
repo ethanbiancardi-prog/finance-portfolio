@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { MotifMark } from "@/components/Motif";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 
@@ -38,6 +38,29 @@ export default function Nav() {
   const pathname = usePathname();
   const [toolsOpen, setToolsOpen] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
+  // Hover opens the menu, so a mouse click right after must not toggle it
+  // shut again, and leaving waits a beat so a slightly crooked path from the
+  // button down to a tool doesn't close it.
+  const hoverOpenedAt = useRef(0);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  function hoverOpen(e: ReactPointerEvent) {
+    if (e.pointerType !== "mouse") return;
+    clearTimeout(closeTimer.current);
+    if (!toolsOpen) hoverOpenedAt.current = Date.now();
+    setToolsOpen(true);
+  }
+  function hoverClose(e: ReactPointerEvent) {
+    if (e.pointerType !== "mouse") return;
+    closeTimer.current = setTimeout(() => setToolsOpen(false), 250);
+  }
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  // The homepage's "Explore the tools" button opens this menu.
+  useEffect(() => {
+    const open = () => setToolsOpen(true);
+    window.addEventListener("prism:open-tools", open);
+    return () => window.removeEventListener("prism:open-tools", open);
+  }, []);
   const inTools = TOOLS.some((t) => pathname.startsWith(t.href));
 
   // Close the menu on outside click / Escape (menu links close it on click).
@@ -74,14 +97,17 @@ export default function Nav() {
         <div
           ref={toolsRef}
           className="relative"
-          onMouseEnter={() => setToolsOpen(true)}
-          onMouseLeave={() => setToolsOpen(false)}
+          onPointerEnter={hoverOpen}
+          onPointerLeave={hoverClose}
         >
           <button
             type="button"
             aria-haspopup="menu"
             aria-expanded={toolsOpen}
-            onClick={() => setToolsOpen((o) => !o)}
+            onClick={() => {
+              if (Date.now() - hoverOpenedAt.current < 800) return;
+              setToolsOpen((o) => !o);
+            }}
             className={`${itemClass(inTools)} inline-flex items-center gap-1`}
           >
             Tools
@@ -92,8 +118,10 @@ export default function Nav() {
           {toolsOpen && (
             <div
               role="menu"
-              className="absolute left-0 top-full z-50 mt-1 w-72 rounded-[var(--radius)] border border-border bg-panel p-1.5 shadow-lg"
+              className="absolute left-0 top-full z-50 w-72 pt-1"
             >
+              {/* pt-1, not a margin: the gap stays inside the hover area. */}
+              <div className="rounded-[var(--radius)] border border-border bg-panel p-1.5 shadow-lg">
               {TOOLS.map((t) => {
                 const active = pathname.startsWith(t.href);
                 return (
@@ -111,6 +139,7 @@ export default function Nav() {
                   </Link>
                 );
               })}
+              </div>
             </div>
           )}
         </div>

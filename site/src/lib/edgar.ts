@@ -2,7 +2,7 @@
 // (its Fair Access policy) — this isn't a secret, so it's a plain constant.
 const SEC_USER_AGENT = "finance-portfolio ethanbiancardi@gmail.com";
 
-async function secFetch(url: string, init?: RequestInit) {
+export async function secFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
     ...init,
     headers: { "User-Agent": SEC_USER_AGENT, ...init?.headers },

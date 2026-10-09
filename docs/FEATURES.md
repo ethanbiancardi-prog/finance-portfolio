@@ -115,7 +115,13 @@ by a GitHub Actions backup. Full rules in
 `projects/paper-trading/SIGNAL_TRADER.md`; the numbers live in
 `lib/signalTraderRules.ts`. Every 15 minutes in market hours GitHub Actions
 (`.github/workflows/signal-trader.yml`) calls the `CRON_SECRET`-gated
-`/api/signal-trader/run`. It scores tickers from the cached Research Signals,
+`/api/signal-trader/run`. It scores the ~94 stocks in `lib/sectors.ts` on four
+drivers: insider buying (SEC Form 4 open-market purchases, last 60 days,
+`lib/signals/insider.ts`, refreshed nightly in `api/cron/daily`, Redis
+`signals:insider`), the 10-K story (`signals:financial`), price trend and
+12-1 momentum (`lib/signals/chart.ts`, computed once a day from closes,
+Redis `signals:chart:v1`). Congress and President trades were dropped as
+drivers in Oct 2026 (too stale) and remain Research Signals only. It
 sells on stops / broken trend / faded signal, buys the strongest names above
 their 50- and 200-day averages, and writes trades through
 `place_paper_trade()` at the latest IEX price. Orders and reasons go to

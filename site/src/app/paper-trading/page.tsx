@@ -192,8 +192,9 @@ export default function PaperTrading() {
         />
         <ul className="mt-3 max-w-2xl list-disc space-y-1 pl-4 text-xs leading-5 text-zinc-400">
           <li>
-            Scores each stock from the Research Signals: Congress members&apos; disclosed trades (more buyers, no
-            sellers and committee oversight score higher), the latest 10-K&apos;s story, and the President&apos;s trades.
+            Scores each of the ~94 stocks in the sector lists on four things: insiders (executives and directors)
+            buying their own company&apos;s stock in the last 60 days, up to +6; the latest 10-K&apos;s story, +2 or −2;
+            the price trend, up to +2; and 12-month momentum against the other stocks, up to +2.
           </li>
           <li>
             Buys a score of {RULES.entryScore} or more, only while the price is above its 50- and 200-day averages, about{" "}
@@ -203,7 +204,11 @@ export default function PaperTrading() {
             Sells at {RULES.stopLoss * 100}% below cost, {RULES.trailingStop * 100}% below its high since buying, when the price
             falls under its 200-day average, or when the score drops below {RULES.holdScore}.
           </li>
-          <li>Paper money and educational, not investment advice. Congress trades are disclosed up to 45 days late.</li>
+          <li>
+            When all {RULES.maxPositions} slots are full, a stock scoring {RULES.swapMargin}+ points above the weakest holding
+            replaces it (one swap per check, only holdings owned {RULES.swapMinHoldDays}+ days).
+          </li>
+          <li>Paper money and educational, not investment advice. Insider purchases are filed with the SEC within two business days.</li>
         </ul>
       </Card>
 

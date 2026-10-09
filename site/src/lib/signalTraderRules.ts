@@ -8,9 +8,11 @@ export const RULES = {
   positionWeight: 0.09, // of account value per new position; ~10% stays cash
   stopLoss: 0.08, // sell at 8% below average cost
   trailingStop: 0.15, // sell at 15% below the highest close since buying
-  maxChase: 0.25, // skip a buy if it's already up 25% since Congress bought
   minPrice: 5,
   cooldownDays: 14, // no re-buying a name within two weeks of selling it
+  swapMargin: 3, // portfolio full: a candidate this many points above the weakest holding replaces it
+  maxSwapsPerRun: 1,
+  swapMinHoldDays: 5, // a holding can't be swapped out in its first 5 days
   maxQuoteAgeMinutes: 20, // IEX lags the tape; older than this isn't a price
 } as const;
 
