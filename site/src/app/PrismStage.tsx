@@ -330,7 +330,7 @@ export default function PrismStage({ snapshot, universe }: { snapshot: StageSnap
           }
           ctx!.strokeStyle = accent;
           ctx!.globalAlpha = 0.95 * placed[i];
-          ctx!.lineWidth = 1.6;
+          ctx!.lineWidth = 2.2;
         } else {
           let glow = 0;
           if (mouse) {
@@ -344,8 +344,8 @@ export default function PrismStage({ snapshot, universe }: { snapshot: StageSnap
           }
           ctx!.strokeStyle = glow > 0.15 ? accent : fg;
           // In flight the lines are a little brighter, so the assembly reads.
-          ctx!.globalAlpha = (placed[i] < 1 ? 0.35 : 0.16 + glow * 0.6) * Math.min(1, placed[i] * 2);
-          ctx!.lineWidth = 0.6 + glow * 0.5;
+          ctx!.globalAlpha = (placed[i] < 1 ? 0.55 : 0.42 + glow * 0.55) * Math.min(1, placed[i] * 2);
+          ctx!.lineWidth = 0.85 + glow * 0.6;
         }
         ctx!.beginPath();
         ctx!.moveTo(ax, ay);
@@ -353,15 +353,15 @@ export default function PrismStage({ snapshot, universe }: { snapshot: StageSnap
         ctx!.stroke();
       }
       ctx!.strokeStyle = fg;
-      ctx!.globalAlpha = 0.16;
-      ctx!.lineWidth = 0.6;
+      ctx!.globalAlpha = 0.42;
+      ctx!.lineWidth = 0.85;
       ctx!.stroke(plain);
       ctx!.strokeStyle = accent;
-      ctx!.globalAlpha = 0.18;
-      ctx!.lineWidth = 7;
+      ctx!.globalAlpha = 0.28;
+      ctx!.lineWidth = 8;
       ctx!.stroke(edges);
       ctx!.globalAlpha = 0.95;
-      ctx!.lineWidth = 1.6;
+      ctx!.lineWidth = 2.2;
       ctx!.stroke(edges);
 
       // 4. Rings: a band of light travelling through every string at once,
