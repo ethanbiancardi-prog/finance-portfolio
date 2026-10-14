@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { AI_ENABLED, AI_PAUSED_MESSAGE } from "@/lib/aiFeatures";
 import {
   findSnippets,
   getCompanyFacts,
@@ -62,6 +63,7 @@ function fmtX(value: number | null) {
 }
 
 export async function POST(request: Request) {
+  if (!AI_ENABLED) return NextResponse.json({ error: AI_PAUSED_MESSAGE }, { status: 503 });
   const { ticker } = await request.json();
   const company = await resolveTicker(ticker);
   if (!company) {

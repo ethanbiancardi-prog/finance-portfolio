@@ -27,6 +27,7 @@ export type MeterInputs = {
   catalysts: { positive: number; negative: number; mixed: number } | null; // playbook news catalysts
   playbookAsOf: string | null;
   redFlags: number | null; // null until the scan is run
+  aiPaused?: boolean; // AI switched off: the AI readings are skipped, not loading
 };
 
 export type MeterReading = {
@@ -116,7 +117,7 @@ export function scoreStock(i: MeterInputs): { score: number | null; label: strin
           score: HEALTH_SCORE[i.health],
           source: `AI playbook, ${i.playbookAsOf}`,
         }
-      : { key: "health", label: "Financial health", value: "loading", why: "AI verdict from the filing's numbers.", score: null, pending: true, source: "AI playbook" },
+      : { key: "health", label: "Financial health", value: i.aiPaused ? "AI paused" : "loading", why: "AI verdict from the filing's numbers.", score: null, pending: !i.aiPaused, source: "AI playbook" },
   );
 
   // 6. News — the playbook's catalysts: (positive − negative) ÷ all of them.
@@ -132,7 +133,7 @@ export function scoreStock(i: MeterInputs): { score: number | null; label: strin
           score: clamp((c.positive - c.negative) / total),
           source: `AI playbook from headlines, ${i.playbookAsOf}`,
         }
-      : { key: "news", label: "News catalysts", value: c ? "none found" : "loading", why: "Recent headlines, sorted positive or negative.", score: null, pending: !c, source: "AI playbook" },
+      : { key: "news", label: "News catalysts", value: c ? "none found" : i.aiPaused ? "AI paused" : "loading", why: "Recent headlines, sorted positive or negative.", score: null, pending: !c && !i.aiPaused, source: "AI playbook" },
   );
 
   // 7. Red flags — only counts once you run the scan. A clean scan leans
@@ -147,7 +148,9 @@ export function scoreStock(i: MeterInputs): { score: number | null; label: strin
           score: i.redFlags === 0 ? 0.5 : i.redFlags === 1 ? -0.5 : -1,
           source: "AI red-flag scan",
         }
-      : { key: "flags", label: "Red flags", value: "not scanned", why: "Run the red-flag scan below to include it.", score: null, source: "AI red-flag scan" },
+      : i.aiPaused
+        ? { key: "flags", label: "Red flags", value: "AI paused", why: "The red-flag scan uses AI, which is switched off.", score: null, source: "AI red-flag scan" }
+        : { key: "flags", label: "Red flags", value: "not scanned", why: "Run the red-flag scan below to include it.", score: null, source: "AI red-flag scan" },
   );
 
   // 8. Congress — share of disclosed congressional trades in this stock that

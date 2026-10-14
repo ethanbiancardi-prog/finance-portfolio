@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { AI_ENABLED } from "@/lib/aiFeatures";
 import { Button, Card, Chip, PageLoading, PageShell, Tabs, TickerSearch } from "@/components/ui";
 import { Dashboard, RedFlagsPanel, type Company, type Dashboard as DashboardData } from "./Fundamentals";
 import { NewsPanel } from "./NewsPanel";
@@ -103,7 +104,11 @@ function ResearchPage() {
     <PageShell
       eyebrow="fundamentals, news, ai analysis"
       title="Stock Research"
-      description="One ticker, everything on it: what the business does, what's moving it and what you could do about it, fundamentals and ratios from the latest 10-K, an AI red-flag scan, live headlines, and six AI analyst takes."
+      description={
+        AI_ENABLED
+          ? "One ticker, everything on it: what the business does, what's moving it and what you could do about it, fundamentals and ratios from the latest 10-K, an AI red-flag scan, live headlines, and six AI analyst takes."
+          : "One ticker, everything on it: the price chart, fundamentals and ratios from the latest 10-K, and live headlines."
+      }
     >
       <div className="mt-4">
         <Tabs
@@ -150,19 +155,29 @@ function ResearchPage() {
                 onCollapseAll={() => setForce({ open: false, seq: (force?.seq ?? 0) + 1 })}
               />
               <SectionForce.Provider value={force}>
-                <BusinessSummary key={`about-${company.ticker}`} ticker={company.ticker} name={company.title} />
-                <PlaybookPanel
-                  key={`playbook-${company.ticker}`}
-                  ticker={company.ticker}
-                  onLoaded={(summary, data) => {
-                    setGlance(summary);
-                    setPlaybook(data);
-                  }}
-                />
+                {/* AI switched off (lib/aiFeatures.ts): skip every panel that calls Claude. */}
+                {!AI_ENABLED && (
+                  <p className="mt-4 text-xs text-zinc-500">
+                    AI features are paused right now. The filing data, ratios, chart and headlines below still work.
+                  </p>
+                )}
+                {AI_ENABLED && (
+                  <>
+                    <BusinessSummary key={`about-${company.ticker}`} ticker={company.ticker} name={company.title} />
+                    <PlaybookPanel
+                      key={`playbook-${company.ticker}`}
+                      ticker={company.ticker}
+                      onLoaded={(summary, data) => {
+                        setGlance(summary);
+                        setPlaybook(data);
+                      }}
+                    />
+                  </>
+                )}
                 <Dashboard company={company} dashboard={dashboard} />
-                <RedFlagsPanel key={`flags-${company.ticker}`} ticker={company.ticker} onScanned={setRedFlags} />
+                {AI_ENABLED && <RedFlagsPanel key={`flags-${company.ticker}`} ticker={company.ticker} onScanned={setRedFlags} />}
                 <NewsPanel key={`news-${company.ticker}`} ticker={company.ticker} />
-                <AnalysisPanel key={`ai-${company.ticker}`} ticker={company.ticker} />
+                {AI_ENABLED && <AnalysisPanel key={`ai-${company.ticker}`} ticker={company.ticker} />}
               </SectionForce.Provider>
             </SimpleProvider>
           )}

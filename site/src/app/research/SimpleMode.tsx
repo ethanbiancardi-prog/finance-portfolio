@@ -6,6 +6,7 @@
 //   2. AI-written passages can be rewritten in plain English with an
 //      everyday analogy, on demand, via /api/research/simplify (cached).
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { AI_ENABLED } from "@/lib/aiFeatures";
 import { JARGON, splitJargon, type JargonKey } from "@/lib/jargon";
 import { GeometricLoader, useLoaderHold } from "@/components/ui";
 
@@ -145,7 +146,8 @@ export function SimpleText({ text, context, className }: { text: string; context
       ) : (
         <JargonText text={text} />
       )}
-      {simple && (
+      {/* The rewrite is an AI call; with AI off only the free jargon links stay. */}
+      {simple && AI_ENABLED && (
         <span className="mt-1.5 block text-[10px] caps">
           {state === "original" && (
             <button type="button" onClick={simplify} className="text-accent hover:underline">

@@ -9,15 +9,17 @@ import { Card, Chip } from "@/components/ui";
 import { QuoteBadge, type Company } from "./Fundamentals";
 import { StockChart } from "./StockChart";
 import { JargonText } from "./SimpleMode";
+import { AI_ENABLED } from "@/lib/aiFeatures";
 
-const SECTIONS: { id: string; label: string }[] = [
-  { id: "about", label: "About" },
-  { id: "whats-happening", label: "What's happening" },
+// `ai` sections are hidden while AI is switched off, so their links go too.
+const SECTIONS: { id: string; label: string; ai?: boolean }[] = [
+  { id: "about", label: "About", ai: true },
+  { id: "whats-happening", label: "What's happening", ai: true },
   { id: "fundamentals", label: "Fundamentals" },
-  { id: "red-flags", label: "Red flags" },
+  { id: "red-flags", label: "Red flags", ai: true },
   { id: "news", label: "News" },
-  { id: "analysts", label: "Analysts" },
-];
+  { id: "analysts", label: "Analysts", ai: true },
+].filter((s) => AI_ENABLED || !s.ai);
 
 export function Overview({
   company,

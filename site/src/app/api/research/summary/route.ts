@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { AI_ENABLED, AI_PAUSED_MESSAGE } from "@/lib/aiFeatures";
 import {
   extractBusinessSection,
   getCompanyProfile,
@@ -69,6 +70,7 @@ async function writeCache(key: string, value: Summary) {
 }
 
 export async function GET(request: Request) {
+  if (!AI_ENABLED) return NextResponse.json({ error: AI_PAUSED_MESSAGE }, { status: 503 });
   const ticker = (new URL(request.url).searchParams.get("ticker") ?? "").trim().toUpperCase();
   if (!/^[A-Z.\-]{1,10}$/.test(ticker)) {
     return NextResponse.json({ error: "Invalid ticker" }, { status: 400 });

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { AI_ENABLED, AI_PAUSED_MESSAGE } from "@/lib/aiFeatures";
 import { buildBriefing } from "@/lib/researchBriefing";
 import { getRedis, kvConfigured } from "@/lib/kv";
 
@@ -80,6 +81,7 @@ const RESPONSE_SCHEMA = {
 const CACHE_TTL_SECONDS = 60 * 60 * 3;
 
 export async function POST(request: Request) {
+  if (!AI_ENABLED) return NextResponse.json({ error: AI_PAUSED_MESSAGE }, { status: 503 });
   const body = await request.json().catch(() => ({}));
   const ticker = String(body.ticker ?? "").trim().toUpperCase();
   if (!/^[A-Z.\-]{1,10}$/.test(ticker)) {

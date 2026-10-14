@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { AI_ENABLED, AI_PAUSED_MESSAGE } from "@/lib/aiFeatures";
 import { getRedis, kvConfigured } from "@/lib/kv";
 
 const anthropic = new Anthropic();
@@ -29,6 +30,7 @@ const RESPONSE_SCHEMA = {
 };
 
 export async function POST(request: Request) {
+  if (!AI_ENABLED) return NextResponse.json({ error: AI_PAUSED_MESSAGE }, { status: 503 });
   const body = await request.json().catch(() => ({}));
   const text = String(body.text ?? "").trim();
   const context = String(body.context ?? "").trim().slice(0, 200);

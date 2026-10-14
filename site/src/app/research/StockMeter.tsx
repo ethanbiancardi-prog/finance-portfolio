@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AI_ENABLED } from "@/lib/aiFeatures";
 import { scoreStock, type MeterMarketInputs, type MeterReading } from "@/lib/stockMeter";
 import { StatusDot, type Rating } from "@/components/ui";
 import { rateRatio, type Dashboard } from "./Fundamentals";
@@ -61,6 +62,7 @@ export function StockMeter({
     },
     playbookAsOf: playbook?.generatedAt.slice(0, 10) ?? null,
     redFlags,
+    aiPaused: !AI_ENABLED,
   });
   const used = readings.filter((r) => r.score !== null).length;
   const loading = readings.some((r) => r.pending);

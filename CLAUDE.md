@@ -103,7 +103,10 @@ without it messages are only saved to `contact_messages`), `CONTACT_TO_EMAIL`,
 on `/paper-trading` and the homepage; not a secret, without it both hide), `SIGNAL_TRADER_ENABLED`
 (`true` lets the Signal Trader place trades; anything else and every run is a dry run), `SIGNAL_TRADER_SECRET`
 (unlocks only `/api/signal-trader/run` and `/api/algo/run`; the password cron-job.org sends),
-`ALGO_PORTFOLIOS_ENABLED` (`false` pauses the algo portfolios; on by default). `KV_URL`, `REDIS_URL`,
+`ALGO_PORTFOLIOS_ENABLED` (`false` pauses the algo portfolios; on by default),
+`NEXT_PUBLIC_AI_FEATURES_ENABLED` (`false` pauses every Claude call: AI panels
+hidden on `/research`, AI routes 503, AI signal refreshes skipped; on by
+default; a flag, not a key; redeploy after changing it — `lib/aiFeatures.ts`). `KV_URL`, `REDIS_URL`,
 `KV_REST_API_READ_ONLY_TOKEN` and `VERCEL_OIDC_TOKEN` are Vercel-provisioned
 and unread by app code.
 

@@ -10,6 +10,7 @@
 // Anything that fails is dropped and counted in the batch stats, so the
 // page only ever shows sourced, dated, real-company leads.
 import Anthropic from "@anthropic-ai/sdk";
+import { AI_ENABLED, AI_PAUSED_MESSAGE } from "@/lib/aiFeatures";
 import { resolveTickerNames } from "@/lib/edgar";
 import { getRedis } from "@/lib/kv";
 import type { Signal, SignalBatch, SignalCategory, SignalSource } from "./types";
@@ -89,6 +90,8 @@ function normaliseUrl(u: string): string {
 }
 
 export async function refreshAiSignals(category: "legislation" | "geopolitics", now = new Date()): Promise<SignalBatch> {
+  // Paused: fail before calling Claude; the caller keeps the last cached batch.
+  if (!AI_ENABLED) throw new Error(AI_PAUSED_MESSAGE);
   const since = new Date(now.getTime() - WINDOW_DAYS * 86_400_000).toISOString().slice(0, 10);
   const today = now.toISOString().slice(0, 10);
 
