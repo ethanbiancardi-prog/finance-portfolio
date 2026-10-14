@@ -11,9 +11,7 @@ import { prismSegments, project, TWIST, type V3 } from "@/components/Prism";
 //     keeps the momentum before easing back to its idle speed.
 //   - It leans towards the mouse, and the strings near the cursor light up.
 //   - Its twist breathes in and out, so the strung surface keeps reshaping.
-//   - Faint strings fan out from both ends to the edges of the screen, with
-//     sparks running in from the left and out to the right: data in,
-//     research out.
+//   - Faint strings fan out from both ends to the edges of the screen.
 //   - Every few seconds, and on every click, a glowing ring travels through
 //     the prism from one end to the other.
 //   - On load the lines fly in from all around and lock into the prism.
@@ -28,37 +26,27 @@ export type StageSnapshot = {
   equity: number;
   changePct: number;
   spark: string;
-  /** Tickers the algorithm holds now; they ride the incoming sparks. */
+  /** Tickers the algorithm holds now. */
   holdings: string[];
   /** When the algorithm last checked the market (ISO). */
   lastCheck: string | null;
 };
 
-// What comes out of the prism: the lenses the site's tools look through.
-const OUT_WORDS = ["Value", "Risk", "Momentum", "Signals", "Quality", "Volatility"];
-
 const RULINGS = 30; // strings per face
 const LENGTH = 2.4;
 const RADIUS = 0.62;
 const FAN = 16; // background strings per prism corner
-const SPARKS = 26;
 const RING_EVERY_MS = 6000;
 const RING_MS = 3800; // how long a ring takes to travel the prism
 const DUST = 70;
 
-type Spark = { side: 0 | 1; corner: number; edge: number; t: number; speed: number; label: string | null; held: boolean };
 type Ring = { born: number };
 
-export default function PrismStage({ snapshot, universe }: { snapshot: StageSnapshot | null; universe: string[] }) {
+export default function PrismStage({ snapshot }: { snapshot: StageSnapshot | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   // Set by the animation loop; the Rebuild button calls it.
   const rebuildRef = useRef<(() => void) | null>(null);
-  // Read by the animation loop, so new props don't restart it.
-  const tickersRef = useRef({ holdings: snapshot?.holdings ?? [], universe });
-  useEffect(() => {
-    tickersRef.current = { holdings: snapshot?.holdings ?? [], universe };
-  }, [snapshot, universe]);
 
   // Fill the screen exactly: viewport height minus whatever the nav measures.
   useEffect(() => {
@@ -151,41 +139,6 @@ export default function PrismStage({ snapshot, universe }: { snapshot: StageSnap
       nextRebuild = performance.now() + REBUILD_EVERY_MS;
     };
 
-    // Most sparks carry a word. On the way in it's a ticker: any stock the
-    // site covers, with the algorithm's current holdings picked a third of
-    // the time and drawn brighter. On the way out it's one of the tools'
-    // lenses.
-    const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
-    function newSpark(t = 0): Spark {
-      const side = Math.random() < 0.5 ? 0 : 1;
-      const { holdings, universe: all } = tickersRef.current;
-      let label: string | null = null;
-      let held = false;
-      if (Math.random() < 0.7) {
-        if (side === 1) label = pick(OUT_WORDS);
-        else if (holdings.length && Math.random() < 0.33) {
-          label = pick(holdings);
-          held = true;
-        } else if (all.length) {
-          label = pick(all);
-          held = holdings.includes(label);
-        }
-      }
-      return {
-        side,
-        corner: Math.floor(Math.random() * 3),
-        edge: Math.floor(Math.random() * FAN),
-        t,
-        speed: 0.00009 + Math.random() * 0.00013,
-        label,
-        held,
-      };
-    }
-
-    // Created after newSpark and pick above: `pick` is a const, so calling
-    // newSpark any earlier hits it before it exists and the page crashes.
-    const sparks: Spark[] = Array.from({ length: SPARKS }, () => newSpark(Math.random()));
-
     // Dust: slow specks drifting across the whole stage, for depth.
     const dust = Array.from({ length: DUST }, () => ({
       x: Math.random(),
@@ -195,7 +148,6 @@ export default function PrismStage({ snapshot, universe }: { snapshot: StageSnap
       phase: Math.random() * Math.PI * 2,
       r: 0.5 + Math.random() * 1.1,
     }));
-    const font = getComputedStyle(document.body).fontFamily;
 
     function frame(now: number) {
       const dt = Math.min(64, now - last);
@@ -274,39 +226,7 @@ export default function PrismStage({ snapshot, universe }: { snapshot: StageSnap
       }
       ctx!.stroke();
 
-      // 2. Sparks along the fans: inwards on the left, outwards on the right.
-      if (!reduced) {
-        ctx!.strokeStyle = accent;
-        ctx!.lineWidth = 1.4;
-        for (let i = 0; i < sparks.length; i++) {
-          const s = sparks[i];
-          s.t += s.speed * dt;
-          if (s.t > 1) {
-            sparks[i] = newSpark();
-            continue;
-          }
-          const edge: [number, number] = [s.side === 0 ? 0 : w, edgeY(s.edge)];
-          const c = s.side === 0 ? nearC[s.corner] : farC[s.corner];
-          const [from, to] = s.side === 0 ? [edge, c] : [c, edge];
-          const t0 = s.t, t1 = Math.min(1, s.t + 0.07);
-          ctx!.globalAlpha = 0.85 * Math.sin(Math.PI * s.t) * g;
-          ctx!.beginPath();
-          ctx!.moveTo(from[0] + (to[0] - from[0]) * t0, from[1] + (to[1] - from[1]) * t0);
-          ctx!.lineTo(from[0] + (to[0] - from[0]) * t1, from[1] + (to[1] - from[1]) * t1);
-          ctx!.stroke();
-          if (s.label) {
-            // The word rides just above the spark's head, in text colour.
-            const hx = from[0] + (to[0] - from[0]) * t1, hy = from[1] + (to[1] - from[1]) * t1;
-            ctx!.fillStyle = fg;
-            ctx!.globalAlpha *= s.held ? 1 : 0.55;
-            ctx!.font = `${s.held ? "600 " : ""}${s.side === 0 ? 11 : 10}px ${font}`;
-            ctx!.textAlign = s.side === 0 ? "right" : "left";
-            ctx!.fillText(s.side === 0 ? s.label : s.label.toUpperCase(), hx + (s.side === 0 ? -6 : 6), hy - 6);
-          }
-        }
-      }
-
-      // 3. The prism's strings, brighter and warmer near the cursor.
+      // 2. The prism's strings, brighter and warmer near the cursor.
       //    While building, each line is part-way between its scattered place
       //    and its spot on the prism, fading in as it arrives.
       const placed = segs.map((s) => (built ? 1 : easeOut(clamp01((g - s.order * 0.6) / 0.4))));
