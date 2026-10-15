@@ -56,6 +56,35 @@ Short write-ups: a valuation you did, something you learned building these tools
 market event explained. Recruiters and alumni actually read these, and it feeds LinkedIn
 content.
 
+## Added Oct 15 2026
+
+### 11. Users run their own trading algorithm 🟢→🟡
+Signed-in users already have a paper portfolio and a saved fixed-weight strategy run
+nightly by `lib/strategyRunner.ts`. Level 1 (1–2 sessions): let them pick one of the
+Strategy Lab algorithms (`decide()` in `lib/strategyLab.ts`) from a dropdown — one
+migration adding an algorithm column to `paper_strategies`, a branch in the runner, a
+dropdown on the dashboard. Level 2 (3–5 sessions): tunable settings (holdings, lookback,
+stop-loss) with a backtest preview before saving — validate every input, cache backtests,
+rate-limit them. Level 3 (rule builder) is weeks; never let users run their own code.
+Keep users to the ~94 cached stocks so it costs nothing extra.
+
+### 12. Indicator Scorecard 🟢→🟡 (2–3 sessions)
+For every time a chart signal fired since 2017 across the ~94-stock universe (crossed the
+200-day average, RSI under 30, 52-week-high breakout, 12-month momentum…), measure the
+stock's return over the next 5/20/60 days against an average day. A table of which
+signals had an edge and which didn't. Reuses the price table and indicator helpers in
+`lib/strategyLab.ts`; no new data cost. Frame as evidence, not advice.
+**Why it impresses:** "I tested which chart signals actually work — most don't."
+
+### 13. Machine-learning up/down predictor 🟡 (builds on #12)
+Ethan's pick. Feed a model many numbers per stock per day (recent returns, volatility,
+distance from highs, volume, RSI…) and predict whether it beats the market over the next
+month. Rules: test only on years the model never trained on (walk-forward), count trading
+costs, and expect ~53–55% accuracy — anything near 80% is a testing bug. Start with
+logistic regression (explainable, easy in TypeScript, no Python needed), trained by a
+script in `site/scripts/` that saves the model to Redis; the site only reads it. Show
+which inputs mattered most. #12's features become this model's inputs.
+
 ## Prioritization advice
 Do **#4 (client work)** and **#2 (DCF)** first — fast wins that make the site feel real.
 Then **#5 (10-K analyzer)** for the AI wow-factor. Make **#1 (paper trading)** the
