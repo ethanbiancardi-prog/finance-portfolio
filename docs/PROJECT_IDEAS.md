@@ -98,7 +98,6 @@ content. `/education` covers part of this.
 - **1. AI paper-trading simulator** — `/paper-trading`, `/dashboard`, the Signal Trader,
   user strategies and the Strategy Lab's live portfolios
 - **2. Interactive DCF builder** — `/dcf-builder`, with sensitivity grid and 10-K/TTM prefill
-- **4. Client work showcase** — `/client-work` (built and owned by Gemini Antigravity)
 - **5. 10-K / earnings analyzer** — folded into `/research` (17 ratios, AI summary, red flags)
 - **7. Monte Carlo simulator** — `/monte-carlo`
 - **8. Portfolio optimizer (Markowitz)** — `/optimizer`
