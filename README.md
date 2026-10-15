@@ -21,8 +21,7 @@ finance-portfolio/
 ├── projects/
 │   ├── paper-trading/      ← AI-assisted paper trading simulator
 │   ├── dcf-builder/        ← interactive DCF valuation tool
-│   ├── statement-analyzer/ ← upload a 10-K, get AI analysis
-│   └── client-work/        ← write-ups + screenshots of small-business sites you built
+│   └── statement-analyzer/ ← upload a 10-K, get AI analysis
 └── shared/                 ← shared components, styles, utilities
 ```
 

@@ -74,17 +74,7 @@ live in the Vercel project settings.
 - `VERCEL_OIDC_TOKEN`
 
 **Optional**
-- `CLIENT_WORK_PASSCODE` — overrides the client-work passcode
-- `CLIENT_WORK_SECRET` — HMAC salt for the session cookie
 - `SIGNALS_DEBUG` — verbose logging from the AI signal refreshes
-
-> **Security note, unresolved.** Neither `CLIENT_WORK_PASSCODE` nor
-> `CLIENT_WORK_SECRET` is set in `site/.env.local` or in Vercel, so
-> `/client-work` currently falls back to the defaults hard-coded in
-> `lib/clientWorkAuth.ts` — in a public GitHub repo. Setting
-> `CLIENT_WORK_PASSCODE` in Vercel fixes it without a code change.
-> `/client-work` is Gemini Antigravity's area (see CLAUDE.md), so raise this
-> with Ethan rather than editing those files.
 
 ## Local setup
 

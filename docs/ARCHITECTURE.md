@@ -11,13 +11,12 @@ finance-portfolio/            ← git root (the OUTER folder is not the project)
 ├── docs/                     ← this folder: architecture, features, data/env, roadmap
 ├── projects/                 ← markdown only. No code lives here.
 │   ├── paper-trading/STRATEGY.md   ← the live strategy write-up
-│   ├── dcf-builder/, statement-analyzer/, client-work/  ← README stubs
+│   ├── dcf-builder/, statement-analyzer/  ← README stubs
 ├── shared/                   ← README stub, unused
 └── site/                     ← THE ACTUAL APP. Everything real is here.
     ├── src/app/              ← Next.js App Router: pages + /api routes
     ├── src/components/       ← Nav, theme, UI kit (src/components/ui)
     ├── src/lib/              ← all the finance/data logic
-    ├── src/data/             ← clientWork.ts case studies
     ├── public/screenshots/   ← homepage card thumbnails
     ├── scripts/              ← screenshots.js, sell-core.js
     └── vercel.json           ← cron definitions
@@ -57,7 +56,7 @@ trade journal, with Row Level Security enforcing ownership
 | `/quant` | Redirects to `/quant/backtester` |
 | `/quant-notes` | Index of 7 plain-language quant explainers |
 | `/quant-notes/[slug]` | One explainer: momentum, sharpe-ratio, max-drawdown, beta-capm, correlation-diversification, mean-variance, monte-carlo |
-| `/client-work` | Passcode-gated private client case studies (see the warning in CLAUDE.md) |
+| `/client-work` | 301 redirect → `/` (section removed Oct 2026) |
 | `/statement-analyzer` | 301 redirect → `/research` (configured in `next.config.ts`) |
 
 `/quant/*` pages share `app/quant/layout.tsx`, which renders `QuantHubHeader`
@@ -117,7 +116,6 @@ reaches the browser.
 
 **Other**
 - `GET /api/cron/daily` — weekdays 22:00 UTC: regime check + all five signal refreshes
-- `POST /api/client-work/auth` — passcode → 30-day httpOnly session cookie
 
 ## Key libraries (`site/src/lib`)
 

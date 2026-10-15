@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
       // Quant Notes grew into the Education section (tool guides + fundamentals).
       { source: "/quant-notes", destination: "/education", permanent: true },
       { source: "/quant-notes/:slug", destination: "/education/:slug", permanent: true },
+      // The client-work section was removed in Oct 2026.
+      { source: "/client-work", destination: "/", permanent: true },
     ];
   },
 };

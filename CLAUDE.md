@@ -61,9 +61,8 @@ calls use `claude-opus-5`.
 - `/login` — email + password sign-in (create account on the same form)
 - `/dashboard` — signed-in-only area: name, paper portfolio, strategy, trade journal
 - `/contact` — contact form (bug / question / opportunity), saved to Supabase and emailed via Resend
-- `/client-work` — passcode-gated private client case studies
 - `/lab` — design lab: candidate PRISM motifs side by side; unlinked, `noindex`
-- Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`
+- Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`, `/client-work` → `/` (section removed Oct 2026)
 
 **API** (all server-side; no key ever reaches the browser)
 - `/api/portfolio` (+ `/trade`, `/strategy`) — the signed-in user's own paper portfolio, Supabase-backed; trades are server-priced and written via `place_paper_trade()`
@@ -81,7 +80,7 @@ calls use `claude-opus-5`.
 - `/api/rotation/run` — **executes trades**; GET only, `CRON_SECRET`-gated (monthly cron). No public trigger
 - `/api/signal-trader/run` — **executes trades** on the showcase account (`lib/signalTrader.ts`); GET only, gated by `SIGNAL_TRADER_SECRET` (cron-job.org) or `CRON_SECRET` (GitHub Actions), called every 15 min in market hours; `?dryRun=1` trades nothing
 - `/api/signals` — read-only, serves the Redis cache; `/api/signals/refresh` — forces a refresh, secret-gated
-- `/api/cron/daily` — weekday regime check + all five signal refreshes + the insider-buying refresh (Signal Trader input) + the Strategy Lab recompute; `/api/client-work/auth` — passcode → 30-day session cookie
+- `/api/cron/daily` — weekday regime check + all five signal refreshes + the insider-buying refresh (Signal Trader input) + the Strategy Lab recompute
 
 ## Data sources
 
@@ -101,8 +100,7 @@ Local: `site/.env.local`, gitignored. Production: Vercel project settings.
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (server-only; without
 it dashboard trading returns 503). **Optional** `RESEND_API_KEY` (contact-form email via Resend;
 without it messages are only saved to `contact_messages`), `CONTACT_TO_EMAIL`,
-`CONTACT_FROM_EMAIL`, `CLIENT_WORK_PASSCODE`,
-`CLIENT_WORK_SECRET`, `SIGNALS_DEBUG`, `SHOWCASE_USER_ID` (the dashboard account shown
+`CONTACT_FROM_EMAIL`, `SIGNALS_DEBUG`, `SHOWCASE_USER_ID` (the dashboard account shown
 on `/paper-trading` and the homepage; not a secret, without it both hide), `SIGNAL_TRADER_ENABLED`
 (`true` lets the Signal Trader place trades; anything else and every run is a dry run), `SIGNAL_TRADER_SECRET`
 (unlocks only `/api/signal-trader/run` and `/api/algo/run`; the password cron-job.org sends),
@@ -162,12 +160,6 @@ and unread by app code.
   `finance-portfolio` folders exist on this machine, and the one under
   `.gemini/antigravity/scratch` is Gemini Antigravity's clone, not yours.
 
-## Off-limits
-
-`/client-work`, `src/components/client-work/`, `src/data/clientWork.ts` and
-`api/client-work/` are built by **Gemini Antigravity** as a separate,
-non-finance project. Don't edit them — rebase over its commits instead.
-
 ## Status (as of Oct 15 2026)
 
 **Built and working** — every route listed above; typecheck and lint pass.
@@ -186,13 +178,6 @@ check the live Alpaca account.
 
 **Next up** — everything Ethan might build lives in one list,
 `docs/PROJECT_IDEAS.md`; its "Up next" section is the current queue.
-
-**Known issue, parked** — `/client-work` falls back to a passcode hard-coded in
-a public repo because `CLIENT_WORK_PASSCODE` is set neither locally nor in
-Vercel, and its cookie-signing salt falls back to a value in the code when
-`CLIENT_WORK_SECRET` is unset. Ethan hasn't decided what the section becomes,
-so don't fix or redesign it unless he raises it. Details in
-`docs/DATA_AND_ENV.md`.
 
 ## Longer docs
 
