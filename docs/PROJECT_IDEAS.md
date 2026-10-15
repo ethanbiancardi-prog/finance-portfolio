@@ -1,62 +1,39 @@
 # Project Ideas Backlog
 
+The one list of everything Ethan might build next. Numbers are stable — refer to ideas
+by number, and don't renumber when one is finished; move it to "Done" instead.
+
 Ratings: 🟢 weekend project · 🟡 1–3 weeks · 🔴 semester-long flagship
 
-## Your ideas (all good — keep them)
+## Up next
 
-### 1. AI paper-trading simulator 🔴 (flagship)
-Fake-money portfolio tracking real market prices. Users (or you) make trades; an AI
-"analyst" explains each position, flags concentration risk, and writes a weekly portfolio
-review. Start simple: manual trades + a P&L dashboard. Add AI commentary second. Add
-strategy backtesting third.
-**Why it impresses:** shows market mechanics, risk concepts, AND practical AI integration.
+### 14. Industry charts page 🟢 (1–2 sessions) — pinned as next
+A page comparing big-name stocks' price charts side by side, grouped by industry, so you
+can see at a glance who's leading and lagging within a sector. Reuses the sector lists
+and the cached Alpaca price data.
 
-### 2. Interactive DCF builder 🟡
-User inputs revenue growth, margins, WACC, terminal growth → live valuation with
-sensitivity table (WACC × terminal growth heatmap is the classic). Bonus: AI mode that
-pre-fills assumptions from a company's recent filings and *explains its reasoning*.
-**Why it impresses:** DCF is the interview question. Building the tool proves you
-understand every lever, not just how to click through a template.
+### 15. Stream the AI analyst panel 🟢 (1 session)
+The six-analyst panel on `/research` takes ~30s and shows only "Analyzing...". Stream
+each take in as it finishes. The slowest moment on the most-visited page.
 
-### 3. Balance sheet / 3-statement model 🟡
-Interactive linked statements: change an assumption, watch it flow through IS → BS → CF.
-Great teaching tool framing ("built this to study for interviews" is a genuinely good story).
+## Ideas to build
 
-### 4. Client work showcase 🟢
-Case-study pages for the small-business sites you built: the problem, what you shipped,
-before/after, a testimonial if you can get one. Frame it as "freelance web consulting" —
-it shows initiative and client communication, which finance recruiters value a lot.
+### 13. Machine-learning up/down predictor 🟡 (builds on #12) — Ethan's favourite
+Feed a model many numbers per stock per day (recent returns, volatility, distance from
+highs, volume, RSI…) and predict whether it beats the market over the next month. Rules:
+test only on years the model never trained on (walk-forward), count trading costs, and
+expect ~53–55% accuracy — anything near 80% is a testing bug. Start with logistic
+regression (explainable, easy in TypeScript, no Python needed), trained by a script in
+`site/scripts/` that saves the model to Redis; the site only reads it. Show which inputs
+mattered most. #12's features become this model's inputs.
 
-## My additions
-
-### 5. 10-K / earnings analyzer 🟡
-Upload or link a filing → AI extracts key metrics, computes ratios (liquidity, leverage,
-profitability, efficiency), flags YoY changes, and writes a one-page summary. This is
-literally what analysts do their first year. High wow-factor per hour of work.
-
-### 6. Earnings call sentiment tracker 🟡
-Pull earnings call transcripts, run AI sentiment/tone analysis on management language,
-chart it against the stock's post-earnings move. Fun research angle: "does hedging
-language predict drawdowns?"
-
-### 7. Monte Carlo retirement / portfolio simulator 🟢→🟡
-Inputs: savings rate, allocation, horizon. Output: fan chart of 10,000 simulated paths,
-probability of hitting a goal. Visually striking, mathematically real, small scope.
-
-### 8. Portfolio optimizer (Markowitz) 🟡
-Pick tickers → efficient frontier plot → optimal weights at a chosen risk level. Add AI
-plain-English explanation of why the optimizer chose those weights.
-
-### 9. Stock screener with natural-language queries 🟡
-"Show me profitable small-caps with falling debt" → AI translates to filters → results
-table. Very demo-able in an interview.
-
-### 10. Finance blog / market notes 🟢 (ongoing)
-Short write-ups: a valuation you did, something you learned building these tools, a
-market event explained. Recruiters and alumni actually read these, and it feeds LinkedIn
-content.
-
-## Added Oct 15 2026
+### 12. Indicator Scorecard 🟢→🟡 (2–3 sessions)
+For every time a chart signal fired since 2017 across the ~94-stock universe (crossed the
+200-day average, RSI under 30, 52-week-high breakout, 12-month momentum…), measure the
+stock's return over the next 5/20/60 days against an average day. A table of which
+signals had an edge and which didn't. Reuses the price table and indicator helpers in
+`lib/strategyLab.ts`; no new data cost. Frame as evidence, not advice.
+**Why it impresses:** "I tested which chart signals actually work — most don't."
 
 ### 11. Users run their own trading algorithm 🟢→🟡
 Signed-in users already have a paper portfolio and a saved fixed-weight strategy run
@@ -68,30 +45,67 @@ stop-loss) with a backtest preview before saving — validate every input, cache
 rate-limit them. Level 3 (rule builder) is weeks; never let users run their own code.
 Keep users to the ~94 cached stocks so it costs nothing extra.
 
-### 12. Indicator Scorecard 🟢→🟡 (2–3 sessions)
-For every time a chart signal fired since 2017 across the ~94-stock universe (crossed the
-200-day average, RSI under 30, 52-week-high breakout, 12-month momentum…), measure the
-stock's return over the next 5/20/60 days against an average day. A table of which
-signals had an edge and which didn't. Reuses the price table and indicator helpers in
-`lib/strategyLab.ts`; no new data cost. Frame as evidence, not advice.
-**Why it impresses:** "I tested which chart signals actually work — most don't."
+### 6. Earnings call confidence score 🟡
+Read what management says on earnings calls and score how *confident* they sound from
+word choice, then test whether that score predicts the stock's next move.
+- **Scoring, in steps:** (1) a word-list score first — the Loughran-McDonald finance
+  dictionaries count "uncertainty" words (*approximately, may, risk*), weak words
+  (*could, might, possibly*) and strong words (*will, always, clearly*); confidence =
+  strong minus weak/uncertain, per 1,000 words. Fully explainable. (2) Then a trained
+  model on the same calls, and/or Claude scoring each answer, compared against the
+  word-list baseline. Q&A answers matter more than the scripted opening remarks — that's
+  where executives are off-script.
+- **The test:** does a big drop in confidence vs. the company's own previous call come
+  before weaker returns over the next 1/5/20 days? Test on calls the model never saw.
+- **Data hurdle:** full transcripts aren't on EDGAR and most transcript APIs are paid or
+  restrict reuse — check terms first. Free fallback: the earnings press release (8-K
+  exhibit 99.1) on EDGAR, which quotes management, though it's far more scripted.
+- Pairs with #17: how many days does the market take to price in the tone?
 
-### 13. Machine-learning up/down predictor 🟡 (builds on #12)
-Ethan's pick. Feed a model many numbers per stock per day (recent returns, volatility,
-distance from highs, volume, RSI…) and predict whether it beats the market over the next
-month. Rules: test only on years the model never trained on (walk-forward), count trading
-costs, and expect ~53–55% accuracy — anything near 80% is a testing bug. Start with
-logistic regression (explainable, easy in TypeScript, no Python needed), trained by a
-script in `site/scripts/` that saves the model to Redis; the site only reads it. Show
-which inputs mattered most. #12's features become this model's inputs.
+### 17. Information diffusion — how fast news gets priced in 🟡→🔴
+Measure the time it takes for a real-world event to show up in the stock price.
+- **Method (an "event study"):** for each event with an exact timestamp — an 8-K filing,
+  an insider purchase (Form 4), an earnings release, a Congress trade disclosure — track
+  the stock's return *minus the market's* from the moment it went public. Report the
+  **half-life**: how long until half the eventual move had happened.
+- **Questions it answers:** do big, well-covered stocks price news in minutes while small
+  ones take days? Is insider buying priced slowly (which is why the Signal Trader can use
+  it)? Confirms or refines the old ~50-day Congress-disclosure-lag finding.
+- **Data:** event times from EDGAR (free, timestamped); intraday bars from Alpaca for the
+  fast part, daily bars for the slow tail.
 
-## Prioritization advice
-Do **#4 (client work)** and **#2 (DCF)** first — fast wins that make the site feel real.
-Then **#5 (10-K analyzer)** for the AI wow-factor. Make **#1 (paper trading)** the
-long-running flagship you improve all semester. Skip or defer the rest until those shine.
-Three polished projects beat eight half-finished ones, every time.
+### 16. Kalshi mispricing / arbitrage engine — talk through first
+Find Kalshi prediction-market contracts that look mispriced: related contracts whose
+prices don't add up, or that disagree with other markets or data. Open questions before
+building: Kalshi API terms, whether it only flags or ever trades (real-money trading is
+something Claude can't execute), and how it fits the site.
 
-## Data sources (free tiers)
-- Prices: yfinance (Python), Alpha Vantage, Finnhub, Polygon (free tier)
-- Filings: SEC EDGAR (free, official, has an API)
-- Transcripts: some free via APIs, or scrape carefully within terms of service
+### 3. Balance sheet / 3-statement model 🟡
+Interactive linked statements: change an assumption, watch it flow through IS → BS → CF.
+Great teaching tool framing ("built this to study for interviews" is a genuinely good story).
+
+### 9. Stock screener with natural-language queries 🟡
+"Show me profitable small-caps with falling debt" → AI translates to filters → results
+table. Very demo-able in an interview.
+
+### 10. Finance blog / market notes 🟢 (ongoing)
+Short write-ups: a valuation you did, something you learned building these tools, a
+market event explained. Recruiters and alumni actually read these, and it feeds LinkedIn
+content. `/education` covers part of this.
+
+## Done
+
+- **1. AI paper-trading simulator** — `/paper-trading`, `/dashboard`, the Signal Trader,
+  user strategies and the Strategy Lab's live portfolios
+- **2. Interactive DCF builder** — `/dcf-builder`, with sensitivity grid and 10-K/TTM prefill
+- **4. Client work showcase** — `/client-work` (built and owned by Gemini Antigravity)
+- **5. 10-K / earnings analyzer** — folded into `/research` (17 ratios, AI summary, red flags)
+- **7. Monte Carlo simulator** — `/monte-carlo`
+- **8. Portfolio optimizer (Markowitz)** — `/optimizer`
+
+## Data sources
+
+What the site uses today: Alpaca (prices, intraday and daily bars), SEC EDGAR (filings,
+XBRL facts, Form 4s, 8-K timestamps), Anthropic API, House/Senate disclosure sources,
+Yahoo Finance RSS. Full table with licences: `docs/DATA_AND_ENV.md`. Earnings call
+transcripts are the one gap — see #6.

@@ -184,9 +184,8 @@ production (needs a redeploy). The old passive ETF core may still need selling
 via `site/scripts/sell-core.js --execute`; that isn't visible from the code —
 check the live Alpaca account.
 
-**Next up** — stream the six-persona AI takes in as they generate (the panel
-takes ~30s and shows only "Analyzing..."); an industry charts page comparing
-big-name stocks side by side by industry.
+**Next up** — everything Ethan might build lives in one list,
+`docs/PROJECT_IDEAS.md`; its "Up next" section is the current queue.
 
 **Known issue, parked** — `/client-work` falls back to a passcode hard-coded in
 a public repo because `CLIENT_WORK_PASSCODE` is set neither locally nor in
