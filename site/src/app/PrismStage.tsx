@@ -14,9 +14,6 @@ import { prismSegments, project, TWIST, type V3 } from "@/components/Prism";
 //   - Faint strings fan out from both ends to the edges of the screen.
 //   - Every few seconds, and on every click, a glowing ring travels through
 //     the prism from one end to the other.
-//   - On load the lines fly in from all around and lock into the prism.
-//     "Rebuild" (and a timer, every 40s) blows it apart and builds it again
-//     from new scattered places.
 //
 // Only theme colours (foreground + accent), read from CSS, so every mode and
 // accent works. Pauses in a background tab; under prefers-reduced-motion it
@@ -45,8 +42,6 @@ type Ring = { born: number };
 export default function PrismStage({ snapshot }: { snapshot: StageSnapshot | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  // Set by the animation loop; the Rebuild button calls it.
-  const rebuildRef = useRef<(() => void) | null>(null);
 
   // Fill the screen exactly: viewport height minus whatever the nav measures.
   useEffect(() => {
@@ -93,52 +88,6 @@ export default function PrismStage({ snapshot }: { snapshot: StageSnapshot | nul
     let nextRing = start + 1200;
     const rings: Ring[] = [];
 
-    // Construction. Every line has a scattered starting place somewhere
-    // around the prism; `assembly` runs 0 → 1 as they fly in and lock into
-    // place, in the same sweep order the logo uses. A rebuild runs it back
-    // down to 0 (the lines fly apart, last-placed first), picks new scatter
-    // places, and builds again, so no two rebuilds look the same.
-    const SEG_COUNT = prismSegments(LENGTH, RADIUS, RULINGS).length;
-    let scatter: { a: V3; b: V3 }[] = [];
-    const rescatter = () => {
-      scatter = Array.from({ length: SEG_COUNT }, () => {
-        // A random direction, and a distance well outside the prism.
-        const th = Math.random() * 2 * Math.PI, ph = Math.acos(2 * Math.random() - 1);
-        const dir: V3 = [Math.sin(ph) * Math.cos(th), Math.sin(ph) * Math.sin(th), Math.cos(ph)];
-        const dist = 2.2 + Math.random() * 2.5;
-        const jitter = () => (Math.random() - 0.5) * 0.9;
-        return {
-          a: [dir[0] * dist + jitter(), dir[1] * dist + jitter(), dir[2] * dist * 0.4],
-          b: [dir[0] * dist * 1.15 + jitter(), dir[1] * dist * 1.15 + jitter(), dir[2] * dist * 0.4],
-        };
-      });
-    };
-    rescatter();
-    const BUILD_MS = 6000;
-    const BREAK_MS = 2600;
-    const REBUILD_EVERY_MS = 40000;
-    let phase: { mode: "build" | "break"; start: number } = { mode: "build", start: last };
-    let nextRebuild = last + REBUILD_EVERY_MS;
-    const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-    const clamp01 = (t: number) => Math.max(0, Math.min(1, t));
-    const lerp3 = (p: V3, q: V3, t: number): V3 => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t];
-    function assembly(now: number) {
-      if (reduced) return 1;
-      const t = (now - phase.start) / (phase.mode === "build" ? BUILD_MS : BREAK_MS);
-      if (phase.mode === "break" && t >= 1) {
-        rescatter();
-        phase = { mode: "build", start: now };
-        return 0;
-      }
-      return phase.mode === "build" ? easeInOut(clamp01(t)) : 1 - easeInOut(clamp01(t));
-    }
-    rebuildRef.current = () => {
-      if (reduced || phase.mode === "break") return;
-      phase = { mode: "break", start: performance.now() };
-      nextRebuild = performance.now() + REBUILD_EVERY_MS;
-    };
-
     // Dust: slow specks drifting across the whole stage, for depth.
     const dust = Array.from({ length: DUST }, () => ({
       x: Math.random(),
@@ -179,15 +128,11 @@ export default function PrismStage({ snapshot }: { snapshot: StageSnapshot | nul
         const tt = mouse ? -0.28 + ((mouse.y / h) - 0.5) * 0.5 : -0.28;
         yaw += (ty - yaw) * Math.min(1, dt / 500);
         tilt += (tt - tilt) * Math.min(1, dt / 500);
-        if (now >= nextRebuild) rebuildRef.current?.();
       }
-      const g = assembly(now);
-      const built = g >= 1;
-      if (!reduced && built && now >= nextRing) {
+      if (!reduced && now >= nextRing) {
         rings.push({ born: now });
         nextRing = now + RING_EVERY_MS;
       }
-      if (!built) rings.length = 0;
 
       // The twist breathes between about 0.7x and 1.3x of the logo's.
       const elapsed = now - start;
@@ -214,7 +159,7 @@ export default function PrismStage({ snapshot }: { snapshot: StageSnapshot | nul
       const edgeY = (j: number) => (h * (j + 0.5)) / FAN;
       ctx!.strokeStyle = fg;
       ctx!.lineWidth = 0.5;
-      ctx!.globalAlpha = 0.05 * g;
+      ctx!.globalAlpha = 0.05;
       ctx!.beginPath();
       for (let k = 0; k < 3; k++) {
         for (let j = 0; j < FAN; j++) {
@@ -227,49 +172,33 @@ export default function PrismStage({ snapshot }: { snapshot: StageSnapshot | nul
       ctx!.stroke();
 
       // 2. The prism's strings, brighter and warmer near the cursor.
-      //    While building, each line is part-way between its scattered place
-      //    and its spot on the prism, fading in as it arrives.
-      const placed = segs.map((s) => (built ? 1 : easeOut(clamp01((g - s.order * 0.6) / 0.4))));
-      const projected = segs.map((s, i) =>
-        placed[i] >= 1
-          ? ([P(s.a), P(s.b)] as const)
-          : ([P(lerp3(scatter[i].a, s.a, placed[i])), P(lerp3(scatter[i].b, s.b, placed[i]))] as const),
-      );
-      //    Settled, unlit strings all share one style, so they go in a single
-      //    path and one stroke; only lit or in-flight lines draw one by one.
+      const projected = segs.map((s) => [P(s.a), P(s.b)] as const);
+      //    Unlit strings all share one style, so they go in a single path
+      //    and one stroke; only lines lit by the cursor draw one by one.
       //    Glow is a wide faint stroke under a thin bright one (canvas
       //    shadows are far too slow to use every frame).
       const plain = new Path2D();
       const edges = new Path2D();
       for (let i = 0; i < segs.length; i++) {
-        const s = segs[i];
-        if (placed[i] <= 0) continue;
         const [[ax, ay], [bx, by]] = projected[i];
-        if (s.accent) {
-          if (placed[i] >= 1) {
-            edges.moveTo(ax, ay);
-            edges.lineTo(bx, by);
-            continue;
-          }
-          ctx!.strokeStyle = accent;
-          ctx!.globalAlpha = 0.95 * placed[i];
-          ctx!.lineWidth = 2.2;
-        } else {
-          let glow = 0;
-          if (mouse) {
-            const d = Math.hypot((ax + bx) / 2 - mouse.x, (ay + by) / 2 - mouse.y);
-            glow = Math.max(0, 1 - d / (scale * 0.3));
-          }
-          if (placed[i] >= 1 && glow === 0) {
-            plain.moveTo(ax, ay);
-            plain.lineTo(bx, by);
-            continue;
-          }
-          ctx!.strokeStyle = glow > 0.15 ? accent : fg;
-          // In flight the lines are a little brighter, so the assembly reads.
-          ctx!.globalAlpha = (placed[i] < 1 ? 0.55 : 0.42 + glow * 0.55) * Math.min(1, placed[i] * 2);
-          ctx!.lineWidth = 0.85 + glow * 0.6;
+        if (segs[i].accent) {
+          edges.moveTo(ax, ay);
+          edges.lineTo(bx, by);
+          continue;
         }
+        let glow = 0;
+        if (mouse) {
+          const d = Math.hypot((ax + bx) / 2 - mouse.x, (ay + by) / 2 - mouse.y);
+          glow = Math.max(0, 1 - d / (scale * 0.3));
+        }
+        if (glow === 0) {
+          plain.moveTo(ax, ay);
+          plain.lineTo(bx, by);
+          continue;
+        }
+        ctx!.strokeStyle = glow > 0.15 ? accent : fg;
+        ctx!.globalAlpha = 0.42 + glow * 0.55;
+        ctx!.lineWidth = 0.85 + glow * 0.6;
         ctx!.beginPath();
         ctx!.moveTo(ax, ay);
         ctx!.lineTo(bx, by);
@@ -405,15 +334,8 @@ export default function PrismStage({ snapshot }: { snapshot: StageSnapshot | nul
         <AlgoStatusLine lastCheck={snapshot.lastCheck} holdings={snapshot.holdings.length} />
       )}
 
-      <div className="absolute right-4 top-4 flex items-center gap-3 text-[10px] caps text-zinc-500 lg:right-10">
-        <span className="pointer-events-none hidden sm:inline">Drag to spin · click for a pulse</span>
-        <button
-          type="button"
-          onClick={() => rebuildRef.current?.()}
-          className="rounded-[var(--radius-sm)] border border-border bg-background/60 px-2.5 py-1 caps text-foreground backdrop-blur transition-colors duration-150 hover:border-accent hover:text-accent"
-        >
-          Rebuild
-        </button>
+      <div className="pointer-events-none absolute right-4 top-4 hidden text-[10px] caps text-zinc-500 sm:block lg:right-10">
+        Drag to spin · click for a pulse
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-6 px-4 pb-8 sm:px-6 sm:pb-10 md:flex-row md:items-end md:justify-between lg:px-10 lg:pb-12">
