@@ -104,11 +104,14 @@ ${snippetBlock("Non-GAAP / adjusted-figure mentions", nonGaapSnippets)}
 ${snippetBlock("Going-concern mentions", goingConcernSnippets)}`;
 
   const response = await anthropic.messages.create({
-    model: "claude-opus-4-8",
+    model: "claude-opus-5",
     max_tokens: 1200,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
     output_config: {
+      // It explains signals already computed above — low effort is plenty,
+      // and keeps thinking from eating the 1200-token budget.
+      effort: "low",
       format: { type: "json_schema", schema: RESPONSE_SCHEMA },
     },
   });

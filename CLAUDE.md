@@ -40,7 +40,7 @@ Data: Supabase Postgres holds the trade journal (RLS on, policies in
 Stack: Next.js 16 App Router · React 19 · TypeScript · Tailwind v4 · Recharts ·
 `@anthropic-ai/sdk` · Upstash Redis · Supabase · `pdf-parse` · `fflate`. No
 Python — server state is Redis, plus Postgres for the trade journal. AI
-calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
+calls use `claude-opus-5`.
 
 ## Every route
 
@@ -62,9 +62,12 @@ calls use `claude-opus-5` (red-flags still on `claude-opus-4-8`).
 - `/dashboard` — signed-in-only area: name, paper portfolio, strategy, trade journal
 - `/contact` — contact form (bug / question / opportunity), saved to Supabase and emailed via Resend
 - `/client-work` — passcode-gated private client case studies
+- `/lab` — design lab: candidate PRISM motifs side by side; unlinked, `noindex`
 - Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`
 
 **API** (all server-side; no key ever reaches the browser)
+- `/api/portfolio` (+ `/trade`, `/strategy`) — the signed-in user's own paper portfolio, Supabase-backed; trades are server-priced and written via `place_paper_trade()`
+- `/api/contact` — contact form: saves to `contact_messages`, emails via Resend; `/api/company-names` — read-only ticker → short name, day-long CDN cache
 - `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
 - `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-analyst panel: business, safety, price, news, skeptic, summary; 3h cache), `simplify` (AI), `meter` (free trend/momentum/Congress inputs for the per-stock Bull/Bear Meter, scored in `lib/stockMeter.ts`)
 - `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `industry`, `red-flags` (AI)
@@ -165,29 +168,32 @@ and unread by app code.
 `api/client-work/` are built by **Gemini Antigravity** as a separate,
 non-finance project. Don't edit them — rebase over its commits instead.
 
-## Status (as of Sep 24 2026)
+## Status (as of Oct 15 2026)
 
-**Built and working** — every route listed above. Stock Research covers search,
-sector browse, the 17-ratio dashboard, AI summary/playbook/red-flags/persona
-panel and "Explain simply"; all four Research Signals categories run daily.
-Landed Sep 23-24: the homepage redesign and loaders, DCF and ratios built on
-trailing-twelve-month numbers rather than the last annual report, and EDGAR
-following a ticker back to its predecessor registrant (the XOM holding-company
-case) — see `docs/FEATURES.md`.
+**Built and working** — every route listed above; typecheck and lint pass.
+Stock Research covers search, sector browse, the 17-ratio dashboard, AI
+summary/playbook/red-flags/persona panel and "Explain simply"; all four
+Research Signals categories run daily. Landed Oct 7-14: the Strategy Lab (five
+backtested strategies plus live algo portfolios checked every 15 min), the
+Signal Trader's switch from Congress trades to insider buying + trend +
+momentum, its "thought process" log and self-journaled trades, the prism
+homepage, and the AI on/off switch. The Signal Trader is trading live.
 
-**In progress** — the strategy switch. Code and docs are done, the trades are
-waiting on Ethan: the old passive ETF core must be sold via
-`site/scripts/sell-core.js --execute` before a rebalance will place anything.
-Whether that has happened isn't visible from the code — check the live account.
+**Unverified** — the AI switch has never been tested set to `false` in
+production (needs a redeploy). The old passive ETF core may still need selling
+via `site/scripts/sell-core.js --execute`; that isn't visible from the code —
+check the live Alpaca account.
 
 **Next up** — stream the six-persona AI takes in as they generate (the panel
-takes ~30s and shows only "Analyzing..."). Later: weekly full-portfolio review,
-then a real strategy backtester (stretch).
+takes ~30s and shows only "Analyzing..."); an industry charts page comparing
+big-name stocks side by side by industry.
 
 **Known issue, parked** — `/client-work` falls back to a passcode hard-coded in
 a public repo because `CLIENT_WORK_PASSCODE` is set neither locally nor in
-Vercel. Ethan hasn't decided what the section becomes, so don't fix or redesign
-it unless he raises it. Details in `docs/DATA_AND_ENV.md`.
+Vercel, and its cookie-signing salt falls back to a value in the code when
+`CLIENT_WORK_SECRET` is unset. Ethan hasn't decided what the section becomes,
+so don't fix or redesign it unless he raises it. Details in
+`docs/DATA_AND_ENV.md`.
 
 ## Longer docs
 

@@ -22,7 +22,9 @@ import { runStrategies } from "@/lib/strategyRunner";
 export const maxDuration = 300;
 
 export async function GET(request: Request) {
-  if (request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+  // An unset secret would make the expected header "Bearer undefined".
+  const secret = process.env.CRON_SECRET;
+  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const [regime, political, legislation, geopolitics, financial, presidential, insider, strategies, lab] = await Promise.allSettled([
