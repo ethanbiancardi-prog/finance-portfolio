@@ -1,4 +1,4 @@
-// Prices for the Industry Charts page (/industries): every stock in
+// Prices for the Industry Charts tab on /research: every stock in
 // lib/sectors.ts plus SPY, for one period, as % returns from the period's
 // starting close. One Alpaca call per period (free, batched 50 symbols at a
 // time), cached in Redis for 10 minutes so page loads read the cache.

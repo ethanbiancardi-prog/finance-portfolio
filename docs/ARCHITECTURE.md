@@ -41,8 +41,8 @@ trade journal, with Row Level Security enforcing ownership
 |---|---|
 | `/` | Homepage — project cards with screenshot thumbnails, contact links |
 | `/about` | Bio, coursework, skills, contact |
-| `/research` | **Stock Research** — three tabs: Search, Browse by Sector, Research Signals |
-| `/industries` | **Industry Charts** — big names per sector on one % return chart, sector averages vs SPY, 1M–5Y (5Y on a log scale) |
+| `/research` | **Stock Research** — three tabs: Industry Charts (default), Search, Research Signals |
+| `/industries` | 301 redirect → `/research` (Industry Charts is its first tab) |
 | `/paper-trading` | Showcase portfolio, view-only: Ethan's dashboard paper account vs. SPY, risk metrics, positions, trades |
 | `/login` | Email + password sign-in / sign-up (Supabase) |
 | `/dashboard` | Signed-in only: name, paper portfolio, strategy, trade journal |
@@ -99,7 +99,6 @@ reaches the browser.
 **10-K / EDGAR**
 - `GET /api/statement-analyzer/search` — company/ticker search
 - `GET /api/statement-analyzer/lookup` — 17-ratio dashboard from XBRL company facts
-- `GET /api/statement-analyzer/industry` — the curated tickers for one sector
 - `POST /api/statement-analyzer/red-flags` — AI red-flag scan (3 of 5 checks are pure arithmetic)
 
 **Tools**

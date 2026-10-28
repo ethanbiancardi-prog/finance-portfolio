@@ -1,6 +1,7 @@
 "use client";
 
-// Lazy-loaded from Industries.tsx so recharts stays out of the first load.
+// Lazy-loaded from IndustryCharts.tsx (the Industry Charts tab on /research)
+// so recharts stays out of the first load.
 //
 // Every line is a % return from the period's first day, so all of them
 // start at 0% and "who's ahead" reads straight off the chart. Up to a dozen

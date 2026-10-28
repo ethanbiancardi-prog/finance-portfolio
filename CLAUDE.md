@@ -47,8 +47,7 @@ calls use `claude-opus-5`.
 **Pages**
 - `/` — homepage: masthead, live snapshot of the showcase portfolio, ruled index of the projects
 - `/about` — bio, coursework, skills
-- `/research` — Stock Research: Search · Browse by Sector · Research Signals
-- `/industries` — Industry Charts: every sector-list stock's % return on one chart per sector (plus sector averages vs SPY), periods 1M–5Y, cards ranked best to worst
+- `/research` — Stock Research: Industry Charts (the default tab) · Search · Research Signals. Industry Charts puts every sector-list stock's % return on one chart per sector (plus sector averages vs SPY), periods 1M–5Y; clicking a stock's card opens it in Search
 - `/paper-trading` — the showcase portfolio, view-only: Ethan's own dashboard paper account (`SHOWCASE_USER_ID`), traded by the Signal Trader algorithm (scores the ~94 sector-list stocks on insider buying, 10-K story, price trend and momentum), vs. SPY; the algorithm's rules and recent orders with reasons, risk metrics, positions, trades
 - `/rotation` — Momentum + Leverage strategy on the Alpaca paper account: current picks, regime state, rebalance history
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
@@ -63,7 +62,7 @@ calls use `claude-opus-5`.
 - `/dashboard` — signed-in-only area: name, paper portfolio, strategy, trade journal
 - `/contact` — contact form (bug / question / opportunity), saved to Supabase and emailed via Resend
 - `/lab` — design lab: candidate PRISM motifs side by side; unlinked, `noindex`
-- Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`, `/client-work` → `/` (section removed Oct 2026)
+- Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`, `/client-work` → `/` (section removed Oct 2026), `/industries` → `/research`
 
 **API** (all server-side; no key ever reaches the browser)
 - `/api/portfolio` (+ `/trade`, `/strategy`) — the signed-in user's own paper portfolio, Supabase-backed; trades are server-priced and written via `place_paper_trade()`
@@ -71,7 +70,7 @@ calls use `claude-opus-5`.
 - `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
 - `/api/industries?period=` — read-only: % returns for the ~94 sector-list stocks + SPY (`lib/industriesData.ts`), Alpaca SIP daily bars incl. dividends, 10-min Redis cache
 - `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-analyst panel: business, safety, price, news, skeptic, summary; 3h cache), `simplify` (AI), `meter` (free trend/momentum/Congress inputs for the per-stock Bull/Bear Meter, scored in `lib/stockMeter.ts`)
-- `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `industry`, `red-flags` (AI)
+- `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `red-flags` (AI)
 - `/api/strategy-lab` — read-only Strategy Lab results (`lib/strategyLab.ts` engine, `lib/strategyLabData.ts` data + 26h Redis cache, refreshed by `api/cron/daily`)
 - `/api/signal-trader/log` — read-only, Redis only: the Signal Trader's last 78 market-hours checks (`signal-trader:log`), shown as the "thought process" log on `/paper-trading`
 - `/api/algo-portfolios` — read-only live algo portfolios (`lib/algoPortfolios.ts`), 2-minute cache

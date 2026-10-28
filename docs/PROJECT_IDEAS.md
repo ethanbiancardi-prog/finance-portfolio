@@ -96,7 +96,7 @@ content. `/education` covers part of this.
 - **5. 10-K / earnings analyzer** — folded into `/research` (17 ratios, AI summary, red flags)
 - **7. Monte Carlo simulator** — `/monte-carlo`
 - **8. Portfolio optimizer (Markowitz)** — `/optimizer`
-- **14. Industry charts page** — `/industries` (Oct 28 2026)
+- **14. Industry charts page** — the default tab on `/research` (Oct 28 2026)
 
 ## Data sources
 

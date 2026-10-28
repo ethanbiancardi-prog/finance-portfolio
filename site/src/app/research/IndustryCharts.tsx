@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { Callout, Card, ChartLoading, Chip, SectionHeader, Tabs } from "@/components/ui";
+import { Callout, Card, ChartLoading, Chip, SectionHeader } from "@/components/ui";
 import { formatPercent } from "@/lib/format";
 import {
   averageSeries,
@@ -56,7 +56,9 @@ function Spark({ values, color }: { values: (number | null)[]; color: string }) 
 
 type Row = { key: string; label: string; sub: string; values: (number | null)[]; total: number | null; stale: string | null };
 
-export default function Industries() {
+// The first tab on /research: the big names in each sector on one chart.
+// Clicking a stock's card opens it in the Search tab (onResearch).
+export default function IndustryCharts({ onResearch }: { onResearch: (symbol: string) => void }) {
   const [view, setView] = useState<View>("all");
   const [period, setPeriod] = useState<PeriodKey>("1y");
   const [cache, setCache] = useState<Partial<Record<PeriodKey, IndustryData>>>({});
@@ -147,12 +149,12 @@ export default function Industries() {
 
   return (
     <>
-      <div className="mt-4 overflow-x-auto">
-        <Tabs<View>
-          tabs={[{ key: "all", label: "All sectors" }, ...SECTOR_KEYS.map((k) => ({ key: k, label: SECTORS[k].label }))]}
-          active={view}
-          onChange={changeView}
-        />
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {(["all", ...SECTOR_KEYS] as View[]).map((v) => (
+          <Chip key={v} active={view === v} onClick={() => changeView(v)}>
+            {v === "all" ? "All sectors" : SECTORS[v].label}
+          </Chip>
+        ))}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -176,8 +178,8 @@ export default function Industries() {
           label={view === "all" ? "Sectors compared" : `${SECTORS[view].label}: the big names compared`}
           description={
             view === "all"
-              ? "Each line is a sector's average stock: the same dollars put into every stock on the list at the start of the period. Hover a card to light up its line; click one to open the sector."
-              : `${SECTORS[view].description} Grey lines are the individual stocks; the bold line is their average and the dashed one is the S&P 500. Click cards to colour up to four.`
+              ? "Each line is a sector's average stock: the same dollars put into every stock on the list at the start of the period. Hover a card to light up its line; click one to see its stocks."
+              : `${SECTORS[view].description} Grey lines are the individual stocks; the bold line is their average and the dashed one is the S&P 500. Click a card to research that stock, or "Highlight" to colour its line (up to four).`
           }
         />
         {error && (
@@ -224,39 +226,55 @@ export default function Industries() {
               return (
                 <Card
                   key={r.key}
-                  as="button"
                   interactive
-                  padding="sm"
-                  aria-pressed={view === "all" ? undefined : picks.includes(r.key)}
-                  onClick={() => (view === "all" ? changeView(r.key as SectorKey) : togglePick(r.key))}
+                  padding="none"
                   onMouseEnter={() => setHovered(r.key)}
                   onMouseLeave={() => setHovered((h) => (h === r.key ? null : h))}
                   style={color ? { borderColor: color } : undefined}
                 >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[13px] font-semibold text-foreground">
-                      <span className="mr-1.5 text-[10px] font-normal text-zinc-500">{i + 1}</span>
-                      {r.label}
+                  <button
+                    type="button"
+                    className="block w-full p-3 pb-1 text-left"
+                    title={view === "all" ? `Show the ${r.label} stocks` : `Research ${r.label}`}
+                    onClick={() => (view === "all" ? changeView(r.key as SectorKey) : onResearch(r.key))}
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[13px] font-semibold text-foreground">
+                        <span className="mr-1.5 text-[10px] font-normal text-zinc-500">{i + 1}</span>
+                        {r.label}
+                      </span>
+                      <span className="text-[13px] tabular-nums">
+                        <Signed value={r.total} />
+                      </span>
+                    </div>
+                    <div className="truncate text-[11px] text-zinc-500">{r.sub}</div>
+                    <div className="mt-1.5">
+                      <Spark values={r.values} color={color ?? "var(--chart-muted)"} />
+                    </div>
+                  </button>
+                  <div className="flex items-center justify-between gap-2 px-3 pb-2.5 text-[10px] caps text-zinc-500">
+                    <span>
+                      {r.stale ?? (
+                        <>
+                          vs S&amp;P{" "}
+                          {vsSpy == null ? "N/A" : (
+                            <span style={{ color: `var(--status-${vsSpy >= 0 ? "good" : "bad"})` }}>
+                              {vsSpy >= 0 ? "+" : ""}
+                              {(vsSpy * 100).toFixed(1)} pts
+                            </span>
+                          )}
+                        </>
+                      )}
                     </span>
-                    <span className="text-[13px] tabular-nums">
-                      <Signed value={r.total} />
-                    </span>
-                  </div>
-                  <div className="truncate text-[11px] text-zinc-500">{r.sub}</div>
-                  <div className="mt-1.5">
-                    <Spark values={r.values} color={color ?? "var(--chart-muted)"} />
-                  </div>
-                  <div className="mt-1 text-[10px] caps text-zinc-500">
-                    {r.stale ?? (
-                      <>
-                        vs S&amp;P{" "}
-                        {vsSpy == null ? "N/A" : (
-                          <span style={{ color: `var(--status-${vsSpy >= 0 ? "good" : "bad"})` }}>
-                            {vsSpy >= 0 ? "+" : ""}
-                            {(vsSpy * 100).toFixed(1)} pts
-                          </span>
-                        )}
-                      </>
+                    {view !== "all" && (
+                      <button
+                        type="button"
+                        aria-pressed={picks.includes(r.key)}
+                        onClick={() => togglePick(r.key)}
+                        className={`caps transition-colors duration-150 ${picks.includes(r.key) ? "text-accent" : "hover:text-foreground"}`}
+                      >
+                        {picks.includes(r.key) ? "Highlighted" : "Highlight"}
+                      </button>
                     )}
                   </div>
                 </Card>

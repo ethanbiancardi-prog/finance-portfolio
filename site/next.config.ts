@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
       { source: "/quant-notes/:slug", destination: "/education/:slug", permanent: true },
       // The client-work section was removed in Oct 2026.
       { source: "/client-work", destination: "/", permanent: true },
+      // Industry Charts became the first tab of /research.
+      { source: "/industries", destination: "/research", permanent: true },
     ];
   },
 };

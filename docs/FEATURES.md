@@ -5,7 +5,18 @@ section for whatever you are about to change.
 
 ## Stock Research (`/research`)
 
-Three tabs: **Search**, **Browse by Sector**, **Research Signals**.
+Three tabs: **Industry Charts** (the default), **Search**, **Research Signals**.
+
+### Industry Charts tab
+Every stock in `lib/sectors.ts` as a % return from the period's first close
+(1M, 3M, 6M, YTD, 1Y, 5Y; 5Y on a log scale), with dividends. "All sectors"
+shows each sector's equal-weight average stock vs SPY; a sector shows its
+stocks as grey lines, their average bold and SPY dashed, with the leader and
+laggard coloured until the user picks up to four via "Highlight". Cards below
+rank best to worst with a sparkline and the gap to SPY; clicking a stock's card
+runs it in Search. Data: `/api/industries` (`lib/industriesData.ts`), Alpaca
+SIP daily bars (~15-20 min behind), 10-minute Redis cache. Replaced the old
+Browse by Sector tab, which listed the same tickers without prices.
 
 ### Search results layout
 An Overview strip (ticker, live quote, an "at a glance" line from the playbook,

@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AI_ENABLED } from "@/lib/aiFeatures";
-import { Button, Card, Chip, PageLoading, PageShell, Tabs, TickerSearch } from "@/components/ui";
+import dynamic from "next/dynamic";
+import { Button, PageLoading, PageShell, Tabs, TickerSearch } from "@/components/ui";
 import { Dashboard, RedFlagsPanel, type Company, type Dashboard as DashboardData } from "./Fundamentals";
 import { NewsPanel } from "./NewsPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
@@ -13,10 +14,12 @@ import { StockMeter } from "./StockMeter";
 import { SignalsPanel } from "./SignalsPanel";
 import { Overview } from "./Overview";
 import { SimpleProvider } from "./SimpleMode";
-import { isSectorKey, SECTOR_KEYS, SECTORS } from "@/lib/sectors";
 import { SectionForce } from "@/components/ui/Section";
 
-const CATEGORIES = SECTOR_KEYS.map((key) => ({ key, label: SECTORS[key].label }));
+// The Industry Charts tab carries recharts, so it loads on its own.
+const IndustryCharts = dynamic(() => import("./IndustryCharts"), { ssr: false, loading: () => <PageLoading /> });
+
+type Tab = "industries" | "search" | "signals";
 
 // useSearchParams needs a Suspense boundary above it for static rendering.
 export default function Research() {
@@ -29,7 +32,8 @@ export default function Research() {
 
 function ResearchPage() {
   const initialTicker = useSearchParams().get("ticker")?.toUpperCase() ?? null;
-  const [tab, setTab] = useState<"search" | "browse" | "signals">("search");
+  // Industry Charts is the home tab; a ?ticker= link goes straight to Search.
+  const [tab, setTab] = useState<Tab>(initialTicker ? "search" : "industries");
 
   const [ticker, setTicker] = useState("");
   const [company, setCompany] = useState<Company | null>(null);
@@ -44,9 +48,6 @@ function ResearchPage() {
   const [playbook, setPlaybook] = useState<Playbook | null>(null);
   const [redFlags, setRedFlags] = useState<number | null>(null);
 
-  const [category, setCategory] = useState<string>(CATEGORIES[0].key);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [browseLoading, setBrowseLoading] = useState(false);
 
   async function lookup(symbol: string) {
     setLoading(true);
@@ -89,15 +90,12 @@ function ResearchPage() {
     lookup(ticker);
   }
 
-  async function loadCategory(key: string) {
-    setCategory(key);
-    setBrowseLoading(true);
-    setCompanies([]);
-
-    const res = await fetch(`/api/statement-analyzer/industry?category=${key}`);
-    const data = await res.json();
-    setCompanies(data.companies ?? []);
-    setBrowseLoading(false);
+  // From the Industry Charts and Research Signals tabs: open one stock in Search.
+  function research(symbol: string) {
+    setTab("search");
+    setTicker(symbol);
+    lookup(symbol);
+    window.scrollTo({ top: 0 });
   }
 
   return (
@@ -111,10 +109,10 @@ function ResearchPage() {
       }
     >
       <div className="mt-4">
-        <Tabs
+        <Tabs<Tab>
           tabs={[
+            { key: "industries", label: "Industry Charts" },
             { key: "search", label: "Search" },
-            { key: "browse", label: "Browse by Sector" },
             { key: "signals", label: "Research Signals" },
           ]}
           active={tab}
@@ -189,57 +187,12 @@ function ResearchPage() {
           <SignalsPanel
             simple={simple}
             onSimple={setSimple}
-            onResearch={(symbol) => {
-              setTab("search");
-              setTicker(symbol);
-              lookup(symbol);
-            }}
+            onResearch={research}
           />
         </SimpleProvider>
       )}
 
-      {tab === "browse" && (
-        <section className="mt-4">
-          <div className="flex flex-wrap gap-1.5">
-            {CATEGORIES.map((c) => (
-              <Chip key={c.key} active={category === c.key} onClick={() => loadCategory(c.key)}>
-                {c.label}
-              </Chip>
-            ))}
-          </div>
-          {isSectorKey(category) && (
-            <p className="mt-2 max-w-2xl text-[11px] leading-5 text-zinc-500">{SECTORS[category].description}</p>
-          )}
-
-          {browseLoading && (
-            <p className="mt-4 text-xs text-zinc-500">
-              Loading...
-            </p>
-          )}
-
-          <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-            {companies.map((c) => (
-              <Card
-                key={c.cik}
-                as="button"
-                padding="sm"
-                interactive
-                onClick={() => {
-                  setTab("search");
-                  setTicker(c.ticker);
-                  lookup(c.ticker);
-                }}
-              >
-                <p className="text-xs text-accent">{c.ticker}</p>
-                <p className="mt-0.5 text-[11px] text-zinc-500">{c.title}</p>
-              </Card>
-            ))}
-            {!browseLoading && companies.length === 0 && (
-              <p className="text-xs text-zinc-500">Pick a category to see companies</p>
-            )}
-          </div>
-        </section>
-      )}
+      {tab === "industries" && <IndustryCharts onResearch={research} />}
     </PageShell>
   );
 }

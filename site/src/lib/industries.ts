@@ -1,4 +1,4 @@
-// Shared types and pure helpers for the Industry Charts page (/industries).
+// Shared types and pure helpers for the Industry Charts tab on /research.
 // No server imports, so the client page can read them too; the fetching and
 // caching live in lib/industriesData.ts.
 
