@@ -10,7 +10,7 @@
 // axis is plain account value in dollars.
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatCurrency, formatCurrencyCompact, formatPercent } from "@/lib/format";
-import { Card, chartAxisProps, chartGridProps, chartTooltipStyle } from "@/components/ui";
+import { Card, chartAxisProps, chartGridProps, chartTooltipStyle, percentAxis } from "@/components/ui";
 import type { HistoryPoint } from "@/lib/portfolio";
 
 const tick = (p: HistoryPoint) =>
@@ -21,20 +21,6 @@ const tick = (p: HistoryPoint) =>
       : new Date(`${p.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 const signedPct = (v: number, decimals = 1) => `${v > 0 ? "+" : ""}${formatPercent(v, { decimals })}`;
-
-// Round % steps (0.5%, 1%, 2%...) giving about four to six gridlines, and
-// bounds on those steps that always include 0%.
-function percentAxis(values: number[]) {
-  const lo = Math.min(0, ...values);
-  const hi = Math.max(0, ...values);
-  const steps = [0.0025, 0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25, 0.5];
-  const step = steps.find((s) => (hi - lo) / s <= 5) ?? 1;
-  const min = Math.floor(lo / step) * step;
-  const max = Math.ceil(hi / step) * step || step;
-  const ticks: number[] = [];
-  for (let v = min; v <= max + step / 2; v += step) ticks.push(Math.round(v * 10_000) / 10_000);
-  return { domain: [min, max] as [number, number], ticks, decimals: step < 0.01 ? 1 : 0 };
-}
 
 export default function PortfolioChart({ history, percent = false }: { history: HistoryPoint[]; percent?: boolean }) {
   // Both lines start from the same opening cash, so the first point's

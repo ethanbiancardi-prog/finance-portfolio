@@ -13,7 +13,7 @@ export function Tabs<K extends string>({
         <button
           key={t.key}
           onClick={() => onChange(t.key)}
-          className={`-mb-px px-3 py-1.5 text-[11px] caps transition-colors duration-150 ease-out ${
+          className={`-mb-px whitespace-nowrap px-3 py-1.5 text-[11px] caps transition-colors duration-150 ease-out ${
             active === t.key
               ? "border-b border-accent text-accent"
               : "border-b border-transparent text-zinc-500 hover:text-foreground"

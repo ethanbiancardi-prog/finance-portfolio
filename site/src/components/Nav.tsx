@@ -11,6 +11,7 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 const TOOLS = [
   { href: "/paper-trading", label: "Paper Trading", hint: "Live Alpaca account, journal, risk metrics" },
   { href: "/rotation", label: "Momentum", hint: "Automated momentum + leverage strategy" },
+  { href: "/industries", label: "Industry Charts", hint: "The big names in each industry, side by side" },
   { href: "/dcf-builder", label: "DCF Builder", hint: "Valuation with sensitivity table" },
   { href: "/optimizer", label: "Optimizer", hint: "Efficient frontier across your tickers" },
   { href: "/monte-carlo", label: "Monte Carlo", hint: "10,000 simulated portfolio paths" },

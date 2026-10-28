@@ -42,6 +42,7 @@ trade journal, with Row Level Security enforcing ownership
 | `/` | Homepage — project cards with screenshot thumbnails, contact links |
 | `/about` | Bio, coursework, skills, contact |
 | `/research` | **Stock Research** — three tabs: Search, Browse by Sector, Research Signals |
+| `/industries` | **Industry Charts** — big names per sector on one % return chart, sector averages vs SPY, 1M–5Y (5Y on a log scale) |
 | `/paper-trading` | Showcase portfolio, view-only: Ethan's dashboard paper account vs. SPY, risk metrics, positions, trades |
 | `/login` | Email + password sign-in / sign-up (Supabase) |
 | `/dashboard` | Signed-in only: name, paper portfolio, strategy, trade journal |
@@ -88,6 +89,7 @@ reaches the browser.
 
 **Research**
 - `GET /api/research/quote` — live quote for one symbol
+- `GET /api/industries?period=1m|3m|6m|ytd|1y|5y` — % returns for every sector-list stock + SPY (`lib/industriesData.ts`; types in `lib/industries.ts`), 10-min Redis cache
 - `GET /api/research/news` — merged Yahoo RSS + Alpaca headlines
 - `GET /api/research/summary` — AI "About the business" from the 10-K's Item 1 (Redis, 90d)
 - `GET /api/research/playbook` — AI catalysts + financial verdict + 2-3 actions (Redis, 3h)

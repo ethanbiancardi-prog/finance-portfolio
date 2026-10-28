@@ -7,11 +7,6 @@ Ratings: 🟢 weekend project · 🟡 1–3 weeks · 🔴 semester-long flagship
 
 ## Up next
 
-### 14. Industry charts page 🟢 (1–2 sessions) — pinned as next
-A page comparing big-name stocks' price charts side by side, grouped by industry, so you
-can see at a glance who's leading and lagging within a sector. Reuses the sector lists
-and the cached Alpaca price data.
-
 ### 15. Stream the AI analyst panel 🟢 (1 session)
 The six-analyst panel on `/research` takes ~30s and shows only "Analyzing...". Stream
 each take in as it finishes. The slowest moment on the most-visited page.
@@ -101,6 +96,7 @@ content. `/education` covers part of this.
 - **5. 10-K / earnings analyzer** — folded into `/research` (17 ratios, AI summary, red flags)
 - **7. Monte Carlo simulator** — `/monte-carlo`
 - **8. Portfolio optimizer (Markowitz)** — `/optimizer`
+- **14. Industry charts page** — `/industries` (Oct 28 2026)
 
 ## Data sources
 

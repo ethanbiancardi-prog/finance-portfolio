@@ -12,7 +12,7 @@ export { StatCard } from "./StatCard";
 export { Tabs } from "./Tabs";
 export { Chip } from "./Chip";
 export { tableHeadRowClass, tableHeadCellClass, tableRowClass, tableCellClass, tableCellStrongClass, EmptyRow } from "./table";
-export { chartAxisProps, chartGridProps, chartTooltipStyle, chartLegendStyle } from "./charts";
+export { chartAxisProps, chartGridProps, chartTooltipStyle, chartLegendStyle, percentAxis } from "./charts";
 export { Icon, type IconName } from "./icons";
 export { Term } from "./Term";
 export { Section } from "./Section";
