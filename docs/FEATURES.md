@@ -15,7 +15,9 @@ stocks as grey lines, their average bold and SPY dashed, with the leader and
 laggard coloured until the user picks up to four via "Highlight". Cards below
 rank best to worst with a sparkline and the gap to SPY; clicking a stock's card
 runs it in Search. Data: `/api/industries` (`lib/industriesData.ts`), Alpaca
-SIP daily bars (~15-20 min behind), 10-minute Redis cache. Replaced the old
+SIP daily bars (~15-20 min behind, 10-minute Redis cache); while the market is
+open the last point on every line is that stock's latest IEX trade (real-time,
+1-minute cache, only trades from today), and the tab refetches every minute. Replaced the old
 Browse by Sector tab, which listed the same tickers without prices.
 
 ### Search results layout

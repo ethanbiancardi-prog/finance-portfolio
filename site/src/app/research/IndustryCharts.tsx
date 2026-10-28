@@ -83,6 +83,19 @@ export default function IndustryCharts({ onResearch }: { onResearch: (symbol: st
     };
   }, [period, cache]);
 
+  // While the market is open, pull the latest prices once a minute.
+  const isLive = !!data?.live;
+  useEffect(() => {
+    if (!isLive) return;
+    const id = window.setInterval(() => {
+      fetch(`/api/industries?period=${period}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((body: IndustryData | null) => body && setCache((c) => ({ ...c, [period]: body })))
+        .catch(() => {}); // keep showing the last good prices
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [period, isLive]);
+
   // The lines for this view: every sector's average stock, or every stock
   // in one sector. Sorted best to worst over the period.
   const rows: Row[] = useMemo(() => {
@@ -166,9 +179,17 @@ export default function IndustryCharts({ onResearch }: { onResearch: (symbol: st
           ))}
         </div>
         {data && (
-          <span className="text-[11px] text-zinc-500">
-            {niceDate(data.dates[0])} to {niceDate(data.lastBar)} · updated{" "}
-            {new Date(data.asOf).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZoneName: "short" })}
+          <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+            {niceDate(data.dates[0])} to {niceDate(data.lastBar)} ·{" "}
+            {data.live ? (
+              <>
+                <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--status-good)]" />
+                live, last trade{" "}
+                {new Date(data.live.asOf).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZoneName: "short" })}
+              </>
+            ) : (
+              <>market closed, prices at the last close</>
+            )}
           </span>
         )}
       </div>
@@ -208,8 +229,9 @@ export default function IndustryCharts({ onResearch }: { onResearch: (symbol: st
         </Card>
         <p className="mt-2 text-[11px] leading-5 text-zinc-500">
           Returns include dividends.{period === "5y" && " 5Y uses a log scale, so doubling is the same height anywhere on the chart."}{" "}
-          Prices come from Alpaca&apos;s consolidated feed, which runs about 15 to 20 minutes behind during market hours, and
-          refresh every 10 minutes. Educational, not investment advice: past returns say nothing certain about future ones.
+          Daily closes come from Alpaca&apos;s consolidated feed. While the market is open, each line&apos;s last point is the
+          stock&apos;s latest trade on IEX, which is real-time, and the page refreshes it every minute. Educational, not
+          investment advice: past returns say nothing certain about future ones.
         </p>
       </section>
 

@@ -68,7 +68,7 @@ calls use `claude-opus-5`.
 - `/api/portfolio` (+ `/trade`, `/strategy`) — the signed-in user's own paper portfolio, Supabase-backed; trades are server-priced and written via `place_paper_trade()`
 - `/api/contact` — contact form: saves to `contact_messages`, emails via Resend; `/api/company-names` — read-only ticker → short name, day-long CDN cache
 - `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
-- `/api/industries?period=` — read-only: % returns for the ~94 sector-list stocks + SPY (`lib/industriesData.ts`), Alpaca SIP daily bars incl. dividends, 10-min Redis cache
+- `/api/industries?period=` — read-only: % returns for the ~94 sector-list stocks + SPY (`lib/industriesData.ts`): Alpaca SIP daily bars incl. dividends (10-min Redis cache) plus, while the market is open, each stock's latest IEX trade as the live last point (1-min cache)
 - `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-analyst panel: business, safety, price, news, skeptic, summary; 3h cache), `simplify` (AI), `meter` (free trend/momentum/Congress inputs for the per-stock Bull/Bear Meter, scored in `lib/stockMeter.ts`)
 - `/api/statement-analyzer/*` — `search`, `lookup` (17 ratios), `red-flags` (AI)
 - `/api/strategy-lab` — read-only Strategy Lab results (`lib/strategyLab.ts` engine, `lib/strategyLabData.ts` data + 26h Redis cache, refreshed by `api/cron/daily`)

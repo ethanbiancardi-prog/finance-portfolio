@@ -27,8 +27,12 @@ export type IndustryData = {
   dates: string[]; // YYYY-MM-DD
   series: Record<string, (number | null)[]>;
   names: Record<string, string>;
-  asOf: string; // when the prices were fetched (ISO)
+  asOf: string; // when the daily prices were fetched (ISO)
   lastBar: string; // the latest trading day in the data (YYYY-MM-DD)
+  // While the market is open, each line's last point is the stock's latest
+  // trade on IEX (real-time) rather than the ~15-minute-old consolidated
+  // price; asOf is the newest of those trades. null when the market is shut.
+  live: { asOf: string } | null;
 };
 
 // Equal-weight average of several stocks' returns on each date: what you'd
