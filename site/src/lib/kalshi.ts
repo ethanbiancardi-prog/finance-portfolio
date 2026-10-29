@@ -16,7 +16,11 @@ export type KalshiMarket = {
   question: string; // the market's own title, plus its outcome label if that adds anything
   status: string; // "active", "closed", "settled", "finalized", ...
   probability: number | null; // 0-1: midpoint of the YES bid and ask, else the last trade
-  closeTime: string | null; // ISO, when trading stops
+  closeTime: string | null; // ISO, when trading stops at the latest
+  // ISO, when Kalshi expects to settle it. Often well before closeTime,
+  // which is set late as a buffer (a tennis match settles the day it's
+  // played; its market may stay listed for two weeks).
+  settleTime: string | null;
   result: "yes" | "no" | null; // set once Kalshi settles it
 };
 
@@ -59,6 +63,7 @@ export function toMarket(m: RawMarket): KalshiMarket {
     status: m.status ?? "",
     probability: probability(m),
     closeTime: m.close_time ?? m.expected_expiration_time ?? null,
+    settleTime: m.expected_expiration_time ?? m.close_time ?? null,
     result: m.result === "yes" || m.result === "no" ? m.result : null,
   };
 }

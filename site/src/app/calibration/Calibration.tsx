@@ -22,6 +22,7 @@ import { calibrationBins, MEANINGFUL_SAMPLE, type Prediction, type Scores } from
 import type { KalshiMarket } from "@/lib/kalshi";
 import type { KalshiPick } from "@/lib/kalshiPicks";
 import type { HorizonKey, KalshiStudy } from "@/lib/kalshiStudy";
+import RapidMode from "./RapidMode";
 
 const CalibrationChart = dynamic(() => import("./CalibrationChart"), {
   ssr: false,
@@ -116,7 +117,8 @@ export default function Calibration() {
     setQuestion(m.question.slice(0, 300));
     setMarket(m.probability === null ? "" : String(Math.round(m.probability * 1000) / 10));
     setSource(`Kalshi: ${m.ticker}`); // read back later to check settlement
-    if (m.closeTime) setResolves(m.closeTime.slice(0, 10));
+    const settle = m.settleTime ?? m.closeTime;
+    if (settle) setResolves(settle.slice(0, 10));
     setKalshiMarkets([]);
     setKalshiError(m.probability === null ? "This market has no price yet; enter the market probability yourself." : null);
     document.getElementById("log")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -230,6 +232,8 @@ export default function Calibration() {
             `With fewer than about ${MEANINGFUL_SAMPLE}, luck swamps skill: treat the comparison as a running tally, not a verdict.`}
         </p>
       </Card>
+
+      <RapidMode onLogged={load} />
 
       <Card as="section" className="mt-4">
         <SectionHeader
