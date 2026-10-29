@@ -60,7 +60,7 @@ calls use `claude-opus-5`.
 - `/education` and `/education/[slug]` — two tracks: tool guides and finance fundamentals, with search
 - `/login` — email + password sign-in (create account on the same form)
 - `/dashboard` — signed-in-only area: name, paper portfolio, strategy, trade journal
-- `/calibration` — signed-in-only Calibration Tracker (phase 1): log predictions with my probability vs. the market's at entry; resolve yes/no; Brier scores (mine vs. market) computed server-side. Resolved rows are locked by a DB trigger (`supabase/migrations/0007_prediction_logs.sql`). No charts, no Kalshi connection, no trading yet
+- `/calibration` — signed-in-only Calibration Tracker (phase 1): log predictions with my probability vs. the market's at entry; resolve yes/no; Brier scores (mine vs. market) computed server-side. Resolved rows are locked by a DB trigger (`supabase/migrations/0007_prediction_logs.sql`). Read-only Kalshi link (`lib/kalshi.ts`, public market data, no account/key): paste a kalshi.com link or ticker to fill the form (market % = yes bid/ask midpoint); open Kalshi predictions show the live price and, once settled, a "resolve to match" shortcut (still confirmed by hand). Source saved as `Kalshi: <TICKER>`. No charts, no Kalshi account, no trading
 - `/contact` — contact form (bug / question / opportunity), saved to Supabase and emailed via Resend
 - `/lab` — design lab: candidate PRISM motifs side by side; unlinked, `noindex`
 - Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`, `/client-work` → `/` (section removed Oct 2026), `/industries` → `/research`
@@ -68,6 +68,7 @@ calls use `claude-opus-5`.
 **API** (all server-side; no key ever reaches the browser)
 - `/api/portfolio` (+ `/trade`, `/strategy`) — the signed-in user's own paper portfolio, Supabase-backed; trades are server-priced and written via `place_paper_trade()`
 - `/api/contact` — contact form: saves to `contact_messages`, emails via Resend; `/api/company-names` — read-only ticker → short name, day-long CDN cache
+- `/api/calibration/kalshi?q=` — signed-in-only read-only Kalshi market lookup (60s Redis cache)
 - `/api/calibration` (GET list + scores, POST log) and `/api/calibration/[id]` (POST resolve, DELETE open only) — session + RLS, 401 signed out
 - `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
 - `/api/industries?period=` — read-only: % returns for the ~94 sector-list stocks + SPY (`lib/industriesData.ts`): Alpaca SIP daily bars incl. dividends (10-min Redis cache) plus, while the market is open, each stock's latest IEX trade as the live last point (1-min cache)
@@ -91,7 +92,8 @@ calls use `claude-opus-5`.
 facts, ratios) · **Anthropic API** (all AI features, the only paid one) ·
 **political trade sources** — House Clerk PTR PDFs, efdsearch.senate.gov,
 open-cabinet.org's OGE 278-T extraction, and the congress-legislators dataset
-for committee overlap · Yahoo Finance RSS for headlines. Full table with
+for committee overlap · Yahoo Finance RSS for headlines · **Kalshi** public
+market data (read-only, no key) for the Calibration Tracker. Full table with
 licences and caveats: `docs/DATA_AND_ENV.md`.
 
 ## Environment variables (names only — never commit or print values)

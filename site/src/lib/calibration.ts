@@ -26,6 +26,8 @@ export type Prediction = {
   outcome: boolean | null; // null = still open
   resolvedAt: string | null;
   reasoning: string;
+  // Open predictions logged from a Kalshi market: where that market is now.
+  kalshi?: { status: string; probability: number | null; result: "yes" | "no" | null };
 };
 
 export const rowToPrediction = (r: PredictionRow): Prediction => ({

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { rowToPrediction, score, type PredictionRow } from "@/lib/calibration";
+import { rowToPrediction, score, type Prediction, type PredictionRow } from "@/lib/calibration";
+import { getMarket, tickerFromSource } from "@/lib/kalshi";
 import { createClient, getUser } from "@/lib/supabase/server";
 
 // The Calibration Tracker's data: the signed-in user's predictions plus the
@@ -20,7 +21,23 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const predictions = (data as PredictionRow[]).map(rowToPrediction);
+  await attachKalshi(predictions);
   return NextResponse.json({ predictions, scores: score(predictions) });
+}
+
+// For open predictions logged from a Kalshi market, look the market up
+// (cached a minute) so the page can show its price now and whether it has
+// settled. Read-only: settling on Kalshi never resolves anything here; the
+// user still clicks and confirms. A Kalshi outage just leaves this off.
+async function attachKalshi(predictions: Prediction[]) {
+  await Promise.all(
+    predictions.map(async (p) => {
+      const ticker = p.outcome === null ? tickerFromSource(p.marketSource) : null;
+      if (!ticker) return;
+      const m = await getMarket(ticker).catch(() => null);
+      if (m) p.kalshi = { status: m.status, probability: m.probability, result: m.result };
+    }),
+  );
 }
 
 // Probabilities arrive as percents (62 or 62.5) and are stored as decimals.

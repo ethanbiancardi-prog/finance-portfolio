@@ -16,6 +16,7 @@ import {
   tableRowClass,
 } from "@/components/ui";
 import { MEANINGFUL_SAMPLE, type Prediction, type Scores } from "@/lib/calibration";
+import type { KalshiMarket } from "@/lib/kalshi";
 
 const pct = (p: number) => `${Math.round(p * 1000) / 10}%`;
 const fmtDate = (d: string) =>
@@ -49,6 +50,35 @@ export default function Calibration() {
   const [source, setSource] = useState("Kalshi");
   const [resolves, setResolves] = useState("");
   const [reasoning, setReasoning] = useState("");
+
+  // Kalshi lookup: paste a link or ticker, pick a market, and it fills the form.
+  const [kalshiQuery, setKalshiQuery] = useState("");
+  const [kalshiMarkets, setKalshiMarkets] = useState<KalshiMarket[]>([]);
+  const [kalshiBusy, setKalshiBusy] = useState(false);
+  const [kalshiError, setKalshiError] = useState<string | null>(null);
+
+  async function lookupKalshi(e: React.FormEvent) {
+    e.preventDefault();
+    setKalshiBusy(true);
+    setKalshiError(null);
+    setKalshiMarkets([]);
+    const res = await fetch(`/api/calibration/kalshi?q=${encodeURIComponent(kalshiQuery)}`);
+    const body = await res.json().catch(() => ({}));
+    setKalshiBusy(false);
+    if (!res.ok) return setKalshiError(body.error ?? "Kalshi lookup failed.");
+    const markets: KalshiMarket[] = body.markets;
+    if (markets.length === 1) pickKalshi(markets[0]);
+    else setKalshiMarkets(markets);
+  }
+
+  function pickKalshi(m: KalshiMarket) {
+    setQuestion(m.question.slice(0, 300));
+    setMarket(m.probability === null ? "" : String(Math.round(m.probability * 1000) / 10));
+    setSource(`Kalshi: ${m.ticker}`); // read back later to check settlement
+    if (m.closeTime) setResolves(m.closeTime.slice(0, 10));
+    setKalshiMarkets([]);
+    setKalshiError(m.probability === null ? "This market has no price yet; enter the market probability yourself." : null);
+  }
 
   async function load() {
     const res = await fetch("/api/calibration");
@@ -152,8 +182,41 @@ export default function Calibration() {
       <Card as="section" className="mt-4">
         <SectionHeader
           label="log a prediction"
-          description="Write down the market's price at the moment you log it. Once saved, a prediction can't be edited, so you can't quietly adjust it later; you can delete it while it's still open."
+          description="Write down the market's price at the moment you log it, or fill it from Kalshi, which uses Kalshi's price right now (midpoint of the yes bid and ask). Once saved, a prediction can't be edited, so you can't quietly adjust it later; you can delete it while it's still open."
         />
+        <form onSubmit={lookupKalshi} className="mt-3 flex flex-wrap items-end gap-3 border-b border-border pb-3">
+          <Field
+            label="Fill from Kalshi"
+            suffix="optional: paste a kalshi.com link or ticker"
+            placeholder="https://kalshi.com/markets/kxfed/... or KXFED-26DEC"
+            value={kalshiQuery}
+            onChange={(e) => setKalshiQuery(e.target.value)}
+            wrapperClassName="min-w-0 flex-1"
+          />
+          <Button type="submit" variant="outline" disabled={kalshiBusy || !kalshiQuery.trim()}>
+            {kalshiBusy ? "Looking up..." : "Look up"}
+          </Button>
+        </form>
+        {kalshiError && <p className="mt-2 text-xs leading-5 text-bad">{kalshiError}</p>}
+        {kalshiMarkets.length > 1 && (
+          <div className="mt-2">
+            <p className="text-[11px] text-zinc-500">This event has {kalshiMarkets.length} markets. Pick the one you&apos;re predicting:</p>
+            <ul className="mt-1 max-h-64 divide-y divide-border/60 overflow-y-auto border border-border">
+              {kalshiMarkets.map((m) => (
+                <li key={m.ticker}>
+                  <button
+                    type="button"
+                    onClick={() => pickKalshi(m)}
+                    className="flex w-full items-baseline justify-between gap-3 px-2 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-border/40"
+                  >
+                    <span>{m.question}</span>
+                    <span className="shrink-0 tabular-nums text-zinc-500">{m.probability === null ? "no price" : pct(m.probability)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {error && (
           <p className="mt-3 text-xs leading-5 text-bad" role="alert">
             {error}
@@ -215,6 +278,28 @@ export default function Calibration() {
                     <span className="mt-0.5 block text-[11px] text-zinc-500">
                       {p.reasoning} · {p.marketSource}, logged {fmtDate(p.entryDate)}
                     </span>
+                    {p.kalshi && (
+                      <span className="mt-0.5 block text-[11px]">
+                        {p.kalshi.result ? (
+                          <>
+                            <span className={p.kalshi.result === "yes" ? "text-good" : "text-bad"}>
+                              Kalshi settled {p.kalshi.result.toUpperCase()}
+                            </span>{" "}
+                            <button
+                              type="button"
+                              onClick={() => setConfirming({ id: p.id, outcome: p.kalshi!.result! })}
+                              className="caps text-[10px] text-accent hover:underline"
+                            >
+                              resolve to match
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-zinc-500">
+                            Kalshi now {p.kalshi.probability === null ? "no price" : pct(p.kalshi.probability)} ({p.kalshi.status})
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </td>
                   <td className={`${tableCellStrongClass} pr-3 text-right`}>{pct(p.myProbability)}</td>
                   <td className={`${tableCellClass} pr-3 text-right`}>{pct(p.marketProbability)}</td>
