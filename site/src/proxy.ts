@@ -7,10 +7,10 @@ import { createServerClient } from "@supabase/ssr";
 //    Server Components cannot write cookies, so without this a signed-in user
 //    would get logged out whenever their token expired.
 // 2. Guard the protected routes. Anyone not signed in who asks for
-//    /dashboard is redirected to /login.
+//    /dashboard or /calibration is redirected to /login.
 //
 // Next 16 calls this file proxy.ts; it was middleware.ts in earlier versions.
-const PROTECTED = ["/dashboard"];
+const PROTECTED = ["/dashboard", "/calibration"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
