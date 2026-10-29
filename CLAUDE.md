@@ -34,8 +34,8 @@ pages + `/api` routes, `src/components`, `src/lib` = all finance logic,
 the live strategy write-up at `projects/paper-trading/STRATEGY.md`; `docs/` is
 the long-form documentation listed at the bottom of this file.
 
-Data: Supabase Postgres holds the trade journal (RLS on, policies in
-`supabase/migrations/`). Everything else is still Redis or a flat file.
+Data: Supabase Postgres holds the trade journal, paper portfolios and the
+Calibration Tracker's predictions (RLS on, policies in `supabase/migrations/`). Everything else is still Redis or a flat file.
 
 Stack: Next.js 16 App Router · React 19 · TypeScript · Tailwind v4 · Recharts ·
 `@anthropic-ai/sdk` · Upstash Redis · Supabase · `pdf-parse` · `fflate`. No
@@ -60,6 +60,7 @@ calls use `claude-opus-5`.
 - `/education` and `/education/[slug]` — two tracks: tool guides and finance fundamentals, with search
 - `/login` — email + password sign-in (create account on the same form)
 - `/dashboard` — signed-in-only area: name, paper portfolio, strategy, trade journal
+- `/calibration` — signed-in-only Calibration Tracker (phase 1): log predictions with my probability vs. the market's at entry; resolve yes/no; Brier scores (mine vs. market) computed server-side. Resolved rows are locked by a DB trigger (`supabase/migrations/0007_prediction_logs.sql`). No charts, no Kalshi connection, no trading yet
 - `/contact` — contact form (bug / question / opportunity), saved to Supabase and emailed via Resend
 - `/lab` — design lab: candidate PRISM motifs side by side; unlinked, `noindex`
 - Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`, `/client-work` → `/` (section removed Oct 2026), `/industries` → `/research`
@@ -67,6 +68,7 @@ calls use `claude-opus-5`.
 **API** (all server-side; no key ever reaches the browser)
 - `/api/portfolio` (+ `/trade`, `/strategy`) — the signed-in user's own paper portfolio, Supabase-backed; trades are server-priced and written via `place_paper_trade()`
 - `/api/contact` — contact form: saves to `contact_messages`, emails via Resend; `/api/company-names` — read-only ticker → short name, day-long CDN cache
+- `/api/calibration` (GET list + scores, POST log) and `/api/calibration/[id]` (POST resolve, DELETE open only) — session + RLS, 401 signed out
 - `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
 - `/api/industries?period=` — read-only: % returns for the ~94 sector-list stocks + SPY (`lib/industriesData.ts`): Alpaca SIP daily bars incl. dividends (10-min Redis cache) plus, while the market is open, each stock's latest IEX trade as the live last point (1-min cache)
 - `/api/research/*` — `quote`, `news`, `summary` (AI), `playbook` (AI), `analysis` (AI six-analyst panel: business, safety, price, news, skeptic, summary; 3h cache), `simplify` (AI), `meter` (free trend/momentum/Congress inputs for the per-stock Bull/Bear Meter, scored in `lib/stockMeter.ts`)

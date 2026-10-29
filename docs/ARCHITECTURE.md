@@ -46,6 +46,7 @@ trade journal, with Row Level Security enforcing ownership
 | `/paper-trading` | Showcase portfolio, view-only: Ethan's dashboard paper account vs. SPY, risk metrics, positions, trades |
 | `/login` | Email + password sign-in / sign-up (Supabase) |
 | `/dashboard` | Signed-in only: name, paper portfolio, strategy, trade journal |
+| `/calibration` | Signed-in only: Calibration Tracker — log predictions (my % vs. market % at entry), resolve yes/no, Brier scores me vs. market (`lib/calibration.ts`, table `prediction_logs`, locked after resolution by trigger) |
 | `/contact` | Contact form (bug / question / opportunity / other) |
 | `/rotation` | Momentum + Leverage strategy dashboard: current picks, regime state, rebalance button |
 | `/dcf-builder` | Interactive DCF with sensitivity grid; "Load from a 10-K" prefill |
