@@ -18,6 +18,8 @@ const TOOLS = [
   { href: "/quant/backtester", label: "Regime Backtester", hint: "The strategy through 2008, 2020, 2022 and a bull run" },
   { href: "/quant/factor-risk", label: "Factor Risk", hint: "Equity, rates and inflation risk in a multi-asset mix" },
   { href: "/quant/vol-smile", label: "Vol Smile", hint: "Implied volatility across strikes, with dials" },
+  // Signed-in only: signed out, proxy.ts sends this to /login first.
+  { href: "/calibration", label: "Calibration Tracker", hint: "Your predictions scored against Kalshi and other markets (sign in)" },
 ];
 
 const LINKS = [
