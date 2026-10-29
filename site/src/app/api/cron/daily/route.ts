@@ -7,12 +7,18 @@ import { refreshPoliticalSignals } from "@/lib/signals/political";
 import { refreshPresidentialSignals } from "@/lib/signals/presidential";
 import { refreshLab } from "@/lib/strategyLabData";
 import { runStrategies } from "@/lib/strategyRunner";
+import { trackKalshiPredictions } from "@/lib/calibrationTracking";
+import { refreshStudySlice } from "@/lib/kalshiStudy";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // One weekday-evening cron for everything that runs daily: the strategy's
 // circuit-breaker check, the Research Signals refreshes, the insider-buying
 // refresh the Signal Trader scores from (lib/signals/insider.ts), users' paper
 // portfolio strategies (lib/strategyRunner.ts), which rebalance at the close,
-// and the Strategy Lab's backtests (lib/strategyLabData.ts). Vercel's free
+// the Strategy Lab's backtests (lib/strategyLabData.ts), and the Calibration
+// Tracker's Kalshi jobs: auto-resolving settled predictions and recording
+// each open one's price (lib/calibrationTracking.ts), plus one weekday's
+// fifth of the "Is Kalshi calibrated?" study (lib/kalshiStudy.ts). Vercel's free
 // tier allows two cron jobs per project and the monthly rebalance is the
 // other. Each job is isolated — a failure in one is reported, not
 // propagated, and a failed refresh leaves the previous day's cache in place.
@@ -27,7 +33,7 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const [regime, political, legislation, geopolitics, financial, presidential, insider, strategies, lab] = await Promise.allSettled([
+  const [regime, political, legislation, geopolitics, financial, presidential, insider, strategies, lab, calibration, kalshiStudy] = await Promise.allSettled([
     runRegimeCheck(),
     refreshPoliticalSignals(),
     refreshAiSignals("legislation"),
@@ -39,6 +45,17 @@ export async function GET(request: Request) {
     runStrategies(),
     // Just the date range in the report; the full result lives in Redis.
     refreshLab().then((r) => ({ start: r.start, end: r.end })),
+    // Every user's open Kalshi predictions, so prices are recorded even on
+    // days nobody opens the page. The server key reads across users; the
+    // lock-in trigger still only lets an open prediction be resolved.
+    (async () => {
+      const admin = createAdminClient();
+      if (!admin) throw new Error("SUPABASE_SECRET_KEY is not set");
+      const { markets: _markets, ...counts } = await trackKalshiPredictions(admin);
+      void _markets;
+      return counts;
+    })(),
+    refreshStudySlice(),
   ]);
   const report = (r: PromiseSettledResult<unknown>) =>
     r.status === "fulfilled" ? { ok: true, result: r.value } : { ok: false, error: r.reason instanceof Error ? r.reason.message : String(r.reason) };
@@ -53,5 +70,7 @@ export async function GET(request: Request) {
     insiderSignals: report(insider),
     paperStrategies: report(strategies),
     strategyLab: report(lab),
+    calibrationTracker: report(calibration),
+    kalshiStudy: report(kalshiStudy),
   });
 }

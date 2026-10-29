@@ -1,10 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
   Button,
   Callout,
   Card,
+  ChartLoading,
+  Chip,
   EmptyRow,
   Field,
   SectionHeader,
@@ -15,8 +18,15 @@ import {
   tableHeadRowClass,
   tableRowClass,
 } from "@/components/ui";
-import { MEANINGFUL_SAMPLE, type Prediction, type Scores } from "@/lib/calibration";
+import { calibrationBins, MEANINGFUL_SAMPLE, type Prediction, type Scores } from "@/lib/calibration";
 import type { KalshiMarket } from "@/lib/kalshi";
+import type { KalshiPick } from "@/lib/kalshiPicks";
+import type { HorizonKey, KalshiStudy } from "@/lib/kalshiStudy";
+
+const CalibrationChart = dynamic(() => import("./CalibrationChart"), {
+  ssr: false,
+  loading: () => <ChartLoading className="h-72 sm:h-80" />,
+});
 
 const pct = (p: number) => `${Math.round(p * 1000) / 10}%`;
 const fmtDate = (d: string) =>
@@ -35,6 +45,33 @@ function verdict(s: Scores): string {
     : `The market's probabilities have been closer to what actually happened than yours, by ${gap} on average.`;
 }
 
+// The market's probability since you logged a prediction (one point a day),
+// with your own probability as a dashed line, on a fixed 0-100% scale.
+function PriceTrail({ history, mine, color }: { history: { date: string; probability: number }[]; mine: number; color: string }) {
+  if (history.length < 2) return null;
+  const x = (i: number) => (i / (history.length - 1)) * 100;
+  const y = (v: number) => 28 - v * 26;
+  const d = history.map((h, i) => `${i ? "L" : "M"}${x(i).toFixed(2)},${y(h.probability).toFixed(2)}`).join("");
+  const first = history[0].probability;
+  const last = history[history.length - 1].probability;
+  const move = Math.round((last - first) * 1000) / 10;
+  return (
+    <span className="mt-1 flex items-center gap-2">
+      <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="h-6 w-28 shrink-0" aria-hidden>
+        <line x1="0" x2="100" y1={y(mine)} y2={y(mine)} stroke="var(--accent)" strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />
+        <path d={d} fill="none" stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <span className="text-[10px] text-zinc-500">
+        market {pct(first)} → {pct(last)} ({move >= 0 ? "+" : ""}
+        {move} pts) · dashed = you
+      </span>
+    </span>
+  );
+}
+
+const HORIZON_LABEL: Record<HorizonKey, string> = { "1d": "1 day before close", "7d": "1 week before close" };
+const signedPctPts = (v: number) => `${v >= 0 ? "+" : ""}${Math.round(v * 1000) / 10}%`;
+
 export default function Calibration() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [scores, setScores] = useState<Scores | null>(null);
@@ -50,6 +87,10 @@ export default function Calibration() {
   const [source, setSource] = useState("Kalshi");
   const [resolves, setResolves] = useState("");
   const [reasoning, setReasoning] = useState("");
+
+  const [picks, setPicks] = useState<KalshiPick[] | null>(null);
+  const [study, setStudy] = useState<KalshiStudy | null | undefined>(undefined); // undefined = loading
+  const [horizon, setHorizon] = useState<HorizonKey>("7d");
 
   // Kalshi lookup: paste a link or ticker, pick a market, and it fills the form.
   const [kalshiQuery, setKalshiQuery] = useState("");
@@ -78,6 +119,7 @@ export default function Calibration() {
     if (m.closeTime) setResolves(m.closeTime.slice(0, 10));
     setKalshiMarkets([]);
     setKalshiError(m.probability === null ? "This market has no price yet; enter the market probability yourself." : null);
+    document.getElementById("log")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function load() {
@@ -93,6 +135,14 @@ export default function Calibration() {
   useEffect(() => {
     // Deferred a tick so load()'s state updates don't run inside the effect.
     const id = window.setTimeout(load, 0);
+    fetch("/api/calibration/picks")
+      .then((res) => (res.ok ? res.json() : { picks: [] }))
+      .then((body) => setPicks(body.picks ?? []))
+      .catch(() => setPicks([]));
+    fetch("/api/calibration/study")
+      .then((res) => (res.ok ? res.json() : { study: null }))
+      .then((body) => setStudy(body.study ?? null))
+      .catch(() => setStudy(null));
     return () => window.clearTimeout(id);
   }, []);
 
@@ -113,6 +163,8 @@ export default function Calibration() {
     setMarket("");
     setResolves("");
     setReasoning("");
+    setSource("Kalshi");
+    setPicks((list) => list?.filter((x) => `Kalshi: ${x.ticker}` !== source) ?? list);
     load();
   }
 
@@ -180,6 +232,34 @@ export default function Calibration() {
       </Card>
 
       <Card as="section" className="mt-4">
+        <SectionHeader
+          label="today's picks"
+          description="Live Kalshi markets worth forecasting today: settling within a month, genuinely uncertain (priced 15-85%), busy, and spread across topics. Pick one, think before you look at the price too hard, then log your own number. Refreshed every few hours."
+        />
+        {picks === null ? (
+          <p className="mt-3 text-xs text-zinc-500">Loading today&apos;s markets...</p>
+        ) : picks.length === 0 ? (
+          <p className="mt-3 text-xs text-zinc-500">No picks right now (or you&apos;ve logged them all).</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-border/60">
+            {picks.map((m) => (
+              <li key={m.ticker} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs leading-5 text-foreground">{m.question}</span>
+                  <span className="text-[10px] caps text-zinc-500">
+                    {m.category} · settles in ~{m.daysLeft} day{m.daysLeft === 1 ? "" : "s"} · market {m.probability === null ? "no price" : pct(m.probability)}
+                  </span>
+                </span>
+                <Button variant="outline" onClick={() => pickKalshi(m)}>
+                  Forecast this
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card as="section" className="mt-4" id="log">
         <SectionHeader
           label="log a prediction"
           description="Write down the market's price at the moment you log it, or fill it from Kalshi, which uses Kalshi's price right now (midpoint of the yes bid and ask). Once saved, a prediction can't be edited, so you can't quietly adjust it later; you can delete it while it's still open."
@@ -300,6 +380,7 @@ export default function Calibration() {
                         )}
                       </span>
                     )}
+                    {p.history && <PriceTrail history={p.history} mine={p.myProbability} color="var(--chart-line)" />}
                   </td>
                   <td className={`${tableCellStrongClass} pr-3 text-right`}>{pct(p.myProbability)}</td>
                   <td className={`${tableCellClass} pr-3 text-right`}>{pct(p.marketProbability)}</td>
@@ -363,7 +444,11 @@ export default function Calibration() {
                       <span className="text-foreground">{p.question}</span>
                       <span className="mt-0.5 block text-[11px] text-zinc-500">
                         {p.reasoning} · {p.marketSource}, resolved {fmtDate(p.resolvedAt!)}
+                        {p.marketSource.startsWith("Kalshi: ") && " (settled by Kalshi)"}
                       </span>
+                      {p.history && (
+                        <PriceTrail history={p.history} mine={p.myProbability} color={p.outcome ? "var(--status-good)" : "var(--status-bad)"} />
+                      )}
                     </td>
                     <td className={`${tableCellClass} pr-3 caps ${p.outcome ? "text-good" : "text-bad"}`}>
                       {p.outcome ? "yes" : "no"}
@@ -381,6 +466,122 @@ export default function Calibration() {
             </tbody>
           </table>
         </div>
+      </Card>
+
+      <Card as="section" className="mt-4">
+        <SectionHeader
+          label="your calibration"
+          description="Your resolved predictions grouped by the probability you gave. If you're well calibrated, the dots sit on the dashed line: things you called 70% happened about 70% of the time. Dots below the line mean you were too confident something would happen; above it, not confident enough. The market's prices at entry are shown for comparison."
+        />
+        {resolved.length < 1 ? (
+          <p className="mt-3 text-xs text-zinc-500">Resolve some predictions to see your chart. It needs a few dozen before the pattern means much.</p>
+        ) : (
+          <>
+            <div className="mt-3 flex flex-wrap gap-4 text-[10px] caps text-zinc-500">
+              <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-[var(--series-1)]" /> You</span>
+              <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-[var(--chart-muted)]" /> Market at entry</span>
+            </div>
+            <CalibrationChart
+              series={[
+                { name: "You", color: "var(--series-1)", bins: calibrationBins(resolved.map((p) => ({ p: p.myProbability, outcome: p.outcome! }))) },
+                { name: "Market", color: "var(--chart-muted)", bins: calibrationBins(resolved.map((p) => ({ p: p.marketProbability, outcome: p.outcome! }))) },
+              ]}
+            />
+            <p className="mt-1 text-[11px] text-zinc-500">
+              Based on {resolved.length} resolved prediction{resolved.length === 1 ? "" : "s"}
+              {resolved.length < MEANINGFUL_SAMPLE && "; with this few, each dot can swing a lot on one result"}.
+            </p>
+          </>
+        )}
+      </Card>
+
+      <Card as="section" className="mt-4">
+        <SectionHeader
+          label="is kalshi calibrated?"
+          description="The same chart for the market itself: thousands of settled Kalshi markets from the last year, each placed by its price shortly before it closed and whether it happened. Where the crowd's prices drift off the line is exactly where a careful forecaster can find an edge."
+        />
+        {study === undefined ? (
+          <ChartLoading className="mt-3 h-72 sm:h-80" />
+        ) : study === null ? (
+          <p className="mt-3 text-xs text-zinc-500">The study is still being collected (a fifth of Kalshi&apos;s markets each weekday). Check back tomorrow.</p>
+        ) : (
+          (() => {
+            const h = study.horizons[horizon];
+            return (
+              <>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {(Object.keys(HORIZON_LABEL) as HorizonKey[]).map((k) => (
+                    <Chip key={k} active={horizon === k} onClick={() => setHorizon(k)}>
+                      Price {HORIZON_LABEL[k]}
+                    </Chip>
+                  ))}
+                  <span className="text-[11px] text-zinc-500">
+                    {h.markets.toLocaleString()} markets from {study.seriesScanned} weekly/monthly/quarterly series, {fmtDate(study.from)} to {fmtDate(study.to)}
+                  </span>
+                </div>
+                <CalibrationChart series={[{ name: "Kalshi", color: "var(--accent)", bins: h.bins }]} />
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-left">
+                    <thead>
+                      <tr className={tableHeadRowClass}>
+                        <th className={tableHeadCellClass}>Market priced</th>
+                        <th className={`${tableHeadCellClass} text-right`}>Markets</th>
+                        <th className={`${tableHeadCellClass} text-right`}>Average price</th>
+                        <th className={`${tableHeadCellClass} text-right`}>Actually happened</th>
+                        <th className={`${tableHeadCellClass} text-right`}>Gap</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {h.bins.map((b) => {
+                        const gap = b.hitRate - b.avgProbability;
+                        return (
+                          <tr key={b.lo} className={tableRowClass}>
+                            <td className={tableCellClass}>{Math.round(b.lo * 100)}-{Math.round(b.lo * 100) + 10}%</td>
+                            <td className={`${tableCellClass} text-right`}>{b.count.toLocaleString()}</td>
+                            <td className={`${tableCellClass} text-right`}>{pct(b.avgProbability)}</td>
+                            <td className={`${tableCellStrongClass} text-right`}>{pct(b.hitRate)}</td>
+                            <td className={`${tableCellClass} text-right ${Math.abs(gap) < 0.03 ? "" : gap > 0 ? "text-good" : "text-bad"}`}>
+                              {signedPctPts(gap)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {(h.longshots || h.favourites) && (
+                  <Callout className="mt-3" label="the favourite-longshot bias">
+                    {h.longshots && (
+                      <p>
+                        <strong className="text-foreground">Long shots</strong> (priced under 20%): the market said {pct(h.longshots.avgPrice)} on
+                        average; they happened {pct(h.longshots.hitRate)} of the time. Buying YES on every one would have returned{" "}
+                        <strong className={h.longshots.returnPerDollar >= 0 ? "text-good" : "text-bad"}>{signedPctPts(h.longshots.returnPerDollar)}</strong>{" "}
+                        per dollar, before fees ({h.longshots.count.toLocaleString()} markets).
+                      </p>
+                    )}
+                    {h.favourites && (
+                      <p className="mt-2">
+                        <strong className="text-foreground">Favourites</strong> (over 80%): priced {pct(h.favourites.avgPrice)}, happened{" "}
+                        {pct(h.favourites.hitRate)}; buying YES on every one returned{" "}
+                        <strong className={h.favourites.returnPerDollar >= 0 ? "text-good" : "text-bad"}>{signedPctPts(h.favourites.returnPerDollar)}</strong>{" "}
+                        per dollar ({h.favourites.count.toLocaleString()} markets).
+                      </p>
+                    )}
+                    <p className="mt-2">
+                      People like lottery tickets: they overpay for small chances of a big payout, which leaves the likely outcomes a
+                      little underpriced. It&apos;s one of the oldest findings about betting markets.
+                    </p>
+                  </Callout>
+                )}
+                <p className="mt-2 text-[11px] leading-5 text-zinc-500">
+                  Caveats: markets in the same event (say, every strike of one CPI print) move together, so the sample is smaller
+                  than it looks; prices are daily midpoints of the bid and ask; returns ignore Kalshi&apos;s fees, which eat most of
+                  a few-percent edge. Educational, not trading advice.
+                </p>
+              </>
+            );
+          })()
+        )}
       </Card>
 
       <p className="mt-4 text-[10px] leading-4 text-zinc-500">

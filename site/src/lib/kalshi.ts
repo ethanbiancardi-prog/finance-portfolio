@@ -20,7 +20,7 @@ export type KalshiMarket = {
   result: "yes" | "no" | null; // set once Kalshi settles it
 };
 
-type RawMarket = {
+export type RawMarket = {
   ticker: string;
   event_ticker: string;
   title?: string;
@@ -30,14 +30,17 @@ type RawMarket = {
   yes_ask_dollars?: string;
   last_price_dollars?: string;
   close_time?: string;
+  open_time?: string;
   expected_expiration_time?: string;
   result?: string;
+  volume_fp?: string;
+  volume_24h_fp?: string;
 };
 
 // The market's price as a probability. The midpoint of the best YES bid and
 // ask is the fairest single number; with no real quotes on one side (bid 0
 // or ask 1), fall back to the last trade; with no trades either, unknown.
-function probability(m: RawMarket): number | null {
+export function probability(m: RawMarket): number | null {
   const bid = Number(m.yes_bid_dollars);
   const ask = Number(m.yes_ask_dollars);
   const last = Number(m.last_price_dollars);
@@ -46,7 +49,7 @@ function probability(m: RawMarket): number | null {
   return null;
 }
 
-function toMarket(m: RawMarket): KalshiMarket {
+export function toMarket(m: RawMarket): KalshiMarket {
   const title = (m.title ?? m.ticker).trim();
   const sub = (m.yes_sub_title ?? "").trim();
   return {
@@ -58,6 +61,20 @@ function toMarket(m: RawMarket): KalshiMarket {
     closeTime: m.close_time ?? m.expected_expiration_time ?? null,
     result: m.result === "yes" || m.result === "no" ? m.result : null,
   };
+}
+
+// Uncached GET for bulk reads (daily picks, the calibration study). Kalshi
+// rate-limits public reads, so a 429 waits and retries a few times.
+export async function kalshiFetch<T>(path: string): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${BASE}${path}`, { headers: { accept: "application/json" }, cache: "no-store" });
+    if (res.status === 429 && attempt < 4) {
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+      continue;
+    }
+    if (!res.ok) throw new Error(`Kalshi answered ${res.status} for ${path.split("?")[0]}`);
+    return (await res.json()) as T;
+  }
 }
 
 async function get<T>(path: string): Promise<T | null> {

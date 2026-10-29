@@ -28,6 +28,9 @@ export type Prediction = {
   reasoning: string;
   // Open predictions logged from a Kalshi market: where that market is now.
   kalshi?: { status: string; probability: number | null; result: "yes" | "no" | null };
+  // Kalshi-linked predictions: the market's probability, one point per day
+  // (prediction_prices). The entry price is the first point.
+  history?: { date: string; probability: number }[];
 };
 
 export const rowToPrediction = (r: PredictionRow): Prediction => ({
@@ -75,3 +78,27 @@ export function score(predictions: Prediction[]): Scores {
 
 // Below this many resolved predictions, luck dominates the comparison.
 export const MEANINGFUL_SAMPLE = 100;
+
+// A calibration (reliability) table: group predictions into 10%-wide bins by
+// the probability given, then compare each bin's average probability with
+// how often those events actually happened. Perfectly calibrated means the
+// two match: things called at ~70% happen ~70% of the time.
+export type CalibrationBin = {
+  lo: number; // bin covers [lo, lo + 0.1); the last bin includes 1.0
+  count: number;
+  avgProbability: number;
+  hitRate: number; // share that resolved yes
+};
+
+export function calibrationBins(points: { p: number; outcome: boolean }[]): CalibrationBin[] {
+  const bins = Array.from({ length: 10 }, (_, i) => ({ lo: i / 10, count: 0, sumP: 0, yes: 0 }));
+  for (const { p, outcome } of points) {
+    const b = bins[Math.min(9, Math.floor(p * 10))];
+    b.count++;
+    b.sumP += p;
+    if (outcome) b.yes++;
+  }
+  return bins
+    .filter((b) => b.count > 0)
+    .map((b) => ({ lo: b.lo, count: b.count, avgProbability: b.sumP / b.count, hitRate: b.yes / b.count }));
+}

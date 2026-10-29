@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { rowToPrediction, score, type Prediction, type PredictionRow } from "@/lib/calibration";
-import { getMarket, tickerFromSource } from "@/lib/kalshi";
+import { rowToPrediction, score, type PredictionRow } from "@/lib/calibration";
+import { trackKalshiPredictions } from "@/lib/calibrationTracking";
+import { tickerFromSource } from "@/lib/kalshi";
 import { createClient, getUser } from "@/lib/supabase/server";
 
 // The Calibration Tracker's data: the signed-in user's predictions plus the
@@ -11,33 +12,40 @@ import { createClient, getUser } from "@/lib/supabase/server";
 export async function GET() {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("prediction_logs")
-    .select("*")
-    .order("entry_date", { ascending: false })
-    .order("created_at", { ascending: false });
+
+  // Kalshi automation first, as this user (lib/calibrationTracking.ts):
+  // settled markets resolve their predictions and today's price is recorded,
+  // so the read below already reflects both. A Kalshi outage just skips it.
+  const tracked = await trackKalshiPredictions(supabase).catch(() => null);
+
+  const [{ data, error }, { data: prices }] = await Promise.all([
+    supabase
+      .from("prediction_logs")
+      .select("*")
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase.from("prediction_prices").select("prediction_id, observed_on, probability").order("observed_on"),
+  ]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const predictions = (data as PredictionRow[]).map(rowToPrediction);
-  await attachKalshi(predictions);
-  return NextResponse.json({ predictions, scores: score(predictions) });
-}
+  const history = new Map<string, { date: string; probability: number }[]>();
+  for (const r of (prices ?? []) as { prediction_id: string; observed_on: string; probability: number | string }[]) {
+    const list = history.get(r.prediction_id) ?? [];
+    list.push({ date: r.observed_on, probability: Number(r.probability) });
+    history.set(r.prediction_id, list);
+  }
 
-// For open predictions logged from a Kalshi market, look the market up
-// (cached a minute) so the page can show its price now and whether it has
-// settled. Read-only: settling on Kalshi never resolves anything here; the
-// user still clicks and confirms. A Kalshi outage just leaves this off.
-async function attachKalshi(predictions: Prediction[]) {
-  await Promise.all(
-    predictions.map(async (p) => {
-      const ticker = p.outcome === null ? tickerFromSource(p.marketSource) : null;
-      if (!ticker) return;
-      const m = await getMarket(ticker).catch(() => null);
-      if (m) p.kalshi = { status: m.status, probability: m.probability, result: m.result };
-    }),
-  );
+  const predictions = (data as PredictionRow[]).map(rowToPrediction);
+  for (const p of predictions) {
+    if (!tickerFromSource(p.marketSource)) continue;
+    // The entry price is always the first point, then the daily ones.
+    const points = (history.get(p.id) ?? []).filter((h) => h.date > p.entryDate);
+    p.history = [{ date: p.entryDate, probability: p.marketProbability }, ...points];
+    const m = tracked?.markets.get(p.id);
+    if (m && p.outcome === null) p.kalshi = { status: m.status, probability: m.probability, result: m.result };
+  }
+  return NextResponse.json({ predictions, scores: score(predictions) });
 }
 
 // Probabilities arrive as percents (62 or 62.5) and are stored as decimals.

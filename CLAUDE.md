@@ -60,7 +60,7 @@ calls use `claude-opus-5`.
 - `/education` and `/education/[slug]` — two tracks: tool guides and finance fundamentals, with search
 - `/login` — email + password sign-in (create account on the same form)
 - `/dashboard` — signed-in-only area: name, paper portfolio, strategy, trade journal
-- `/calibration` — signed-in-only Calibration Tracker (phase 1): log predictions with my probability vs. the market's at entry; resolve yes/no; Brier scores (mine vs. market) computed server-side. Resolved rows are locked by a DB trigger (`supabase/migrations/0007_prediction_logs.sql`). Read-only Kalshi link (`lib/kalshi.ts`, public market data, no account/key): paste a kalshi.com link or ticker to fill the form (market % = yes bid/ask midpoint); open Kalshi predictions show the live price and, once settled, a "resolve to match" shortcut (still confirmed by hand). Source saved as `Kalshi: <TICKER>`. No charts, no Kalshi account, no trading
+- `/calibration` — signed-in-only Calibration Tracker (phase 1): log predictions with my probability vs. the market's at entry; resolve yes/no; Brier scores (mine vs. market) computed server-side. Resolved rows are locked by a DB trigger (`supabase/migrations/0007_prediction_logs.sql`). Read-only Kalshi link (`lib/kalshi.ts`, public market data, no account/key): paste a kalshi.com link or ticker to fill the form (market % = yes bid/ask midpoint); open Kalshi predictions show the live price and, once settled, a "resolve to match" shortcut (still confirmed by hand). Source saved as `Kalshi: <TICKER>`. Automation (Oct 29): Kalshi-linked predictions auto-resolve when the market settles and get one price point a day in `prediction_prices` (0008), drawn as a trail against your probability (`lib/calibrationTracking.ts`, run on page load as the user and from `api/cron/daily` for everyone); "Today's picks" suggests ~5 live markets (`lib/kalshiPicks.ts`, 6h cache); a calibration chart of your resolved predictions vs. the market's; "Is Kalshi calibrated?" bins ~6,000 settled Kalshi markets by price 1 day / 1 week before close (`lib/kalshiStudy.ts`, a fifth of 857 series refreshed per weekday into Redis). No Kalshi account, no trading
 - `/contact` — contact form (bug / question / opportunity), saved to Supabase and emailed via Resend
 - `/lab` — design lab: candidate PRISM motifs side by side; unlinked, `noindex`
 - Redirects: `/quant` → `/quant/backtester`, `/statement-analyzer` → `/research`, `/quant-notes(/:slug)` → `/education`, `/client-work` → `/` (section removed Oct 2026), `/industries` → `/research`
@@ -68,7 +68,7 @@ calls use `claude-opus-5`.
 **API** (all server-side; no key ever reaches the browser)
 - `/api/portfolio` (+ `/trade`, `/strategy`) — the signed-in user's own paper portfolio, Supabase-backed; trades are server-priced and written via `place_paper_trade()`
 - `/api/contact` — contact form: saves to `contact_messages`, emails via Resend; `/api/company-names` — read-only ticker → short name, day-long CDN cache
-- `/api/calibration/kalshi?q=` — signed-in-only read-only Kalshi market lookup (60s Redis cache)
+- `/api/calibration/kalshi?q=` — signed-in-only read-only Kalshi market lookup (60s Redis cache); `/api/calibration/picks` (today's suggested markets, minus ones you've logged) and `/api/calibration/study` (the Kalshi calibration study, from Redis), both signed-in only
 - `/api/calibration` (GET list + scores, POST log) and `/api/calibration/[id]` (POST resolve, DELETE open only) — session + RLS, 401 signed out
 - `/api/paper-trading/*` — `account`, `positions`, `orders` (read-only), `history`, `risk-metrics`, `search`; `journal` is Postgres-backed and 401s when signed out
 - `/api/industries?period=` — read-only: % returns for the ~94 sector-list stocks + SPY (`lib/industriesData.ts`): Alpaca SIP daily bars incl. dividends (10-min Redis cache) plus, while the market is open, each stock's latest IEX trade as the live last point (1-min cache)
@@ -84,7 +84,7 @@ calls use `claude-opus-5`.
 - `/api/rotation/run` — **executes trades**; GET only, `CRON_SECRET`-gated (monthly cron). No public trigger
 - `/api/signal-trader/run` — **executes trades** on the showcase account (`lib/signalTrader.ts`); GET only, gated by `SIGNAL_TRADER_SECRET` (cron-job.org) or `CRON_SECRET` (GitHub Actions), called every 15 min in market hours; `?dryRun=1` trades nothing
 - `/api/signals` — read-only, serves the Redis cache; `/api/signals/refresh` — forces a refresh, secret-gated
-- `/api/cron/daily` — weekday regime check + all five signal refreshes + the insider-buying refresh (Signal Trader input) + the Strategy Lab recompute
+- `/api/cron/daily` — weekday regime check + all five signal refreshes + the insider-buying refresh (Signal Trader input) + the Strategy Lab recompute + the Calibration Tracker's Kalshi jobs (auto-resolve + daily price points for every user's open Kalshi predictions; one fifth of the Kalshi calibration study)
 
 ## Data sources
 
@@ -126,7 +126,9 @@ and unread by app code.
    reach the browser. It lives only in `lib/supabase/admin.ts` and is used to
    write paper trades via `place_paper_trade()`, by the strategy runner and the
    contact form, by the Signal Trader to journal its own fills on the showcase
-   account (`journal_entries`, thesis = its reason), and for one read: `lib/showcase.ts` reads the single account
+   account (`journal_entries`, thesis = its reason), by `api/cron/daily` to
+   auto-resolve and record prices for every user's open Kalshi predictions
+   (`lib/calibrationTracking.ts`; the lock-in trigger still applies), and for one read: `lib/showcase.ts` reads the single account
    named by `SHOWCASE_USER_ID` for the public `/paper-trading` page. Every other
    read uses the user's own session.
 2. **Cache external data. Never call a paid API on page load.** `/api/signals`
