@@ -48,7 +48,7 @@ calls use `claude-opus-5`.
 - `/` — homepage: masthead, live snapshot of the showcase portfolio, ruled index of the projects
 - `/about` — bio, coursework, skills
 - `/research` — Stock Research: Industry Charts (the default tab) · Search · Research Signals. Industry Charts puts every sector-list stock's % return on one chart per sector (plus sector averages vs SPY), periods 1M–5Y; clicking a stock's card opens it in Search
-- `/paper-trading` — the showcase portfolio, view-only: Ethan's own dashboard paper account (`SHOWCASE_USER_ID`), traded by the Signal Trader algorithm (scores the ~94 sector-list stocks on insider buying, 10-K story, price trend and momentum), vs. SPY; the algorithm's rules and recent orders with reasons, risk metrics, positions, trades
+- `/paper-trading` — the showcase portfolio, view-only: Ethan's own dashboard paper account (`SHOWCASE_USER_ID`), traded by the Signal Trader algorithm (scores the ~94 sector-list stocks on 10-K story, price trend and momentum; insider buying dropped Nov 2026), vs. SPY; the algorithm's rules and recent orders with reasons, risk metrics, positions, trades
 - `/rotation` — Momentum + Leverage strategy on the Alpaca paper account: current picks, regime state, rebalance history
 - `/dcf-builder` — interactive DCF with sensitivity grid and 10-K/TTM prefill
 - `/optimizer` — efficient frontier across user-entered tickers
@@ -84,7 +84,7 @@ calls use `claude-opus-5`.
 - `/api/rotation/run` — **executes trades**; GET only, `CRON_SECRET`-gated (monthly cron). No public trigger
 - `/api/signal-trader/run` — **executes trades** on the showcase account (`lib/signalTrader.ts`); GET only, gated by `SIGNAL_TRADER_SECRET` (cron-job.org) or `CRON_SECRET` (GitHub Actions), called every 15 min in market hours; `?dryRun=1` trades nothing
 - `/api/signals` — read-only, serves the Redis cache; `/api/signals/refresh` — forces a refresh, secret-gated
-- `/api/cron/daily` — weekday regime check + all five signal refreshes + the insider-buying refresh (Signal Trader input) + the Strategy Lab recompute + the Calibration Tracker's Kalshi jobs (auto-resolve + daily price points for every user's open Kalshi predictions; one fifth of the Kalshi calibration study)
+- `/api/cron/daily` — weekday regime check + all five signal refreshes + the Strategy Lab recompute + the Calibration Tracker's Kalshi jobs (auto-resolve + daily price points for every user's open Kalshi predictions; one fifth of the Kalshi calibration study)
 
 ## Data sources
 

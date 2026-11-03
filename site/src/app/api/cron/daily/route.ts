@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { runRegimeCheck } from "@/lib/regimeCheck";
 import { refreshAiSignals } from "@/lib/signals/aiSignals";
 import { refreshFinancialSignals } from "@/lib/signals/financial";
-import { refreshInsiderSignals } from "@/lib/signals/insider";
 import { refreshPoliticalSignals } from "@/lib/signals/political";
 import { refreshPresidentialSignals } from "@/lib/signals/presidential";
 import { refreshLab } from "@/lib/strategyLabData";
@@ -12,8 +11,7 @@ import { refreshStudySlice } from "@/lib/kalshiStudy";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // One weekday-evening cron for everything that runs daily: the strategy's
-// circuit-breaker check, the Research Signals refreshes, the insider-buying
-// refresh the Signal Trader scores from (lib/signals/insider.ts), users' paper
+// circuit-breaker check, the Research Signals refreshes, users' paper
 // portfolio strategies (lib/strategyRunner.ts), which rebalance at the close,
 // the Strategy Lab's backtests (lib/strategyLabData.ts), and the Calibration
 // Tracker's Kalshi jobs: auto-resolving settled predictions and recording
@@ -33,15 +31,13 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const [regime, political, legislation, geopolitics, financial, presidential, insider, strategies, lab, calibration, kalshiStudy] = await Promise.allSettled([
+  const [regime, political, legislation, geopolitics, financial, presidential, strategies, lab, calibration, kalshiStudy] = await Promise.allSettled([
     runRegimeCheck(),
     refreshPoliticalSignals(),
     refreshAiSignals("legislation"),
     refreshAiSignals("geopolitics"),
     refreshFinancialSignals(),
     refreshPresidentialSignals(),
-    // Just the counts; the buys themselves live in Redis.
-    refreshInsiderSignals().then((b) => b.stats),
     runStrategies(),
     // Just the date range in the report; the full result lives in Redis.
     refreshLab().then((r) => ({ start: r.start, end: r.end })),
@@ -67,7 +63,6 @@ export async function GET(request: Request) {
     geopoliticsSignals: report(geopolitics),
     financialSignals: report(financial),
     presidentialSignals: report(presidential),
-    insiderSignals: report(insider),
     paperStrategies: report(strategies),
     strategyLab: report(lab),
     calibrationTracker: report(calibration),

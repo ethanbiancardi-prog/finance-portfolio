@@ -1,14 +1,14 @@
 // Signal Trader: the algorithm that trades the showcase portfolio (the
 // dashboard account named by SHOWCASE_USER_ID) on its own, buying from the
-// ~94 stocks in the sector lists. Each stock is scored on four drivers:
-// insider buying, the latest 10-K story, price trend and momentum (see
-// scoreSignals below). Rules in
+// ~94 stocks in the sector lists. Each stock is scored on three drivers:
+// the latest 10-K story, price trend and momentum (see scoreSignals
+// below). Rules in
 // projects/paper-trading/SIGNAL_TRADER.md; every number lives in RULES
 // (lib/signalTraderRules.ts).
 //
 // Runs every 15 minutes while the market is open (GitHub Actions calls
 // /api/signal-trader/run, since both Vercel crons are taken). The scores
-// themselves change once a day (insider filings and 10-K stories refresh
+// themselves change once a day (10-K stories refresh
 // after the close; trend and momentum use completed days), so most entries
 // happen on the first run of the morning; the intraday runs are mainly the
 // stops.
@@ -32,34 +32,27 @@ import { nyDate, replay, type PaperTradeRow } from "./portfolio";
 import { SECTOR_KEYS, SECTORS } from "./sectors";
 import { getChartScores } from "./signals/chart";
 import { getFinancialSignals } from "./signals/financial";
-import { getInsiderSignals, INSIDER_WINDOW_DAYS } from "./signals/insider";
 import { RULES, type SignalOrder } from "./signalTraderRules";
 import { createAdminClient } from "./supabase/admin";
 
 
 // --- Scoring -----------------------------------------------------------------
 
-export type Evidence = { source: "insider" | "filing" | "trend" | "momentum"; points: number; text: string };
+export type Evidence = { source: "filing" | "trend" | "momentum"; points: number; text: string };
 export type Candidate = { symbol: string; score: number; evidence: Evidence[] };
 
 const BEARISH_STORIES = /compressing|leverage rising/i;
-// An insider's purchases must add up to at least this to count; a director
-// buying $2,000 of stock is a gesture, not a bet.
-const MIN_INSIDER_BUY = 10_000;
-const money = (v: number) => (v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v / 1e3)}K`);
 
 // The universe the algorithm buys from: every stock in the sector lists.
 export function traderUniverse(): string[] {
   return [...new Set(SECTOR_KEYS.flatMap((k) => [...SECTORS[k].tickers]))];
 }
 
-// One score per stock, summed across four drivers. `holdings` are scored
+// One score per stock, summed across three drivers. `holdings` are scored
 // too, even if they're outside the universe, so every position can be
-// checked against the hold rule.
+// checked against the hold rule. (Insider buying was a fourth driver until
+// Nov 2026; Ethan dropped it from the strategy.)
 //
-//   Insider buying  +2 / +4 / +6  one / two / three or more insiders bought on
-//                                 the open market in the last 60 days, +1 if
-//                                 one is the CEO, CFO or President (max +6)
 //   10-K story      +2 or −2      the latest annual report tells a good story
 //                                 (margins expanding, cash machine) or a bad one
 //   Price trend     0 to +2       above the 200-day average; and the 50-day
@@ -68,8 +61,7 @@ export function traderUniverse(): string[] {
 //                                 (+2) or second fifth (+1)
 export async function scoreSignals(holdings: string[] = []): Promise<Map<string, Candidate>> {
   const universe = traderUniverse();
-  const [insider, financial, chart] = await Promise.all([
-    getInsiderSignals(),
+  const [financial, chart] = await Promise.all([
     getFinancialSignals(),
     getChartScores(universe, holdings.filter((h) => !universe.includes(h))),
   ]);
@@ -82,36 +74,6 @@ export async function scoreSignals(holdings: string[] = []): Promise<Map<string,
     out.set(s, c);
   };
 
-  // Insider buying: distinct buyers per stock, each over MIN_INSIDER_BUY.
-  // When PLAN_CROWD or more insiders of one company buy on the same day,
-  // it's a company program (directors' fees paid in stock, a purchase plan),
-  // not that many separate decisions, so those days are left out.
-  const PLAN_CROWD = 4;
-  const sameDay = new Map<string, Set<string>>();
-  for (const b of insider?.buys ?? []) {
-    const k = `${b.ticker} ${b.date}`;
-    sameDay.set(k, (sameDay.get(k) ?? new Set()).add(b.insider));
-  }
-  const byTicker = new Map<string, Map<string, { value: number; top: boolean }>>();
-  for (const b of insider?.buys ?? []) {
-    if ((sameDay.get(`${b.ticker} ${b.date}`)?.size ?? 0) >= PLAN_CROWD) continue;
-    const people = byTicker.get(b.ticker) ?? new Map();
-    const p = people.get(b.insider) ?? { value: 0, top: false };
-    people.set(b.insider, { value: p.value + b.value, top: p.top || b.topOfficer });
-    byTicker.set(b.ticker, people);
-  }
-  for (const [ticker, people] of byTicker) {
-    const buyers = [...people.values()].filter((p) => p.value >= MIN_INSIDER_BUY);
-    if (!buyers.length) continue;
-    const top = buyers.some((p) => p.top);
-    const points = Math.min(6, Math.min(3, buyers.length) * 2 + (top ? 1 : 0));
-    const total = buyers.reduce((s, p) => s + p.value, 0);
-    add(ticker, {
-      source: "insider",
-      points,
-      text: `Insiders: ${buyers.length} bought ${money(total)} in ${INSIDER_WINDOW_DAYS} days${top ? ", incl. a top officer" : ""}`,
-    });
-  }
   // Latest 10-K: a good story +2, a bad one −2.
   for (const s of financial?.items ?? []) {
     const bad = BEARISH_STORIES.test(s.title ?? "");

@@ -193,8 +193,7 @@ export default function PaperTrading() {
         />
         <ul className="mt-3 max-w-2xl list-disc space-y-1 pl-4 text-xs leading-5 text-zinc-400">
           <li>
-            Scores each of the ~94 stocks in the sector lists on four things: insiders (executives and directors)
-            buying their own company&apos;s stock in the last 60 days, up to +6; the latest 10-K&apos;s story, +2 or −2;
+            Scores each of the ~94 stocks in the sector lists on three things: the latest 10-K&apos;s story, +2 or −2;
             the price trend, up to +2; and 12-month momentum against the other stocks, up to +2.
           </li>
           <li>
@@ -209,7 +208,7 @@ export default function PaperTrading() {
             When all {RULES.maxPositions} slots are full, a stock scoring {RULES.swapMargin}+ points above the weakest holding
             replaces it (one swap per check, only holdings owned {RULES.swapMinHoldDays}+ days).
           </li>
-          <li>Paper money and educational, not investment advice. Insider purchases are filed with the SEC within two business days.</li>
+          <li>Paper money and educational, not investment advice.</li>
         </ul>
       </Card>
 
