@@ -54,6 +54,7 @@ calls use `claude-opus-5`.
 - `/optimizer` — efficient frontier across user-entered tickers
 - `/monte-carlo` — 10,000 simulated portfolio paths and goal probability
 - `/quant/strategy-lab` — five strategies (buy-and-hold SPY, trend following, momentum, mean reversion, breakout) backtested on real daily prices since 2017 across the ~94-stock universe; a "Live portfolios" tab shows momentum, breakout and mean reversion trading their own $100K paper accounts every 15 minutes against a buy-and-hold S&P 500 control account
+- `/quant/rule-tester` — Rule Tester: four plain-English switches for the Signal Trader's rules (sector cap, stop-loss, trailing stop, market filter) → growth of $100K since 2017 vs SPY, a "lucky or real?" check (beat SPY in both 2017–21 and 2022–26?), and AI models vs simple rules. All 36 combinations precomputed into `public/data/rule-tester.json` by `scripts/backtest-timing.ts --export` (price-only copy of the bot; needs the bars cache from `scripts/ml/fetch-data.ts`); ML research code in `src/lib/ml` + `scripts/ml`, reports in `projects/paper-trading/ML_REPORT*.md` and `*_BACKTEST.md`
 - `/quant/backtester` — the live strategy run through four synthetic regimes
 - `/quant/factor-risk` — market/rates/inflation variance attribution
 - `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta

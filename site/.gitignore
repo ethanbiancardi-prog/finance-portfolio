@@ -42,3 +42,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# ML training data downloaded by scripts/ml/fetch-data.ts (rebuildable)
+/.ml-cache/

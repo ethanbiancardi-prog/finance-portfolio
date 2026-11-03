@@ -19,6 +19,7 @@ export type QuantTool = {
 
 export const QUANT_TOOLS = [
   { key: "strategy-lab", label: "Strategy Lab", short: "Strategy Lab", href: "/quant/strategy-lab" },
+  { key: "rule-tester", label: "Rule Tester", short: "Rule Tester", href: "/quant/rule-tester" },
   { key: "backtester", label: "Regime Backtester", short: "Backtester", href: "/quant/backtester" },
   { key: "optimizer", label: "Portfolio Optimizer", short: "Optimizer", href: "/optimizer" },
   { key: "factor-risk", label: "Factor Risk Attribution", short: "Factor Risk", href: "/quant/factor-risk" },
