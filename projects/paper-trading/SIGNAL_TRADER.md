@@ -33,9 +33,10 @@ Oct to Nov 2026. I dropped it from the strategy in Nov 2026.
   ~9% of the account each, max 10 stocks, ~10% stays cash. Skip it if it's
   under $5 or if it was sold in the last 14 days. Strongest score first, the
   stronger trend as the tie-break.
+- **Sector cap:** at most 2 holdings per sector. Once 2 share a sector, nothing
+  else from it is bought (holdings already over the cap are kept, not sold).
 - **Sell** when any of these happen:
   - 8% below what I paid (stop-loss)
-  - 15% below its highest close since buying (trailing stop)
   - price falls below its 200-day average (trend broke)
   - score drops below 2 (signal faded)
 - **Swap** when all 10 slots are full and a stock that passes every buy check
@@ -47,6 +48,16 @@ Oct to Nov 2026. I dropped it from the strategy in Nov 2026.
 
 In practice, a stock that qualifies to buy already has +2 from its trend, so
 it needs 2 more from somewhere: a good 10-K or top-fifth momentum.
+
+## Rule changes, Nov 2026
+
+Tested on daily prices 2017–2026 (price-only score, today's stock lists):
+576 combinations of 7 rules, picked on 2017–21 and checked on 2022–26.
+Two changes held up in both periods and went live: a **max 2 per sector**
+cap (smaller drawdowns) and **dropping the 15% trailing stop** (winners run
+until the trend breaks or the score fades). The 8% stop-loss stayed. A market
+filter, volatility-based sizing, skipping run-ups and a 2-day confirmation
+didn't help consistently and were left out.
 
 ## How it runs
 

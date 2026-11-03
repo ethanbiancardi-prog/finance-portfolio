@@ -201,7 +201,11 @@ export default function PaperTrading() {
             {RULES.positionWeight * 100}% of the account each, at most {RULES.maxPositions} stocks.
           </li>
           <li>
-            Sells at {RULES.stopLoss * 100}% below cost, {RULES.trailingStop * 100}% below its high since buying, when the price
+            At most {RULES.maxPerSector} stocks per sector: once {RULES.maxPerSector} holdings share a sector, it buys nothing
+            else from it, so one bad week for one industry can&apos;t sink the account.
+          </li>
+          <li>
+            Sells at {RULES.stopLoss * 100}% below cost, when the price
             falls under its 200-day average, or when the score drops below {RULES.holdScore}.
           </li>
           <li>

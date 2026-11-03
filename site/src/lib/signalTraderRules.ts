@@ -5,9 +5,13 @@ export const RULES = {
   entryScore: 4, // signal score needed to buy
   holdScore: 2, // below this, a holding has lost its signal and is sold
   maxPositions: 10,
+  maxPerSector: 2, // no new buy once 2 holdings share its sector (Nov 2026 backtest)
   positionWeight: 0.09, // of account value per new position; ~10% stays cash
   stopLoss: 0.08, // sell at 8% below average cost
-  trailingStop: 0.15, // sell at 15% below the highest close since buying
+  // No trailing stop since Nov 2026: in a backtest of 576 rule combinations
+  // (price-only, picked on 2017-21, checked on 2022-26) dropping it tied in
+  // 2017-21 and clearly helped in 2022-26, so winners now run until the
+  // trend breaks or the score fades.
   minPrice: 5,
   cooldownDays: 14, // no re-buying a name within two weeks of selling it
   swapMargin: 3, // portfolio full: a candidate this many points above the weakest holding replaces it

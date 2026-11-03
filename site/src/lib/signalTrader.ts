@@ -94,8 +94,25 @@ export type Market = {
   price: number; // latest trade
   sma50: number | null;
   sma200: number | null;
-  peakClose: number | null; // highest daily close since the position opened
 };
+
+// Each stock's sector, for the RULES.maxPerSector cap. The sector lists
+// (lib/sectors.ts) give most; Sustainability isn't a real sector, so its
+// names, and holdings bought from outside the lists, are mapped by hand.
+// Anything unknown shares one "other" bucket, which the cap also applies to.
+const SECTOR_OVERRIDES: Record<string, string> = {
+  AMAT: "technology", KEYS: "technology",
+  CI: "healthcare", ENSG: "healthcare", DGX: "healthcare", ELV: "healthcare", TAK: "healthcare",
+  DOV: "industrials", RSG: "industrials",
+  DUK: "utilities", RGLD: "materials", SPG: "real estate",
+};
+export function sectorOf(symbol: string): string {
+  for (const k of SECTOR_KEYS) {
+    if (k === "sustainability") continue;
+    if ((SECTORS[k].tickers as readonly string[]).includes(symbol)) return k;
+  }
+  return SECTOR_OVERRIDES[symbol] ?? "other";
+}
 export type Order = SignalOrder;
 export type Skip = { symbol: string; score: number; reason: string };
 
@@ -127,10 +144,8 @@ export function decide(input: {
       continue;
     }
     const score = candidates.get(h.symbol)?.score ?? 0;
-    const peak = Math.max(m.peakClose ?? 0, h.avgCost);
     let reason: string | null = null;
     if (m.price <= h.avgCost * (1 - RULES.stopLoss)) reason = `Stop-loss: ${pct(m.price / h.avgCost - 1)} from cost.`;
-    else if (m.price <= peak * (1 - RULES.trailingStop)) reason = `Trailing stop: ${pct(m.price / peak - 1)} from its high of $${peak.toFixed(2)}.`;
     else if (m.sma200 !== null && m.price < m.sma200) reason = "Trend broke: price fell below its 200-day average.";
     else if (score < RULES.holdScore) reason = score === 0 ? "No signal supports holding it." : `Signal faded to ${score}.`;
     if (reason) {
@@ -153,6 +168,10 @@ export function decide(input: {
     });
   let open = staying.length;
   const target = equity * RULES.positionWeight;
+  // Sector cap: holdings per sector, kept current as this run buys and swaps.
+  // Holdings already over the cap are kept; it only blocks new buys.
+  const perSector = new Map<string, number>();
+  for (const h of staying) perSector.set(sectorOf(h.symbol), (perSector.get(sectorOf(h.symbol)) ?? 0) + 1);
   // 3. Swaps: with the portfolio full, a candidate scoring RULES.swapMargin
   //    or more above the weakest holding replaces it, so the book drifts
   //    towards the strongest names instead of waiting for a stop to free a
@@ -177,6 +196,11 @@ export function decide(input: {
     if (m.price < RULES.minPrice) { skip(`Under $${RULES.minPrice}.`); continue; }
     if (m.sma50 === null || m.sma200 === null) { skip("Not enough price history."); continue; }
     if (m.price < m.sma50 || m.price < m.sma200) { skip("Below its 50- or 200-day average."); continue; }
+    const sector = sectorOf(c.symbol);
+    if ((perSector.get(sector) ?? 0) >= RULES.maxPerSector) {
+      skip(`Already holds ${RULES.maxPerSector} ${sector} stocks.`);
+      continue;
+    }
     if (open >= RULES.maxPositions) {
       const w = swaps < RULES.maxSwapsPerRun ? weakest() : undefined;
       if (!w || c.score < w.score + RULES.swapMargin) { skip("Portfolio full."); continue; }
@@ -189,6 +213,7 @@ export function decide(input: {
       });
       cash += w.h.qty * w.m.price;
       staying.splice(staying.indexOf(w.h), 1);
+      perSector.set(sectorOf(w.h.symbol), (perSector.get(sectorOf(w.h.symbol)) ?? 1) - 1);
       const k = kept.findIndex((x) => x.symbol === w.h.symbol);
       if (k >= 0) kept.splice(k, 1);
       open--;
@@ -205,6 +230,7 @@ export function decide(input: {
     });
     cash -= qty * m.price;
     open++;
+    perSector.set(sector, (perSector.get(sector) ?? 0) + 1);
   }
   return { orders, kept, skipped };
 }
@@ -243,8 +269,7 @@ export function journalEntry(userId: string, o: Order, executedAt = new Date()) 
     exit_condition:
       o.side === "buy"
         ? `Sell if it falls ${RULES.stopLoss * 100}% below cost ($${(o.price * (1 - RULES.stopLoss)).toFixed(2)}), ` +
-          `${RULES.trailingStop * 100}% below its highest close since buying, below its 200-day average, ` +
-          `or its signal score drops under ${RULES.holdScore}.`
+          `if it closes below its 200-day average, or if its signal score drops under ${RULES.holdScore}.`
         : `Position closed. Can be bought again after ${RULES.cooldownDays} days if it qualifies.`,
   };
 }
@@ -318,14 +343,7 @@ export async function runSignalTrader(opts: { dryRun?: boolean } = {}): Promise<
       if (!q || Date.now() - new Date(q.asOf).getTime() > RULES.maxQuoteAgeMinutes * 60_000) continue;
       // Completed days only, so the averages don't wobble with today's price.
       const closed = (bars.get(s) ?? []).filter((b) => b.t.slice(0, 10) < today);
-      const since = holdings.find((h) => h.symbol === s)?.openedOn;
-      const peaks = since ? closed.filter((b) => b.t.slice(0, 10) >= since).map((b) => b.c) : [];
-      market.set(s, {
-        price: q.price,
-        sma50: sma(closed, 50),
-        sma200: sma(closed, 200),
-        peakClose: peaks.length ? Math.max(...peaks) : null,
-      });
+      market.set(s, { price: q.price, sma50: sma(closed, 50), sma200: sma(closed, 200) });
     }
 
     const { orders, kept, skipped } = decide({ cash, holdings, candidates, market, recentlySold, tradable });
