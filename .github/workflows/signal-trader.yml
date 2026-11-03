@@ -26,4 +26,4 @@ jobs:
         run: |
           curl --fail-with-body -sS -m 90 \
             -H "Authorization: Bearer $CRON_SECRET" \
-            https://site-theta-drab-22.vercel.app/api/signal-trader/run
+            https://ethanbiancardi.vercel.app/api/signal-trader/run

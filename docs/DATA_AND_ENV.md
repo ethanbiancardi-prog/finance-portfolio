@@ -97,7 +97,7 @@ auto-deploys to production. There is no manual deploy step.
 
 - Vercel project: `site` (team `ethanbiancardi-5348s-projects`)
 - Vercel root directory: `site/`
-- Live: https://site-theta-drab-22.vercel.app
+- Live: https://ethanbiancardi.vercel.app
 - Framework preset Next.js, Node 24.x
 - Preview deployments have SSO protection enabled; the production alias is public
 

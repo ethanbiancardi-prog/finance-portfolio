@@ -20,7 +20,7 @@ works." Favour simple, readable code and comment the financial formulas.
 
 ## Live site & deploy
 
-- **Live:** https://site-theta-drab-22.vercel.app
+- **Live:** https://ethanbiancardi.vercel.app
 - **Deploy:** push to `main` on `github.com/ethanbiancardi-prog/finance-portfolio`
   → Vercel auto-deploys to production. No manual step.
 - Vercel project `site`, root directory `site/`, Next.js preset.
