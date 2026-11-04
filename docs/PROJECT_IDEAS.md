@@ -7,20 +7,9 @@ Ratings: 🟢 weekend project · 🟡 1–3 weeks · 🔴 semester-long flagship
 
 ## Up next
 
-### 15. Stream the AI analyst panel 🟢 (1 session)
-The six-analyst panel on `/research` takes ~30s and shows only "Analyzing...". Stream
-each take in as it finishes. The slowest moment on the most-visited page.
+_Nothing queued. Pick the next one from the list below._
 
 ## Ideas to build
-
-### 13. Machine-learning up/down predictor 🟡 (builds on #12) — Ethan's favourite
-Feed a model many numbers per stock per day (recent returns, volatility, distance from
-highs, volume, RSI…) and predict whether it beats the market over the next month. Rules:
-test only on years the model never trained on (walk-forward), count trading costs, and
-expect ~53–55% accuracy — anything near 80% is a testing bug. Start with logistic
-regression (explainable, easy in TypeScript, no Python needed), trained by a script in
-`site/scripts/` that saves the model to Redis; the site only reads it. Show which inputs
-mattered most. #12's features become this model's inputs.
 
 ### 12. Indicator Scorecard 🟢→🟡 (2–3 sessions)
 For every time a chart signal fired since 2017 across the ~94-stock universe (crossed the
@@ -96,7 +85,13 @@ content. `/education` covers part of this.
 - **5. 10-K / earnings analyzer** — folded into `/research` (17 ratios, AI summary, red flags)
 - **7. Monte Carlo simulator** — `/monte-carlo`
 - **8. Portfolio optimizer (Markowitz)** — `/optimizer`
+- **15. Streamed AI analyst panel** — each of the six takes on `/research` appears as it's written
+  (first in ~9s instead of a blank ~27s wait), NDJSON from `/api/research/analysis` (Nov 3 2026)
 - **14. Industry charts page** — the default tab on `/research` (Oct 28 2026)
+- **13. Machine-learning predictor** — boosted trees and a chart-reading neural net trained on the
+  S&P 500, walk-forward and purged k-fold tested; both lost to simple trend + momentum rules.
+  Shown on `/quant/rule-tester` (Nov 3 2026); code in `site/src/lib/ml`, reports in
+  `projects/paper-trading/ML_REPORT*.md`
 
 ## Data sources
 

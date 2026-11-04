@@ -80,6 +80,61 @@ const RESPONSE_SCHEMA = {
 // between tickers and back shouldn't re-bill six takes.
 const CACHE_TTL_SECONDS = 60 * 60 * 3;
 
+// The response is streamed as NDJSON (one JSON object per line) so the panel
+// can show each analyst the moment its take is written, instead of a blank
+// ~30-second wait for all six. Lines, in order:
+//   {"type":"status","stage":"briefing"|"thinking"}  progress, for the UI's label
+//   {"type":"take","take":{role,stance,verdict,reasons,change_mind}}  one per analyst
+//   {"type":"done","basedOn":{...},"generatedAt":"...","cached":bool}
+//   {"type":"error","message":"..."}  instead of "done" if something broke
+// A cached result is replayed in the same format, all at once.
+type Line =
+  | { type: "status"; stage: "briefing" | "thinking" }
+  | { type: "take"; take: Record<string, unknown> }
+  | { type: "done"; basedOn: unknown; generatedAt: string; cached: boolean }
+  | { type: "error"; message: string };
+
+// Pulls each complete analyst object out of the JSON as it streams in: the
+// output is {"analysts":[{...},{...},...]}, so once inside the array, every
+// time the braces balance back to zero one take is complete. Quotes and
+// escapes are tracked so a "{" or "}" inside a sentence doesn't count.
+function takeExtractor(onTake: (json: string) => void) {
+  let buf = "";
+  let i = 0;
+  let inArray = false;
+  let inString = false;
+  let escaped = false;
+  let depth = 0;
+  let start = -1;
+  return (chunk: string) => {
+    buf += chunk;
+    for (; i < buf.length; i++) {
+      const ch = buf[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') inString = true;
+      else if (!inArray) inArray = ch === "[";
+      else if (ch === "{") {
+        if (depth === 0) start = i;
+        depth++;
+      } else if (ch === "}") {
+        depth--;
+        if (depth === 0 && start >= 0) {
+          onTake(buf.slice(start, i + 1));
+          start = -1;
+        }
+      }
+    }
+  };
+}
+
+const isTake = (t: unknown): t is { role: string } =>
+  typeof t === "object" && t !== null && ANALYST_ROLES.includes((t as { role: string }).role as (typeof ANALYST_ROLES)[number]);
+
 export async function POST(request: Request) {
   if (!AI_ENABLED) return NextResponse.json({ error: AI_PAUSED_MESSAGE }, { status: 503 });
   const body = await request.json().catch(() => ({}));
@@ -89,38 +144,76 @@ export async function POST(request: Request) {
   }
 
   const cacheKey = `analysis:v2:${ticker}`;
+  let cached: { analysts?: unknown[]; basedOn?: unknown; generatedAt?: string } | null = null;
   if (kvConfigured()) {
     try {
-      const cached = await getRedis().get<Record<string, unknown>>(cacheKey);
-      if (cached) return NextResponse.json({ ...cached, cached: true });
+      cached = await getRedis().get(cacheKey);
     } catch {
       // cache is an optimisation, never a reason to fail
     }
   }
 
-  const briefing = await buildBriefing(ticker, 10);
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (line: Line) => controller.enqueue(encoder.encode(JSON.stringify(line) + "\n"));
+      try {
+        if (cached?.analysts) {
+          for (const take of cached.analysts) if (isTake(take)) send({ type: "take", take });
+          send({ type: "done", basedOn: cached.basedOn, generatedAt: cached.generatedAt ?? "", cached: true });
+          return;
+        }
 
-  const response = await anthropic.messages.create({
-    model: "claude-opus-5",
-    max_tokens: 4000,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: briefing.text }],
-    output_config: {
-      // Six short structured takes over a briefing we already assembled —
-      // medium effort keeps the reasoning without a report-length wait.
-      effort: "medium",
-      format: { type: "json_schema", schema: RESPONSE_SCHEMA },
+        send({ type: "status", stage: "briefing" });
+        const briefing = await buildBriefing(ticker, 10);
+        send({ type: "status", stage: "thinking" });
+
+        const extract = takeExtractor((json) => {
+          try {
+            const take = JSON.parse(json);
+            if (isTake(take)) send({ type: "take", take });
+          } catch {
+            // a malformed piece is skipped here; the final parse below decides
+          }
+        });
+        const response = anthropic.messages.stream({
+          model: "claude-opus-5",
+          max_tokens: 4000,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: briefing.text }],
+          output_config: {
+            // Six short structured takes over a briefing we already assembled —
+            // medium effort keeps the reasoning without a report-length wait.
+            effort: "medium",
+            format: { type: "json_schema", schema: RESPONSE_SCHEMA },
+          },
+        });
+        response.on("text", extract);
+        const message = await response.finalMessage();
+        if (message.stop_reason !== "end_turn") {
+          send({ type: "error", message: "The analysis was cut off. Try again." });
+          return;
+        }
+
+        const textBlock = message.content.find((block) => block.type === "text");
+        const parsed = JSON.parse(textBlock && "text" in textBlock ? textBlock.text : "{}");
+        // Tell the UI what the takes were actually based on, so a reader can see
+        // "priced as of 3:58pm, filing FY2025, 8 headlines" next to the output.
+        const result = { ...parsed, basedOn: briefing.basedOn, generatedAt: new Date().toISOString() };
+        if (kvConfigured()) {
+          await getRedis().set(cacheKey, result, { ex: CACHE_TTL_SECONDS }).catch(() => {});
+        }
+        send({ type: "done", basedOn: result.basedOn, generatedAt: result.generatedAt, cached: false });
+      } catch (err) {
+        console.error("analysis stream failed", err);
+        send({ type: "error", message: "Analysis failed." });
+      } finally {
+        controller.close();
+      }
     },
   });
 
-  const textBlock = response.content.find((block) => block.type === "text");
-  const parsed = JSON.parse(textBlock && "text" in textBlock ? textBlock.text : "{}");
-
-  // Tell the UI what the takes were actually based on, so a reader can see
-  // "priced as of 3:58pm, filing FY2025, 8 headlines" next to the output.
-  const result = { ...parsed, basedOn: briefing.basedOn, generatedAt: new Date().toISOString() };
-  if (kvConfigured()) {
-    await getRedis().set(cacheKey, result, { ex: CACHE_TTL_SECONDS }).catch(() => {});
-  }
-  return NextResponse.json({ ...result, cached: false });
+  return new Response(stream, {
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" },
+  });
 }
