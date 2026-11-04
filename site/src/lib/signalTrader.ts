@@ -163,6 +163,12 @@ export function decide(input: {
 
   // 2. Entries: strongest signals first, momentum as the tie-break.
   const held = new Set(staying.map((h) => h.symbol));
+  // Sold a moment ago in step 1, so the cooldown applies now too.
+  // input.recentlySold only knows earlier runs' sales, so until Nov 4 2026 a
+  // stop-loss could sell a stock and buy it straight back in the same run
+  // (VLO on Oct 22, MPC on Oct 27): the 8% loss was locked in and the money
+  // was exposed to another 8% fall.
+  const soldThisRun = new Set(orders.filter((o) => o.side === "sell").map((o) => o.symbol));
   const ranked = [...candidates.values()]
     .filter((c) => c.score >= RULES.entryScore && !held.has(c.symbol))
     .sort((a, b) => {
@@ -195,7 +201,7 @@ export function decide(input: {
     const m = market.get(c.symbol);
     const skip = (reason: string) => skipped.push({ symbol: c.symbol, score: c.score, reason });
     if (!input.tradable.has(c.symbol)) { skip("Not tradable on Alpaca."); continue; }
-    if (input.recentlySold.has(c.symbol)) { skip(`Sold within ${RULES.cooldownDays} days.`); continue; }
+    if (input.recentlySold.has(c.symbol) || soldThisRun.has(c.symbol)) { skip(`Sold within ${RULES.cooldownDays} days.`); continue; }
     if (!m) { skip("No fresh price."); continue; }
     if (m.price < RULES.minPrice) { skip(`Under $${RULES.minPrice}.`); continue; }
     if (m.sma50 === null || m.sma200 === null) { skip("Not enough price history."); continue; }

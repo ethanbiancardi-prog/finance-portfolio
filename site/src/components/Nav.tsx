@@ -29,6 +29,7 @@ const TOOLS: NavItem[] = [
   { href: "/monte-carlo", label: "Monte Carlo", hint: "10,000 simulated portfolio paths" },
   { href: "/quant/factor-risk", label: "Factor Risk", hint: "Equity, rates and inflation risk in a multi-asset mix" },
   { href: "/quant/vol-smile", label: "Vol Smile", hint: "Implied volatility across strikes, with dials" },
+  { href: "/quant/diffusion", label: "News Speed", hint: "How fast SEC news gets into stock prices, minute by minute" },
 ];
 
 const ENTRIES: Entry[] = [

@@ -77,6 +77,58 @@ Short write-ups: a valuation you did, something you learned building these tools
 market event explained. Recruiters and alumni actually read these, and it feeds LinkedIn
 content. `/education` covers part of this.
 
+### 18. Sustainability-linked bond (SLB) step-up & penalty simulator 🟡
+A pricing and valuation dashboard for corporate debt whose coupon depends on hitting
+sustainability targets (Enel, AB InBev style).
+- Model bonds whose coupon steps up (typically 25–50 bps) if the issuer misses its
+  Sustainability Performance Targets (SPTs).
+- Show the issuer's side under hit vs. miss: cash interest expense, debt service coverage,
+  and the effect on WACC.
+- Monte Carlo on the emissions path (or project completion date) to get the probability of a
+  step-up, and from that a probability-weighted yield to maturity for investors.
+- **Data:** mostly user inputs plus real bond terms from published prospectuses; no paid
+  price feed needed for the simulator itself.
+**Why it impresses:** structured corporate-debt mechanics tied to real sustainability covenants.
+
+### 19. SEC climate disclosure & 10-K transition-risk analyzer 🟡→🔴
+Extend the EDGAR pipeline to pull climate-related risk disclosures out of 10-Ks.
+- AI extraction across heavy-emitting sectors (energy, industrials, transport): Scope 1 & 2
+  disclosures, facility flood/wildfire exposure, capex earmarked for decarbonization.
+- A "Green CapEx Ratio" = green capex ÷ total capex, set against depreciation and total
+  spending.
+- Flag gaps between net-zero press releases and where the capital actually goes.
+- **Watch-outs:** needs the Anthropic API (credits ran out Nov 3 2026, so check the AI
+  on/off flag first). The SEC's climate disclosure rule never took effect, so disclosures
+  are voluntary and uneven, and green capex is rarely its own line item. Expect a lot of
+  "not disclosed".
+**Why it impresses:** mirrors how ESG and quant equity teams screen for greenwashing.
+
+### 20. Green bond "greenium" monitor & use-of-proceeds tracker 🔴 — talk through first
+Compare a company's green bonds with its conventional bonds of similar maturity and rating
+to measure the "greenium", the yield discount for issuing certified green debt.
+- Pair bonds (e.g. an Apple green bond vs. an Apple senior unsecured note), compute each
+  one's spread over Treasuries, and chart the difference.
+- Track use of proceeds: renewables, energy efficiency, low-carbon infrastructure, from
+  issuers' allocation reports. ICMA Green Bond Principles as the checklist.
+- **Data hurdle:** Treasury yields are free, but corporate bond prices aren't easy to get.
+  FINRA TRACE shows them bond by bond with no free bulk API, and allocation reports are
+  PDFs. Decide the data source before building.
+**Why it impresses:** fixed-income pricing, credit spreads, and green bond verification.
+
+### 21. Carbon-adjusted returns & shadow carbon price portfolio overlay 🟡
+Apply an internal "shadow" carbon tax (say $50–100 a ton) to the companies in a portfolio
+and see what it does to margins and the optimal portfolio.
+- Deduct the carbon bill (emissions × price) from operating income / EBITDA for each stock
+  in a benchmark basket or the bots' universe.
+- Re-optimize with mean-variance (the `/optimizer` engine), penalizing carbon intensity
+  alongside volatility.
+- Side by side: unadjusted vs. carbon-adjusted returns and Sharpe ratio.
+- **Head start:** `public/data/carbon.json` already has Scope 1 emissions and operating
+  income per company (Scope 2 isn't in the EPA data). Overlaps the planned carbon-price
+  slider in the DCF Builder (carbon phase 2); build them together.
+**Why it impresses:** shows carbon policy as a risk-management question, in margins and
+portfolio risk.
+
 ## Done
 
 - **1. AI paper-trading simulator** — `/paper-trading`, `/dashboard`, the Signal Trader,
