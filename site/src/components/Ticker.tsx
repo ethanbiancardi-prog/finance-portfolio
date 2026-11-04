@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSyncExternalStore } from "react";
 
 // A ticker with its company name beside it: "INTC Intel". Used in every
@@ -55,12 +56,30 @@ export function useCompanyName(symbol: string): string | null {
   );
 }
 
-export function Ticker({ symbol, className = "text-foreground" }: { symbol: string; className?: string }) {
+// Funds have no 10-K for the Research page to open, so they stay plain text:
+// the index and leveraged ETFs the strategies use, and the old passive core.
+const FUNDS = new Set(["SPY", "QQQ", "DIA", "IWM", "VOO", "VTI", "BND", "VEA", "VWO", "VNQ", "VXF", "GLD", "TLT", "TQQQ", "SOXL", "TNA", "UPRO", "SPXL", "TECL", "SQQQ"]);
+
+// Every ticker links to its page on /research (Search tab, ?ticker=), so any
+// stock in a portfolio, trade list or log is one click from its research.
+// Pass link={false} where it sits inside another clickable element.
+export function Ticker({ symbol, className = "text-foreground", link = true }: { symbol: string; className?: string; link?: boolean }) {
   const name = useCompanyName(symbol);
-  return (
-    <span className={className}>
+  const s = symbol.toUpperCase();
+  const content = (
+    <>
       {symbol}
       {name && <span className="ml-1.5 text-zinc-500">{name}</span>}
-    </span>
+    </>
+  );
+  if (!link || FUNDS.has(s)) return <span className={className}>{content}</span>;
+  return (
+    <Link
+      href={`/research?ticker=${encodeURIComponent(s)}`}
+      title={`Research ${s}`}
+      className={`${className} underline decoration-border underline-offset-2 transition-colors hover:text-accent hover:decoration-accent`}
+    >
+      {content}
+    </Link>
   );
 }

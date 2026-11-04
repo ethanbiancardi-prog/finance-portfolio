@@ -8,6 +8,7 @@ import { refreshLab } from "@/lib/strategyLabData";
 import { runStrategies } from "@/lib/strategyRunner";
 import { trackKalshiPredictions } from "@/lib/calibrationTracking";
 import { refreshStudySlice } from "@/lib/kalshiStudy";
+import { refreshGrowthFundamentals } from "@/lib/growthScreen";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // One weekday-evening cron for everything that runs daily: the strategy's
@@ -16,7 +17,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // the Strategy Lab's backtests (lib/strategyLabData.ts), and the Calibration
 // Tracker's Kalshi jobs: auto-resolving settled predictions and recording
 // each open one's price (lib/calibrationTracking.ts), plus one weekday's
-// fifth of the "Is Kalshi calibrated?" study (lib/kalshiStudy.ts). Vercel's free
+// fifth of the "Is Kalshi calibrated?" study (lib/kalshiStudy.ts), and a
+// fifth of the Growth Stocks screen's SEC numbers (lib/growthScreen.ts). Vercel's free
 // tier allows two cron jobs per project and the monthly rebalance is the
 // other. Each job is isolated — a failure in one is reported, not
 // propagated, and a failed refresh leaves the previous day's cache in place.
@@ -31,7 +33,7 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const [regime, political, legislation, geopolitics, financial, presidential, strategies, lab, calibration, kalshiStudy] = await Promise.allSettled([
+  const [regime, political, legislation, geopolitics, financial, presidential, strategies, lab, calibration, kalshiStudy, growth] = await Promise.allSettled([
     runRegimeCheck(),
     refreshPoliticalSignals(),
     refreshAiSignals("legislation"),
@@ -52,6 +54,9 @@ export async function GET(request: Request) {
       return counts;
     })(),
     refreshStudySlice(),
+    // One fifth of the S&P 500's SEC numbers for the Growth Stocks screen
+    // (lib/growthScreen.ts): every company refreshed once a week.
+    refreshGrowthFundamentals(),
   ]);
   const report = (r: PromiseSettledResult<unknown>) =>
     r.status === "fulfilled" ? { ok: true, result: r.value } : { ok: false, error: r.reason instanceof Error ? r.reason.message : String(r.reason) };
@@ -67,5 +72,6 @@ export async function GET(request: Request) {
     strategyLab: report(lab),
     calibrationTracker: report(calibration),
     kalshiStudy: report(kalshiStudy),
+    growthScreen: report(growth),
   });
 }

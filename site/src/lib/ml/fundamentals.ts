@@ -107,6 +107,7 @@ export type FundamentalSnapshot = {
   niGrowth: number | null; // TTM net income vs a year earlier, capped at ±300%
   fcfMargin: number | null; // (operating cash flow − capital spending) / revenue
   equityRatio: number | null; // shareholders' equity / total assets: low = more debt
+  equity: number | null; // shareholders' equity, latest balance sheet (for return on equity = niTtm / equity)
   // For valuation, which needs a price (lib/ml/features.ts):
   revTtm: number | null;
   niTtm: number | null;
@@ -153,6 +154,7 @@ export function fundamentalSnapshots(companyFacts: any): FundamentalSnapshot[] {
       niGrowth: growth(niNow, ttm(ni, d, 4)),
       fcfMargin: ratio(fcf, revNow),
       equityRatio: ratio(latest(equity, d), latest(assets, d)),
+      equity: latest(equity, d),
       revTtm: revNow,
       niTtm: niNow,
       fcfTtm: fcf,
