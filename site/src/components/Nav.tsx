@@ -16,6 +16,7 @@ const TOOLS = [
   { href: "/monte-carlo", label: "Monte Carlo", hint: "10,000 simulated portfolio paths" },
   { href: "/quant/strategy-lab", label: "Strategy Lab", hint: "Five trading strategies tested on 10 years of real prices" },
   { href: "/quant/rule-tester", label: "Rule Tester", hint: "Flip the bot's rules, see $100K since 2017, and AI vs simple rules" },
+  { href: "/carbon", label: "Carbon Intensity", hint: "S&P 500 companies' greenhouse gas per $1M of sales, from EPA data" },
   { href: "/quant/backtester", label: "Regime Backtester", hint: "The strategy through 2008, 2020, 2022 and a bull run" },
   { href: "/quant/factor-risk", label: "Factor Risk", hint: "Equity, rates and inflation risk in a multi-asset mix" },
   { href: "/quant/vol-smile", label: "Vol Smile", hint: "Implied volatility across strikes, with dials" },

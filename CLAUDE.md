@@ -55,6 +55,7 @@ calls use `claude-opus-5`.
 - `/monte-carlo` — 10,000 simulated portfolio paths and goal probability
 - `/quant/strategy-lab` — five strategies (buy-and-hold SPY, trend following, momentum, mean reversion, breakout) backtested on real daily prices since 2017 across the ~94-stock universe; a "Live portfolios" tab shows momentum, breakout and mean reversion trading their own $100K paper accounts every 15 minutes against a buy-and-hold S&P 500 control account
 - `/quant/rule-tester` — Rule Tester: four plain-English switches for the Signal Trader's rules (sector cap, stop-loss, trailing stop, market filter) → growth of $100K since 2017 vs SPY, a "lucky or real?" check (beat SPY in both 2017–21 and 2022–26?), and AI models vs simple rules. All 36 combinations precomputed into `public/data/rule-tester.json` by `scripts/backtest-timing.ts --export` (price-only copy of the bot; needs the bars cache from `scripts/ml/fetch-data.ts`); ML research code in `src/lib/ml` + `scripts/ml`, reports in `projects/paper-trading/ML_REPORT*.md` and `*_BACKTEST.md`
+- `/carbon` — Carbon Intensity: S&P 500 companies' US direct (Scope 1) emissions per $1M of revenue, 2019–2023, by sector, with each company's trend and biggest sites. Static `public/data/carbon.json` built offline: `scripts/carbon/fetch-ghgrp.ts` (EPA GHGRP via Envirofacts, free, no key, ~5 min) then `scripts/carbon/build-carbon.ts` (splits facility emissions by ownership share to parents, matches parents to tickers + a hand-checked `ALIASES` table, revenue from the ML fundamentals cache; revenue under $1B is treated as missing)
 - `/quant/backtester` — the live strategy run through four synthetic regimes
 - `/quant/factor-risk` — market/rates/inflation variance attribution
 - `/quant/vol-smile` — options volatility smile with Black-Scholes price and delta
@@ -93,7 +94,7 @@ calls use `claude-opus-5`.
 facts, ratios) · **Anthropic API** (all AI features, the only paid one) ·
 **political trade sources** — House Clerk PTR PDFs, efdsearch.senate.gov,
 open-cabinet.org's OGE 278-T extraction, and the congress-legislators dataset
-for committee overlap · Yahoo Finance RSS for headlines · **Kalshi** public
+for committee overlap · Yahoo Finance RSS for headlines · **EPA Greenhouse Gas Reporting Program** (facility emissions, free, offline build only) · **Kalshi** public
 market data (read-only, no key) for the Calibration Tracker. Full table with
 licences and caveats: `docs/DATA_AND_ENV.md`.
 
