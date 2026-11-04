@@ -1,4 +1,4 @@
-// Financial story: companies in the curated universe whose latest 10-K
+// Financial story: companies on the research list (lib/researchUniverse.ts) whose latest 10-K
 // tells a story worth reading — margins expanding or compressing, a
 // turnaround, a cash machine, leverage moving. Built entirely from the
 // ratio engine the research page already uses (computeRatios over SEC's
@@ -9,7 +9,8 @@
 import { computeRatios, getCompanyFacts, resolveTicker, type RatioDashboard } from "@/lib/edgar";
 import { formatCurrencyCompact, formatPercent, formatRatio } from "@/lib/format";
 import { getRedis } from "@/lib/kv";
-import { SECTOR_KEYS, SECTORS } from "@/lib/sectors";
+import { RESEARCH_UNIVERSE } from "@/lib/researchUniverse";
+import { SECTORS } from "@/lib/sectors";
 import type { Signal, SignalBatch } from "./types";
 
 const KEY = "signals:financial";
@@ -39,7 +40,9 @@ const pp = (v: number) => `${(v * 100).toFixed(1)} pts`;
 // Every story the dashboard supports, evaluated against one company.
 // Banks, brokers and card issuers: operating cash flow is mostly loan and
 // deposit movement, so "free cash flow" isn't the signal it is elsewhere.
-const FINANCIALS = new Set<string>(SECTORS.financials.tickers);
+// Insurers too: their cash flow swings with premiums held and claims paid.
+// Exchanges and ratings firms (ICE, CME, SPGI) are ordinary businesses here.
+const FINANCIALS = new Set<string>([...SECTORS.financials.tickers, "PNC", "USB", "PGR", "CB", "KKR"]);
 
 function findStories(d: RatioDashboard, ticker: string): Story[] {
   const stories: Story[] = [];
@@ -156,7 +159,7 @@ function findStories(d: RatioDashboard, ticker: string): Story[] {
 }
 
 export async function refreshFinancialSignals(now = new Date()): Promise<SignalBatch> {
-  const universe = [...new Set(SECTOR_KEYS.flatMap((k) => [...SECTORS[k].tickers]))];
+  const universe = RESEARCH_UNIVERSE;
   const staleBefore = new Date(now.getTime() - MAX_FILING_AGE_DAYS * 86_400_000).toISOString().slice(0, 10);
 
   const candidates: { signal: Signal; secondary: Story[] }[] = [];

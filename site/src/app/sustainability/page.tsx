@@ -5,6 +5,7 @@ import { Callout } from "@/components/ui";
 import { FUND_NAME, FUND_TICKERS, FUND_URL } from "@/lib/sustainabilityFund";
 import CarbonExplorer from "./CarbonExplorer";
 import FundTracker from "./FundTracker";
+import GreenScore from "./GreenScore";
 import Orbit from "./Orbit";
 
 export const metadata: Metadata = {
@@ -16,8 +17,9 @@ export const metadata: Metadata = {
 // component inside the wrapper reads green tokens instead of the site's.
 const SECTIONS = [
   { id: "fund", n: "01", label: "Fund tracker" },
-  { id: "carbon", n: "02", label: "Carbon intensity" },
-  { id: "method", n: "03", label: "Method" },
+  { id: "green", n: "02", label: "Green Score" },
+  { id: "carbon", n: "03", label: "Carbon intensity" },
+  { id: "method", n: "04", label: "Method" },
 ];
 
 // Headline numbers from the carbon dataset, read once at build time (the
@@ -107,25 +109,43 @@ export default async function SustainabilityPage() {
             </div>
           </section>
 
-          {/* 02 Carbon */}
+          {/* 02 Green Score */}
+          <section id="green" className="mt-14 scroll-mt-20">
+            <SectionTitle n="02" title="Green Score">
+              How green is a company compared with the others in its own industry? A utility will never look as clean as Visa, so
+              each one is graded only against its peers on four measures from public data: carbon intensity, whether it&apos;s
+              falling, toxic chemical releases, and whether it has an independently approved climate target.
+            </SectionTitle>
+            <GreenScore />
+          </section>
+
+          {/* 03 Carbon */}
           <section id="carbon" className="mt-14 scroll-mt-20">
-            <SectionTitle n="02" title="Carbon intensity">
+            <SectionTitle n="03" title="Carbon intensity">
               How much greenhouse gas S&amp;P 500 companies&apos; US facilities release for every $1 million of sales. It&apos;s the
               number sustainability funds screen on, and it shows who would be hit hardest if carbon ever had a price.
             </SectionTitle>
             <CarbonExplorer />
           </section>
 
-          {/* 03 Method */}
+          {/* 04 Method */}
           <section id="method" className="mt-14 scroll-mt-20">
-            <SectionTitle n="03" title="How it works">
+            <SectionTitle n="04" title="How it works">
               Where every number on this page comes from.
             </SectionTitle>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
               <Callout label="fund basket">
                 Each holding&apos;s % return from the period&apos;s first close, dividends included, averaged with equal weights. The
                 fund&apos;s real position sizes aren&apos;t public, so this is a stand-in for it. It also uses today&apos;s holdings for the
                 whole period, so the longer periods flatter it: the fund picked these names with hindsight.
+              </Callout>
+              <Callout label="green score">
+                Four pillars, each a percentile among industry peers (100 = cleanest in the industry): carbon intensity 35%, its
+                trend since 2019 15%, toxic releases per $1M of sales 25% (EPA Toxics Release Inventory), and climate target 25%
+                (Science Based Targets initiative: approved target plus net zero, approved target, promise only, or none). A pillar
+                where every company in an industry is the same doesn&apos;t count there. Differences under 1 t CO₂e or 0.1 lb of
+                toxics per $1M of sales count as zero. Blind spots: only direct, US emissions are seen, so a royalty company that
+                owns no mines, or a bank that lends to oil drillers, looks clean.
               </Callout>
               <Callout label="carbon intensity">
                 Tons of CO₂-equivalent from a company&apos;s large US facilities ÷ (its revenue ÷ $1M). EPA&apos;s Greenhouse Gas

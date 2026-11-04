@@ -4,8 +4,8 @@
 // holdings vs the S&P 500 (SPY) over a chosen period.
 //
 // Prices: /api/industries (the same cached Alpaca data as Industry Charts on
-// /research), so this page adds no new API calls. Carbon: the static
-// /data/carbon.json behind the Carbon Intensity section below.
+// /research), so this page adds no new API calls. Green Score: the static
+// /data/green.json behind the Green Score section below.
 //
 // "The basket" = an equal-weight average of the holdings: what you'd have
 // made putting the same dollars into each stock at the start of the period.
@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, ChartLoading, Chip, SectionHeader, StatCard } from "@/components/ui";
 import { formatPercent } from "@/lib/format";
 import { averageSeries, lastValue, PERIOD_KEYS, PERIODS, type IndustryData, type PeriodKey } from "@/lib/industries";
+import { scoreColor, type GreenData } from "@/lib/greenScore";
 import { FUND_HOLDINGS } from "@/lib/sustainabilityFund";
 import type { ChartLine } from "../research/IndustryChart";
 
@@ -27,8 +28,6 @@ const IndustryChart = dynamic(() => import("../research/IndustryChart"), {
 // Clicked holdings take these in order (the accent is the basket's line).
 const PICK_COLORS = ["var(--eco-cyan)", "var(--series-4)", "var(--status-bad)"];
 
-type CarbonCompany = { ticker: string; emissions: Record<string, number>; revenue: Record<string, number | null> };
-type CarbonData = { years: number[]; companies: CarbonCompany[] };
 
 const signedPct = (v: number, decimals = 1) => `${v > 0 ? "+" : ""}${formatPercent(v, { decimals })}`;
 function Signed({ value }: { value: number | null }) {
@@ -58,7 +57,7 @@ export default function FundTracker() {
   const [period, setPeriod] = useState<PeriodKey>("1y");
   const [cache, setCache] = useState<Partial<Record<PeriodKey, IndustryData>>>({});
   const [errors, setErrors] = useState<Partial<Record<PeriodKey, string>>>({});
-  const [carbon, setCarbon] = useState<CarbonData | null>(null);
+  const [green, setGreen] = useState<GreenData | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
   const [hovered, setHovered] = useState<string | null>(null);
 
@@ -93,24 +92,28 @@ export default function FundTracker() {
   }, [period, isLive]);
 
   useEffect(() => {
-    fetch("/data/carbon.json")
+    fetch("/data/green.json")
       .then((res) => (res.ok ? res.json() : null))
-      .then(setCarbon)
-      .catch(() => {}); // the carbon line on each card just stays empty
+      .then(setGreen)
+      .catch(() => {}); // the Green Score line on each card just stays empty
   }, []);
 
-  // Carbon intensity (tons CO2e per $1M of sales) in the latest EPA year, for
-  // the holdings that have big US facilities.
-  const carbonYear = carbon?.years[carbon.years.length - 1];
-  const intensityOf = useMemo(() => {
-    const m = new Map<string, number | null>();
-    if (!carbon || !carbonYear) return m;
-    for (const c of carbon.companies) {
-      const r = c.revenue[carbonYear];
-      m.set(c.ticker, r ? c.emissions[carbonYear] / (r / 1e6) : null);
-    }
-    return m;
-  }, [carbon, carbonYear]);
+  // Each holding's Green Score (0-100 vs its own industry), and the question
+  // the fund's name raises: are its holdings greener than their peers? Every
+  // industry's middle is about 50, so the benchmark is the average score of
+  // all ~210 companies on the research list.
+  const greenOf = useMemo(() => new Map((green?.companies ?? []).map((c) => [c.ticker, c])), [green]);
+  const greenSummary = useMemo(() => {
+    if (!green) return null;
+    const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((s, x) => s + x, 0) / xs.length) : null);
+    const fund = FUND_HOLDINGS.map((h) => greenOf.get(h.ticker)?.score).filter((x): x is number => x != null);
+    const all = green.companies.map((c) => c.score).filter((x): x is number => x != null);
+    const topHalf = FUND_HOLDINGS.filter((h) => {
+      const c = greenOf.get(h.ticker);
+      return c?.rank != null && c.rank <= Math.ceil(c.of / 2);
+    }).length;
+    return { fund: avg(fund), all: avg(all), topHalf, scored: fund.length };
+  }, [green, greenOf]);
 
   const holdings = useMemo(
     () =>
@@ -218,6 +221,30 @@ export default function FundTracker() {
         )}
       </Card>
 
+      {greenSummary && (
+        <Card as="section" className="mt-4">
+          <SectionHeader
+            label="is the fund actually green?"
+            description="Each holding's Green Score compares it only with its own industry (see Green Score below). If the fund picks the cleaner companies in each industry, its average should beat the average company's."
+          />
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard
+              size="lg"
+              label="Fund holdings' average"
+              value={<span style={{ color: scoreColor(greenSummary.fund) }}>{greenSummary.fund ?? "N/A"}</span>}
+              hint={<span className="text-zinc-500">Green Score, of {greenSummary.scored} scored</span>}
+            />
+            <StatCard size="lg" label="All ~210 companies" value={greenSummary.all ?? "N/A"} hint={<span className="text-zinc-500">the benchmark</span>} />
+            <StatCard
+              size="lg"
+              label="Greener half of their industry"
+              value={`${greenSummary.topHalf} of ${FUND_HOLDINGS.length}`}
+              hint={<span className="text-zinc-500">holdings</span>}
+            />
+          </div>
+        </Card>
+      )}
+
       {data && (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {groups.map(([theme, list]) => (
@@ -226,7 +253,7 @@ export default function FundTracker() {
               <div className="mt-2 space-y-2">
                 {list.map((h) => {
                   const color = colorOf(h.ticker);
-                  const ci = intensityOf.get(h.ticker);
+                  const g = greenOf.get(h.ticker);
                   return (
                     <Card
                       key={h.ticker}
@@ -253,12 +280,15 @@ export default function FundTracker() {
                       <div className="relative">
                         <Spark values={h.values} color={color ?? "var(--accent)"} />
                       </div>
-                      <p className="relative text-[10px] text-zinc-500" title="Tons of CO₂-equivalent from the company's large US facilities per $1M of sales (EPA). See Carbon Intensity below.">
-                        {ci != null
-                          ? `${Math.round(ci).toLocaleString()} t CO₂e per $1M of sales (${carbonYear})`
-                          : intensityOf.has(h.ticker)
-                            ? `EPA-reported emissions, no sales figure`
-                            : "No large US emitting sites in EPA data"}
+                      <p className="relative text-[10px] text-zinc-500" title="0-100 vs its own industry: 100 = cleanest in the industry. See Green Score below.">
+                        {g?.score != null ? (
+                          <>
+                            Green Score <span className="tabular-nums" style={{ color: scoreColor(g.score) }}>{g.score}</span> · #{g.rank} of {g.of}{" "}
+                            in {green!.industries[g.industry].label}
+                          </>
+                        ) : (
+                          "Green Score: not enough data"
+                        )}
                       </p>
                     </Card>
                   );

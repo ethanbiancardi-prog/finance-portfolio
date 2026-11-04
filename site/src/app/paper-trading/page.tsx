@@ -193,7 +193,7 @@ export default function PaperTrading() {
         />
         <ul className="mt-3 max-w-2xl list-disc space-y-1 pl-4 text-xs leading-5 text-zinc-400">
           <li>
-            Scores each of the ~94 stocks in the sector lists on three things: the latest 10-K&apos;s story, +2 or −2;
+            Scores each of the ~210 stocks on the research list on three things: the latest 10-K&apos;s story, +2 or −2;
             the price trend, up to +2; and 12-month momentum against the other stocks, up to +2.
           </li>
           <li>

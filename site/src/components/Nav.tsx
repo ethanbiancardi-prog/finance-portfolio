@@ -8,8 +8,8 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 // Nav, grouped by what a visitor came for: research, the live trading
 // bots, and the calculators. The two groups with many pages are dropdowns.
-// Account pages (dashboard, Calibration Tracker) aren't here: they're
-// personal, reached from the footer's "Sign in" (see Footer.tsx).
+// The dashboard isn't here: it's personal, reached from the footer's
+// "Sign in" (see Footer.tsx). The Calibration Tracker is under Trading.
 type NavItem = { href: string; label: string; hint: string };
 type Menu = { key: string; label: string; items: NavItem[] };
 type Entry = { href: string; label: string } | Menu;
@@ -20,6 +20,8 @@ const TRADING: NavItem[] = [
   { href: "/quant/strategy-lab", label: "Strategy Lab", hint: "Five trading strategies tested on 10 years of real prices" },
   { href: "/quant/rule-tester", label: "Rule Tester", hint: "Flip the bot's rules, see $100K since 2017, and AI vs simple rules" },
   { href: "/quant/backtester", label: "Regime Backtester", hint: "The strategy through 2008, 2020, 2022 and a bull run" },
+  // Signed-in only: signed out, proxy.ts sends this to /login first.
+  { href: "/calibration", label: "Calibration Tracker", hint: "Your predictions scored against Kalshi markets (sign in)" },
 ];
 const TOOLS: NavItem[] = [
   { href: "/dcf-builder", label: "DCF Builder", hint: "Valuation with sensitivity table" },

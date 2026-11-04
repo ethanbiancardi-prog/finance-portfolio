@@ -1,6 +1,8 @@
 // Signal Trader: the algorithm that trades the showcase portfolio (the
 // dashboard account named by SHOWCASE_USER_ID) on its own, buying from the
-// ~94 stocks in the sector lists. Each stock is scored on three drivers:
+// ~210 stocks on the research list (lib/researchUniverse.ts; it was the ~94
+// in lib/sectors.ts until Nov 4 2026, which the Momentum strategy and Strategy
+// Lab still use). Each stock is scored on three drivers:
 // the latest 10-K story, price trend and momentum (see scoreSignals
 // below). Rules in
 // projects/paper-trading/SIGNAL_TRADER.md; every number lives in RULES
@@ -29,7 +31,7 @@ import { alpaca, getTradableAssets } from "./alpaca";
 import { getRedis, kvConfigured } from "./kv";
 import { getDailyBars, getLatestPrices, type DailyBar } from "./marketdata";
 import { nyDate, replay, type PaperTradeRow } from "./portfolio";
-import { SECTOR_KEYS, SECTORS } from "./sectors";
+import { RESEARCH_SECTOR_KEYS, RESEARCH_SECTORS, RESEARCH_UNIVERSE } from "./researchUniverse";
 import { getChartScores } from "./signals/chart";
 import { getFinancialSignals } from "./signals/financial";
 import { RULES, type SignalOrder } from "./signalTraderRules";
@@ -43,9 +45,10 @@ export type Candidate = { symbol: string; score: number; evidence: Evidence[] };
 
 const BEARISH_STORIES = /compressing|leverage rising/i;
 
-// The universe the algorithm buys from: every stock in the sector lists.
+// The universe the algorithm buys from: every stock on the research list,
+// the same ~210 the /research Industry Charts show.
 export function traderUniverse(): string[] {
-  return [...new Set(SECTOR_KEYS.flatMap((k) => [...SECTORS[k].tickers]))];
+  return RESEARCH_UNIVERSE;
 }
 
 // One score per stock, summed across three drivers. `holdings` are scored
@@ -96,20 +99,21 @@ export type Market = {
   sma200: number | null;
 };
 
-// Each stock's sector, for the RULES.maxPerSector cap. The sector lists
-// (lib/sectors.ts) give most; Sustainability isn't a real sector, so its
-// names, and holdings bought from outside the lists, are mapped by hand.
+// Each stock's sector, for the RULES.maxPerSector cap. The research list's
+// sectors give most (so chips and software are separate sectors, as are
+// materials and industrials); Sustainability isn't a real sector, so its
+// names, and holdings bought from outside the list, are mapped by hand.
 // Anything unknown shares one "other" bucket, which the cap also applies to.
 const SECTOR_OVERRIDES: Record<string, string> = {
   AMAT: "technology", KEYS: "technology",
   CI: "healthcare", ENSG: "healthcare", DGX: "healthcare", ELV: "healthcare", TAK: "healthcare",
   DOV: "industrials", RSG: "industrials",
-  DUK: "utilities", RGLD: "materials", SPG: "real estate",
+  DUK: "utilities", RGLD: "materials", SPG: "realEstate",
 };
 export function sectorOf(symbol: string): string {
-  for (const k of SECTOR_KEYS) {
+  for (const k of RESEARCH_SECTOR_KEYS) {
     if (k === "sustainability") continue;
-    if ((SECTORS[k].tickers as readonly string[]).includes(symbol)) return k;
+    if (RESEARCH_SECTORS[k].tickers.includes(symbol)) return k;
   }
   return SECTOR_OVERRIDES[symbol] ?? "other";
 }

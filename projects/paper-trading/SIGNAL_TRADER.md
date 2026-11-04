@@ -6,8 +6,9 @@ Paper money, built to learn from, not investment advice.
 
 ## The idea
 
-Score every stock in my universe (the ~94 stocks in the sector lists,
-`site/src/lib/sectors.ts`) on three drivers, then buy the strongest ones
+Score every stock in my universe (the ~210 stocks on the research list,
+`site/src/lib/researchUniverse.ts`, since Nov 4 2026; before that the ~94 in
+`site/src/lib/sectors.ts`, which the Rule Tester backtests still use) on three drivers, then buy the strongest ones
 while their price trend is up.
 
 Until Oct 2026 the score came from Congress members' disclosed trades and the
