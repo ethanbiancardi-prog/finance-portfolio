@@ -20,7 +20,7 @@ export const SECTORS = {
   communications: {
     label: "Communications",
     description: "Internet platforms, streaming, telecom, and games.",
-    tickers: ["GOOGL", "META", "NFLX", "DIS", "CMCSA", "TMUS", "VZ", "T", "SPOT", "WBD", "TTWO", "RBLX"],
+    tickers: ["GOOGL", "META", "NFLX", "DIS", "CMCSA", "TMUS", "VZ", "T", "SPOT", "TTWO", "RBLX"], // WBD removed Nov 2026: bought out for cash, last traded Oct 5
   },
   consumer: {
     label: "Consumer",

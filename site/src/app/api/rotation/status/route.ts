@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { alpaca } from "@/lib/alpaca";
 import { computeRotationPlan } from "@/lib/rotation";
-import { getLastRebalance } from "@/lib/rotationStore";
+import { getLastAttempt, getLastRebalance } from "@/lib/rotationStore";
 
 // Read-only: recomputes this month's picks live and reports the last
 // executed rebalance. Safe to call anytime — places no orders.
 export async function GET() {
   const account = await alpaca("/account");
   const plan = await computeRotationPlan(Number(account.equity));
-  const lastRebalance = await getLastRebalance();
+  const [lastRebalance, lastAttempt] = await Promise.all([getLastRebalance(), getLastAttempt()]);
 
   return NextResponse.json({
     asOf: new Date().toISOString(),
@@ -20,5 +20,7 @@ export async function GET() {
     leveraged: plan.leveraged,
     targets: plan.targets,
     lastRebalance,
+    // The latest attempt, even one that placed nothing (blocked, crashed).
+    lastAttempt,
   });
 }

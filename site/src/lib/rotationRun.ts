@@ -1,12 +1,39 @@
 import { alpaca, placeMarketOrder } from "@/lib/alpaca";
 import { computeRotationPlan, diffRebalance, type SectorKey } from "@/lib/rotation";
-import { getLastRebalance, saveRebalance, type RebalanceTrigger } from "@/lib/rotationStore";
+import { getLastRebalance, saveAttempt, saveRebalance, type RebalanceTrigger } from "@/lib/rotationStore";
 
 // The one piece of code on the site that places trades with no human in the
 // loop. Called by three routes: the monthly cron (/run GET), the "Run
 // Rebalance Now" button (/run POST), and the daily circuit-breaker check
 // (/check) when the regime has flipped since the last rebalance.
+// Every attempt is recorded (rotation:last-attempt), whether it traded, was
+// blocked, or crashed, so a run that did nothing shows up on /rotation.
 export async function runRebalance(trigger: RebalanceTrigger) {
+  const at = new Date().toISOString();
+  const month = at.slice(0, 7);
+  try {
+    const r = await rebalance(trigger);
+    const placed = r.placedOrders.length;
+    const failed = r.failedOrders.length;
+    await saveAttempt({
+      at,
+      month,
+      trigger,
+      outcome: r.blocked ? "blocked" : failed ? "partial" : "done",
+      reason: r.blocked ? r.reason : failed ? r.failedOrders.map((o) => `${o.side} ${o.symbol}: ${o.error}`).join("; ") : undefined,
+      placed,
+      failed,
+      dropped: r.dropped.length ? r.dropped : undefined,
+    }).catch(() => {}); // never let bookkeeping hide the run's own result
+    return r;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    await saveAttempt({ at, month, trigger, outcome: "error", reason, placed: 0, failed: 0 }).catch(() => {});
+    throw err;
+  }
+}
+
+async function rebalance(trigger: RebalanceTrigger) {
   const account = await alpaca("/account");
   const plan = await computeRotationPlan(Number(account.equity));
 
@@ -20,7 +47,19 @@ export async function runRebalance(trigger: RebalanceTrigger) {
   // other two satellites' positions (see projects/paper-trading/STRATEGY.md)
   // — that's the actual reason we diff against our own remembered symbol
   // list instead of the account's full position list, not live drift.
-  const currentQtyBySymbol = new Map((lastState?.positions ?? []).map((p) => [p.symbol, p.qty]));
+  const livePositions: { symbol: string; current_price: string }[] = await alpaca("/positions");
+
+  // One exception to trusting the record: a recorded position the account no
+  // longer holds at all, in a record at least 3 days old (so it can't be an
+  // order that hasn't filled yet), is gone: bought out for cash or delisted.
+  // WBD was, on Oct 12 2026. Left in, the run would try to sell shares that
+  // don't exist every month. Dropped from the record instead.
+  const held = new Set(livePositions.map((p) => p.symbol));
+  const stale = !!lastState && Date.now() - new Date(lastState.ranAt).getTime() > 3 * 86_400_000;
+  const dropped = stale ? (lastState?.positions ?? []).filter((p) => !held.has(p.symbol)).map((p) => p.symbol) : [];
+  const currentQtyBySymbol = new Map(
+    (lastState?.positions ?? []).filter((p) => !dropped.includes(p.symbol)).map((p) => [p.symbol, p.qty]),
+  );
 
   const orderIntents = diffRebalance(currentQtyBySymbol, plan.targets);
   const month = new Date().toISOString().slice(0, 7);
@@ -33,7 +72,6 @@ export async function runRebalance(trigger: RebalanceTrigger) {
   // refuse the whole run — placing nothing — if it doesn't cover.
   const priceBySymbol = new Map<string, number>();
   for (const t of plan.targets) if (t.targetQty > 0) priceBySymbol.set(t.symbol, (t.targetWeight * Number(account.equity)) / t.targetQty);
-  const livePositions: { symbol: string; current_price: string }[] = await alpaca("/positions");
   for (const p of livePositions) if (!priceBySymbol.has(p.symbol)) priceBySymbol.set(p.symbol, Number(p.current_price));
   const dollars = (o: { symbol: string; qty: number }) => o.qty * (priceBySymbol.get(o.symbol) ?? 0);
   const buyDollars = orderIntents.filter((o) => o.side === "buy").reduce((sum, o) => sum + dollars(o), 0);
@@ -43,6 +81,7 @@ export async function runRebalance(trigger: RebalanceTrigger) {
     return {
       month,
       blocked: true,
+      dropped,
       reason: `This rebalance needs about $${Math.round(buyDollars).toLocaleString()} of buys but only $${Math.round(deployable).toLocaleString()} would be available without margin (cash $${Math.round(Number(account.cash)).toLocaleString()} + $${Math.round(sellDollars).toLocaleString()} from this run's sells). Sell the non-strategy positions first, then run again. No orders were placed.`,
       regime: plan.regime,
       picks: plan.picks,
@@ -140,5 +179,5 @@ export async function runRebalance(trigger: RebalanceTrigger) {
     sleeveDollars: plan.sleeveDollars,
   });
 
-  return { month, blocked: false, regime: plan.regime, picks: plan.picks, orders: orderIntents, placedOrders, failedOrders, skippedOrders };
+  return { month, blocked: false, dropped, regime: plan.regime, picks: plan.picks, orders: orderIntents, placedOrders, failedOrders, skippedOrders };
 }

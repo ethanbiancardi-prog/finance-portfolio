@@ -4,7 +4,9 @@ import { Ticker } from "@/components/Ticker";
 import { useEffect, useState } from "react";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/format";
 import { SECTOR_KEYS, SECTORS, type SectorKey as StockSectorKey } from "@/lib/sectors";
+import type { RebalanceAttempt } from "@/lib/rotationStore";
 import {
+  Callout,
   Card,
   GeometricLoader,
   Icon,
@@ -58,6 +60,7 @@ type Status = {
   leveraged: Target[];
   targets: Target[];
   lastRebalance: RebalanceRecord | null;
+  lastAttempt: RebalanceAttempt | null;
 };
 
 
@@ -182,6 +185,16 @@ export default function SectorRotation() {
               }
             />
           </section>
+
+          {/* The latest attempt didn't go through: say so, rather than leave an
+              old month under "Last Rebalance" looking like nothing's wrong. */}
+          {status.lastAttempt && status.lastAttempt.outcome !== "done" && (!status.lastRebalance || status.lastAttempt.at > status.lastRebalance.ranAt) && (
+            <Callout label={status.lastAttempt.outcome === "partial" ? "last rebalance partly failed" : status.lastAttempt.outcome === "blocked" ? "last rebalance was blocked" : "last rebalance hit an error"} className="mt-4">
+              {new Date(status.lastAttempt.at).toLocaleString()} ({TRIGGER_LABEL[status.lastAttempt.trigger]}):{" "}
+              {status.lastAttempt.reason ?? "no reason recorded"}
+              {status.lastAttempt.outcome === "partial" && ` ${status.lastAttempt.placed} orders went through, ${status.lastAttempt.failed} failed.`}
+            </Callout>
+          )}
 
           <section className="mt-4">
             <SectionHeader

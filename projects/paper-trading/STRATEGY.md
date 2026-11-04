@@ -97,6 +97,12 @@ sold once, by hand, before the first rebalance will run:
 2. Wait for the monthly cron on the 1st (there is no public run button).
    Until step 1 is done the run reports itself as blocked and places nothing.
 
+**Done 4 Nov 2026:** the seven ETFs were sold ($78,972). Every run from
+October on had been blocked by them, silently, so the last rebalance on
+record was 17 Sep. Blocked and failed runs are now recorded
+(`rotation:last-attempt`) and shown on /rotation. The stray AAPL share (a test buy
+from when the site was built) was sold the same day. Next scheduled rebalance: 1 Dec 2026.
+
 ## Benchmark
 
 SPY buy-and-hold over the same period, always. If the strategy doesn't beat it

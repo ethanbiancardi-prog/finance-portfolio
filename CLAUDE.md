@@ -182,9 +182,7 @@ momentum, its "thought process" log and self-journaled trades, the prism
 homepage, and the AI on/off switch. The Signal Trader is trading live.
 
 **Unverified** — the AI switch has never been tested set to `false` in
-production (needs a redeploy). The old passive ETF core may still need selling
-via `site/scripts/sell-core.js --execute`; that isn't visible from the code —
-check the live Alpaca account.
+production (needs a redeploy). The old passive ETF core was sold on Nov 4 2026 (it had silently blocked every Momentum rebalance since September; blocked/failed runs are now saved as `rotation:last-attempt` and shown on /rotation).
 
 **Next up** — everything Ethan might build lives in one list,
 `docs/PROJECT_IDEAS.md`; its "Up next" section is the current queue.

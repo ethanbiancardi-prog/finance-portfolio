@@ -33,9 +33,6 @@ const SPECS = {
     label: "Communications",
     description: "Internet platforms, streaming, telecom, advertising, and games.",
     base: "communications",
-    // Warner Bros. Discovery stopped trading on Oct 5 2026; it's still in
-    // the bots' sectors.ts, but a dead line doesn't belong on the chart.
-    drop: ["WBD"],
     add: ["CHTR", "LYV", "OMC", "PINS", "SNAP", "MTCH", "FOXA", "TTD"],
   },
   consumer: {
