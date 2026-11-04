@@ -20,6 +20,11 @@ export default async function Dashboard() {
       title="Dashboard"
       description="Your private area: your paper portfolio, your trade journal, and the account they belong to."
     >
+      {/* The Calibration Tracker is sign-in only and not in the nav, so its door is here. */}
+      <Card href="/calibration" interactive className="mt-4">
+        <p className="text-[11px] caps text-accent">Calibration Tracker →</p>
+        <p className="mt-1 text-xs text-zinc-500">Log predictions with your probability and score them against Kalshi and other markets.</p>
+      </Card>
       <Card as="section" className="mt-4">
         <SectionHeader label="signed in as" />
         {user.user_metadata?.full_name && (

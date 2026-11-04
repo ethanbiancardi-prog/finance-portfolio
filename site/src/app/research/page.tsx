@@ -12,6 +12,7 @@ import { BusinessSummary } from "./BusinessSummary";
 import { PlaybookPanel, type Playbook } from "./PlaybookPanel";
 import { StockMeter } from "./StockMeter";
 import { SignalsPanel } from "./SignalsPanel";
+import MarketNews from "./MarketNews";
 import { Overview } from "./Overview";
 import { SimpleProvider } from "./SimpleMode";
 import { SectionForce } from "@/components/ui/Section";
@@ -19,7 +20,7 @@ import { SectionForce } from "@/components/ui/Section";
 // The Industry Charts tab carries recharts, so it loads on its own.
 const IndustryCharts = dynamic(() => import("./IndustryCharts"), { ssr: false, loading: () => <PageLoading /> });
 
-type Tab = "industries" | "search" | "signals";
+type Tab = "industries" | "news" | "search" | "signals";
 
 // useSearchParams needs a Suspense boundary above it for static rendering.
 export default function Research() {
@@ -112,6 +113,7 @@ function ResearchPage() {
         <Tabs<Tab>
           tabs={[
             { key: "industries", label: "Industry Charts" },
+            { key: "news", label: "Market News" },
             { key: "search", label: "Search" },
             { key: "signals", label: "Research Signals" },
           ]}
@@ -193,6 +195,8 @@ function ResearchPage() {
       )}
 
       {tab === "industries" && <IndustryCharts onResearch={research} />}
+
+      {tab === "news" && <MarketNews onResearch={research} />}
     </PageShell>
   );
 }

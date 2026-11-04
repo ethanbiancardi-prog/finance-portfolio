@@ -1,5 +1,5 @@
 // Prices for the Industry Charts tab on /research: every stock in
-// lib/sectors.ts plus SPY, for one period, as % returns from the period's
+// lib/researchUniverse.ts plus SPY, for one period, as % returns from the period's
 // starting close. Two layers, both free Alpaca data cached in Redis:
 //   - history: daily closes from the consolidated (SIP) feed, which on the
 //     free plan runs ~15 minutes behind. Heavy (up to 5 years x 95 stocks),
@@ -13,9 +13,9 @@ import { type IndustryData, type PeriodKey } from "./industries";
 import { getRedis, kvConfigured } from "./kv";
 import { isMarketOpen } from "./alpaca";
 import { getDailyBars, getLatestPrices } from "./marketdata";
-import { SECTOR_KEYS, SECTORS } from "./sectors";
+import { RESEARCH_UNIVERSE } from "./researchUniverse";
 
-const CACHE_VERSION = "v2"; // bump when the cached shape changes
+const CACHE_VERSION = "v3"; // bump when the cached shape or the stock list changes
 const TTL_SECONDS = 10 * 60;
 const LIVE_TTL_SECONDS = 60;
 const LIVE_KEY = `industries:live:${CACHE_VERSION}`;
@@ -45,7 +45,8 @@ function periodStart(period: PeriodKey, now: Date): string {
 }
 
 export function industryUniverse(): string[] {
-  return [...new Set(SECTOR_KEYS.flatMap((k) => SECTORS[k].tickers))];
+  // The research list (lib/researchUniverse.ts), not the bots' sectors.ts.
+  return RESEARCH_UNIVERSE;
 }
 
 async function computeHistory(period: PeriodKey): Promise<History> {

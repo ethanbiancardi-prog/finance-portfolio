@@ -1,4 +1,6 @@
 import { Card, PageShell, SectionHeader } from "@/components/ui";
+import { getUser } from "@/lib/supabase/server";
+import ContactForm from "./ContactForm";
 
 function Tag({ children }: { children: string }) {
   return (
@@ -26,7 +28,12 @@ const COURSEWORK = [
   "Accounting",
 ];
 
-export default function About() {
+// The contact form lives here too (it used to be its own /contact page,
+// which now redirects to #message). ?type=bug|question|opportunity preselects
+// the category; a signed-in visitor gets their name and email filled in.
+export default async function About({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
+  const user = await getUser();
+  const { type } = await searchParams;
   return (
     <PageShell
       eyebrow="about"
@@ -144,6 +151,18 @@ export default function About() {
             </a>
           </p>
         </div>
+      </section>
+
+      <section id="message" className="mt-4 scroll-mt-20">
+        <SectionHeader
+          label="send me a message"
+          description="Found a bug, have a question about how something works, or want to talk about an opportunity? It lands straight in my inbox."
+        />
+        <ContactForm
+          defaultName={String(user?.user_metadata?.full_name ?? "")}
+          defaultEmail={user?.email ?? ""}
+          defaultCategory={type}
+        />
       </section>
 
       <section className="mt-4">

@@ -12,7 +12,12 @@ import {
   type IndustryData,
   type PeriodKey,
 } from "@/lib/industries";
-import { SECTOR_KEYS, SECTORS, type SectorKey } from "@/lib/sectors";
+// The research list (~230 stocks), not the bots' smaller sectors.ts.
+import {
+  RESEARCH_SECTOR_KEYS as SECTOR_KEYS,
+  RESEARCH_SECTORS as SECTORS,
+  type ResearchSectorKey as SectorKey,
+} from "@/lib/researchUniverse";
 import type { ChartLine } from "./IndustryChart";
 
 const IndustryChart = dynamic(() => import("./IndustryChart"), {
