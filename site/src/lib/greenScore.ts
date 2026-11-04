@@ -34,11 +34,11 @@ export type GreenData = {
   companies: GreenCompany[];
 };
 
-export const PILLARS: { key: PillarKey; label: string; what: string }[] = [
-  { key: "carbonIntensity", label: "Carbon intensity", what: "Greenhouse gas per $1M of sales from its own US sites. Lower is greener." },
-  { key: "carbonTrend", label: "Carbon trend", what: "How that intensity has changed since 2019. Falling is greener." },
-  { key: "toxics", label: "Toxic releases", what: "Pounds of toxic chemicals released per $1M of sales (EPA). Lower is greener." },
-  { key: "target", label: "Climate target", what: "Has an outside group (SBTi) checked and approved its plan to cut emissions?" },
+export const PILLARS: { key: PillarKey; label: string; short: string; what: string }[] = [
+  { key: "carbonIntensity", label: "Carbon intensity", short: "CO₂", what: "Greenhouse gas per $1M of sales from its own US sites. Lower is greener." },
+  { key: "carbonTrend", label: "Carbon trend", short: "Trend", what: "How that intensity has changed since 2019. Falling is greener." },
+  { key: "toxics", label: "Toxic releases", short: "Toxic", what: "Pounds of toxic chemicals released per $1M of sales (EPA). Lower is greener." },
+  { key: "target", label: "Climate target", short: "Target", what: "Has an outside group (SBTi) checked and approved its plan to cut emissions?" },
 ];
 
 // A colour for a 0-100 score: red at the bottom of the industry, amber in the

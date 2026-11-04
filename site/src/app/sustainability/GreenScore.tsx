@@ -85,12 +85,16 @@ export default function GreenScore() {
         ))}
         {info.pillarsCounted.length < PILLARS.length && " (crossed out: every company here is the same on it, or too few have data, so it can't separate them)"}
       </p>
+      <p className="mt-1 text-[11px] leading-5 text-zinc-500">
+        The tags on each row show what went into that company&apos;s score: lit and coloured by how it did on that measure if it
+        counted, faded and crossed out if it didn&apos;t. Missing measures are left out and the rest share their weight.
+      </p>
 
       <ol className="mt-3 divide-y divide-border">
         {rows.map((c) => (
           <li key={c.ticker}>
             <button onClick={() => setOpen(open === c.ticker ? null : c.ticker)} aria-expanded={open === c.ticker} className="w-full py-2 text-left">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:flex-nowrap">
                 <span className="w-6 shrink-0 text-right text-[11px] tabular-nums text-zinc-500">{c.rank ?? "–"}</span>
                 <span className="w-14 shrink-0 text-xs font-semibold tabular-nums text-foreground">{c.ticker}</span>
                 <span className="hidden min-w-0 flex-1 truncate text-xs text-zinc-500 sm:block">{tidyName(c.name, c.ticker)}</span>
@@ -102,6 +106,13 @@ export default function GreenScore() {
                 </span>
                 <span className="w-8 shrink-0 text-right text-sm tabular-nums" style={{ color: scoreColor(c.score) }}>
                   {c.score ?? "N/A"}
+                </span>
+                {/* Which pillars made up this score. On a phone they drop to
+                    their own line, lined up under the ticker. */}
+                <span className="order-last flex w-full gap-1 pl-9 sm:order-none sm:w-auto sm:shrink-0 sm:pl-0">
+                  {PILLARS.map((p) => (
+                    <PillarTag key={p.key} label={p.short} pillar={c.pillars[p.key]} name={p.label} />
+                  ))}
                 </span>
               </div>
             </button>
@@ -143,6 +154,22 @@ function Scorecard({ c, data }: { c: GreenCompany; data: GreenData }) {
         })}
       </div>
     </div>
+  );
+}
+
+// One pillar on a leaderboard row: lit and coloured by its 0-100 score if it
+// counted toward this company's Green Score, faded and struck through if not.
+function PillarTag({ label, name, pillar }: { label: string; name: string; pillar: GreenCompany["pillars"][keyof GreenCompany["pillars"]] }) {
+  const color = scoreColor(pillar.score);
+  return (
+    <span
+      title={pillar.counts ? `${name}: ${pillar.score} / 100. ${pillar.note}` : `${name}: doesn't count here. ${pillar.note}`}
+      className={`rounded-[var(--radius-sm)] border px-1 text-[9px] leading-4 tabular-nums ${pillar.counts ? "" : "border-dashed border-border text-zinc-500 line-through opacity-60"}`}
+      style={pillar.counts ? { borderColor: color, color, background: `color-mix(in srgb, ${color} 12%, transparent)` } : undefined}
+    >
+      {label}
+      {pillar.counts && <span className="ml-0.5 opacity-80">{pillar.score}</span>}
+    </span>
   );
 }
 
