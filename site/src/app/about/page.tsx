@@ -85,7 +85,7 @@ export default async function About({
     >
       <section className="mt-4">
         <SectionHeader label="how I got into finance" />
-        <div className="mt-2 flex flex-col gap-5 sm:flex-row sm:items-start">
+        <div className="mt-2 flex flex-col gap-6 sm:flex-row sm:items-center">
           <div className="max-w-2xl space-y-3 text-xs leading-5 text-zinc-400 sm:flex-1">
             <p>
               I got into finance because of my grandfather. He loved the stock
@@ -111,16 +111,19 @@ export default async function About({
               environmental finance. It feels like work with a greater purpose.
             </p>
           </div>
-          {/* Headshot: public/headshot.jpg, a 480px square crop of the original
-            with all camera/location metadata stripped. */}
-          <Image
-            src="/headshot.jpg"
-            alt="Ethan Biancardi"
-            width={176}
-            height={176}
-            priority
-            className="order-first mx-auto h-36 w-36 shrink-0 rounded-full border-2 border-border object-cover sm:order-none sm:mx-0 sm:h-44 sm:w-44"
-          />
+          {/* Headshot: public/headshot.jpg, a 640px square crop of the original
+            with all camera/location metadata stripped. Centered in the space to
+            the right of the story; above it on a phone. */}
+          <div className="order-first flex justify-center sm:order-none sm:flex-1">
+            <Image
+              src="/headshot.jpg"
+              alt="Ethan Biancardi"
+              width={256}
+              height={256}
+              priority
+              className="h-48 w-48 shrink-0 rounded-full border-2 border-border object-cover sm:h-56 sm:w-56 lg:h-64 lg:w-64"
+            />
+          </div>
         </div>
       </section>
 
