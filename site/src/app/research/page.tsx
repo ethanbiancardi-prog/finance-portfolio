@@ -33,9 +33,13 @@ export default function Research() {
 }
 
 function ResearchPage() {
-  const initialTicker = useSearchParams().get("ticker")?.toUpperCase() ?? null;
+  const params = useSearchParams();
+  const initialTicker = params.get("ticker")?.toUpperCase() ?? null;
+  // ?tab=growth|news|signals opens that tab (the About page links here).
+  const tabParam = params.get("tab");
+  const initialTab: Tab | null = tabParam === "growth" || tabParam === "news" || tabParam === "signals" ? tabParam : null;
   // Industry Charts is the home tab; a ?ticker= link goes straight to Search.
-  const [tab, setTab] = useState<Tab>(initialTicker ? "search" : "industries");
+  const [tab, setTab] = useState<Tab>(initialTicker ? "search" : (initialTab ?? "industries"));
 
   const [ticker, setTicker] = useState("");
   const [company, setCompany] = useState<Company | null>(null);

@@ -10,16 +10,42 @@ function Tag({ children }: { children: string }) {
   );
 }
 
-const FINANCE_SKILLS = ["Valuation", "Financial Modeling", "Portfolio Theory"];
+const FINANCE_SKILLS = ["Valuation", "Financial Modeling", "Portfolio Theory", "Backtesting", "ESG & Carbon Analysis", "Reading SEC Filings"];
 const TECHNICAL_SKILLS = ["Python", "TypeScript", "React / Next.js", "APIs"];
-const TARGET_ROLES = [
-  "Investment Banking",
-  "Equity Research",
-  "Asset Management",
-  "Wealth Management",
-  "Consulting",
-  "Quantitative Research / Trading",
-  "FinTech",
+const TARGET_ROLES = ["Asset Management", "Green & Sustainable Finance", "Environmental Finance"];
+
+// The few things a visitor should see first, each linking to the page.
+const HIGHLIGHTS = [
+  {
+    href: "/sustainability",
+    title: "Sustainable finance",
+    text: "A Green Score that grades about 210 companies against their own industry on carbon intensity, toxic releases and climate targets (EPA and Science Based Targets data), a live tracker of a real sustainability fund's holdings, and the carbon intensity of S&P 500 companies from EPA facility data.",
+  },
+  {
+    href: "/paper-trading",
+    title: "A trading bot that runs itself",
+    text: "Trades a $100,000 paper account every 15 minutes during market hours, scoring about 210 stocks on their latest annual report, price trend and momentum, with every decision and its reason logged.",
+  },
+  {
+    href: "/quant/rule-tester",
+    title: "Testing before trusting",
+    text: "Machine-learning models trained on 10 years of S&P 500 data lost to simple trend and momentum rules. The results, and why, are on the site.",
+  },
+  {
+    href: "/quant/diffusion",
+    title: "How fast news is priced in",
+    text: "More than 13,000 SEC filings timed to the minute: for big companies, about 70% of an earnings-day move happens in the first minute of trading.",
+  },
+  {
+    href: "/research?tab=growth",
+    title: "Growth stock screen",
+    text: "Every S&P 500 company checked against the growth-investing rules William O'Neil popularized: fast, steady profit growth, high return on equity, accelerating sales, an industry leader on a healthy chart. Usually only a handful pass.",
+  },
+  {
+    href: "/research",
+    title: "Stock research",
+    text: "Look up any stock: 17 ratios from its latest 10-K, price charts, industry charts for about 210 stocks, and a live market-news feed.",
+  },
 ];
 const COURSEWORK = [
   "Intro to Financial Reporting",
@@ -42,6 +68,28 @@ export default async function About({ searchParams }: { searchParams: Promise<{ 
       description="Double major, expected graduation Spring 2029."
     >
       <section className="mt-4">
+        <SectionHeader label="how I got into finance" />
+        <div className="mt-2 max-w-2xl space-y-3 text-xs leading-5 text-zinc-400">
+          <p>
+            I got into finance because of my grandfather. He loved the stock market and would always talk about how your
+            money could make money for you without you having to work for it. When I visited him, he would cut out an article
+            from <em>The Wall Street Journal</em> for me to read, so I could understand what was happening in the market. That
+            sparked my curiosity, and I&apos;ve wanted to learn how the markets work ever since. He may not have known it, but he
+            also taught me one of the most important lessons in investing: your emotions about a stock shouldn&apos;t decide
+            when you buy or sell.
+          </p>
+          <p>
+            Trading algorithms were my own idea. The thought of a machine making decisions from a clear set of rules
+            fascinates me, and it&apos;s the same lesson my grandfather taught me: take the emotion out of it.
+          </p>
+          <p>
+            Outside of finance, I love being outdoors and care deeply about the environment. That&apos;s what drew me to green
+            and environmental finance. It feels like work with a greater purpose.
+          </p>
+        </div>
+      </section>
+
+      <section className="mt-4">
         <SectionHeader label="why I built this" />
         <div className="mt-2 max-w-2xl space-y-3 text-xs leading-5 text-zinc-400">
           <p>
@@ -60,10 +108,33 @@ export default async function About({ searchParams }: { searchParams: Promise<{ 
             the final decision.
           </p>
           <p>
+            Building it also pulled me toward the part of finance I care about most: where money and the environment meet. PRISM
+            now has a sustainability section that grades companies against their own industry on carbon, toxic releases and
+            climate targets, and tracks a real sustainability fund against the market. That is the work I want to do: asset
+            management with an environmental lens.
+          </p>
+          <p>
             The biggest thing I have learned is that AI works best as a research assistant, not a decision maker. Every AI
             result on the site shows its source and the date it came from, and anywhere a plain formula does the job, like a
             DCF or a Sharpe ratio, I used the formula instead.
           </p>
+          <p>
+            The other lesson is to test an idea before trusting it. My machine-learning stock model lost to simple trend and
+            momentum rules, and a strict growth-stock checklist from a book I was reading looked great on paper but would have
+            left the portfolio mostly in cash. Both results are on the site, including the ones that didn&apos;t work.
+          </p>
+        </div>
+      </section>
+
+      <section className="mt-4">
+        <SectionHeader label="what I've built" description="The highlights. Click one to see it working." />
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {HIGHLIGHTS.map((h) => (
+            <Card key={h.href} href={h.href} interactive padding="sm">
+              <p className="relative text-xs font-semibold text-foreground">{h.title} →</p>
+              <p className="relative mt-1 text-[11px] leading-5 text-zinc-500">{h.text}</p>
+            </Card>
+          ))}
         </div>
       </section>
 
