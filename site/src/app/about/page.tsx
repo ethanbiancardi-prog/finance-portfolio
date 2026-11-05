@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Card, PageShell, SectionHeader } from "@/components/ui";
 import { getUser } from "@/lib/supabase/server";
 import ContactForm from "./ContactForm";
@@ -10,9 +11,20 @@ function Tag({ children }: { children: string }) {
   );
 }
 
-const FINANCE_SKILLS = ["Valuation", "Financial Modeling", "Portfolio Theory", "Backtesting", "ESG & Carbon Analysis", "Reading SEC Filings"];
+const FINANCE_SKILLS = [
+  "Valuation",
+  "Financial Modeling",
+  "Portfolio Theory",
+  "Backtesting",
+  "ESG & Carbon Analysis",
+  "Reading SEC Filings",
+];
 const TECHNICAL_SKILLS = ["Python", "TypeScript", "React / Next.js", "APIs"];
-const TARGET_ROLES = ["Asset Management", "Green & Sustainable Finance", "Environmental Finance"];
+const TARGET_ROLES = [
+  "Asset Management",
+  "Green & Sustainable Finance",
+  "Environmental Finance",
+];
 
 // The few things a visitor should see first, each linking to the page.
 const HIGHLIGHTS = [
@@ -57,7 +69,11 @@ const COURSEWORK = [
 // The contact form lives here too (it used to be its own /contact page,
 // which now redirects to #message). ?type=bug|question|opportunity preselects
 // the category; a signed-in visitor gets their name and email filled in.
-export default async function About({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
+export default async function About({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   const user = await getUser();
   const { type } = await searchParams;
   return (
@@ -69,23 +85,42 @@ export default async function About({ searchParams }: { searchParams: Promise<{ 
     >
       <section className="mt-4">
         <SectionHeader label="how I got into finance" />
-        <div className="mt-2 max-w-2xl space-y-3 text-xs leading-5 text-zinc-400">
-          <p>
-            I got into finance because of my grandfather. He loved the stock market and would always talk about how your
-            money could make money for you without you having to work for it. When I visited him, he would cut out an article
-            from <em>The Wall Street Journal</em> for me to read, so I could understand what was happening in the market. That
-            sparked my curiosity, and I&apos;ve wanted to learn how the markets work ever since. He may not have known it, but he
-            also taught me one of the most important lessons in investing: your emotions about a stock shouldn&apos;t decide
-            when you buy or sell.
-          </p>
-          <p>
-            Trading algorithms were my own idea. The thought of a machine making decisions from a clear set of rules
-            fascinates me, and it&apos;s the same lesson my grandfather taught me: take the emotion out of it.
-          </p>
-          <p>
-            Outside of finance, I love being outdoors and care deeply about the environment. That&apos;s what drew me to green
-            and environmental finance. It feels like work with a greater purpose.
-          </p>
+        <div className="mt-2 flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div className="max-w-2xl space-y-3 text-xs leading-5 text-zinc-400 sm:flex-1">
+            <p>
+              I got into finance because of my grandfather. He loved the stock
+              market and would always talk about how your money could make money
+              for you without you having to work for it. When I visited him, he
+              would cut out an article from <em>The Wall Street Journal</em> for
+              me to read, so I could understand what was happening in the
+              market. That sparked my curiosity, and I&apos;ve wanted to learn
+              how the markets work ever since. He may not have known it, but he
+              also taught me one of the most important lessons in investing:
+              your emotions about a stock shouldn&apos;t decide when you buy or
+              sell.
+            </p>
+            <p>
+              Trading algorithms were my own idea. The thought of a machine
+              making decisions from a clear set of rules fascinates me, and
+              it&apos;s the same lesson my grandfather taught me: take the
+              emotion out of it.
+            </p>
+            <p>
+              Outside of finance, I love being outdoors and care deeply about
+              the environment. That&apos;s what drew me to green and
+              environmental finance. It feels like work with a greater purpose.
+            </p>
+          </div>
+          {/* Headshot: public/headshot.jpg, a 480px square crop of the original
+            with all camera/location metadata stripped. */}
+          <Image
+            src="/headshot.jpg"
+            alt="Ethan Biancardi"
+            width={176}
+            height={176}
+            priority
+            className="order-first mx-auto h-36 w-36 shrink-0 rounded-full border-2 border-border object-cover sm:order-none sm:mx-0 sm:h-44 sm:w-44"
+          />
         </div>
       </section>
 
@@ -93,53 +128,77 @@ export default async function About({ searchParams }: { searchParams: Promise<{ 
         <SectionHeader label="why I built this" />
         <div className="mt-2 max-w-2xl space-y-3 text-xs leading-5 text-zinc-400">
           <p>
-            I built PRISM because I wanted to learn how a website is made and how different trading strategies work. I
-            started with a clear idea of what I wanted: a paper trading simulator that could automate trading, so I could find
-            out which strategies work best and potentially put real money through the same process one day. I did not think it
-            would turn out like this. It is not finished yet, and I keep adding to it every day.
+            I built PRISM because I wanted to learn how a website is made and
+            how different trading strategies work. I started with a clear idea
+            of what I wanted: a paper trading simulator that could automate
+            trading, so I could find out which strategies work best and
+            potentially put real money through the same process one day. I did
+            not think it would turn out like this. It is not finished yet, and I
+            keep adding to it every day.
           </p>
           <p>
-            I used AI for most of the coding and for finding data, which ties into the other reason I built this. I have
-            always been interested in finding ways to incorporate AI into finance, because I think it can make people in this
-            industry far more productive. Work that used to take an analyst hours, like reading through a 10-K or tracking news
-            across a whole portfolio, can now take minutes. On PRISM, AI summarizes 10-K filings, flags risks buried inside
-            them, argues a stock from six different investor viewpoints, and scans for new laws and world events that could
-            affect a company. That frees up time for the parts of the job that still need a person: judgment, conviction, and
-            the final decision.
+            I used AI for most of the coding and for finding data, which ties
+            into the other reason I built this. I have always been interested in
+            finding ways to incorporate AI into finance, because I think it can
+            make people in this industry far more productive. Work that used to
+            take an analyst hours, like reading through a 10-K or tracking news
+            across a whole portfolio, can now take minutes. On PRISM, AI
+            summarizes 10-K filings, flags risks buried inside them, argues a
+            stock from six different investor viewpoints, and scans for new laws
+            and world events that could affect a company. That frees up time for
+            the parts of the job that still need a person: judgment, conviction,
+            and the final decision.
           </p>
           <p>
-            Building it also pulled me toward the part of finance I care about most: where money and the environment meet. PRISM
-            now has a sustainability section that grades companies against their own industry on carbon, toxic releases and
-            climate targets, and tracks a real sustainability fund against the market. That is the work I want to do: asset
-            management with an environmental lens.
+            Building it also pulled me toward the part of finance I care about
+            most: where money and the environment meet. PRISM now has a
+            sustainability section that grades companies against their own
+            industry on carbon, toxic releases and climate targets, and tracks a
+            real sustainability fund against the market. That is the work I want
+            to do: asset management with an environmental lens.
           </p>
           <p>
-            The biggest thing I have learned is that AI works best as a research assistant, not a decision maker. Every AI
-            result on the site shows its source and the date it came from, and anywhere a plain formula does the job, like a
-            DCF or a Sharpe ratio, I used the formula instead.
+            The biggest thing I have learned is that AI works best as a research
+            assistant, not a decision maker. Every AI result on the site shows
+            its source and the date it came from, and anywhere a plain formula
+            does the job, like a DCF or a Sharpe ratio, I used the formula
+            instead.
           </p>
           <p>
-            The other lesson is to test an idea before trusting it. My machine-learning stock model lost to simple trend and
-            momentum rules, and a strict growth-stock checklist from a book I was reading looked great on paper but would have
-            left the portfolio mostly in cash. Both results are on the site, including the ones that didn&apos;t work.
+            The other lesson is to test an idea before trusting it. My
+            machine-learning stock model lost to simple trend and momentum
+            rules, and a strict growth-stock checklist from a book I was reading
+            looked great on paper but would have left the portfolio mostly in
+            cash. Both results are on the site, including the ones that
+            didn&apos;t work.
           </p>
         </div>
       </section>
 
       <section className="mt-4">
-        <SectionHeader label="what I've built" description="The highlights. Click one to see it working." />
+        <SectionHeader
+          label="what I've built"
+          description="The highlights. Click one to see it working."
+        />
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {HIGHLIGHTS.map((h) => (
             <Card key={h.href} href={h.href} interactive padding="sm">
-              <p className="relative text-xs font-semibold text-foreground">{h.title} →</p>
-              <p className="relative mt-1 text-[11px] leading-5 text-zinc-500">{h.text}</p>
+              <p className="relative text-xs font-semibold text-foreground">
+                {h.title} →
+              </p>
+              <p className="relative mt-1 text-[11px] leading-5 text-zinc-500">
+                {h.text}
+              </p>
             </Card>
           ))}
         </div>
       </section>
 
       <section className="mt-4">
-        <SectionHeader label="what I'm looking for" description="Summer finance internships." />
+        <SectionHeader
+          label="what I'm looking for"
+          description="Summer finance internships."
+        />
         <div className="mt-3 flex flex-wrap gap-1.5">
           {TARGET_ROLES.map((role) => (
             <Tag key={role}>{role}</Tag>
