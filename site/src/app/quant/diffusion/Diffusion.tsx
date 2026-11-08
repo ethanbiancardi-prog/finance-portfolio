@@ -70,6 +70,18 @@ export default function Diffusion() {
   const up = find(category, "up", timing, size);
   const down = find(category, "down", timing, size);
 
+  // The plain-English summary is about earnings, the clearest case.
+  const eUp = find("earnings", "up", "all", "all");
+  const eDown = find("earnings", "down", "all", "all");
+  const eDuring = find("earnings", "all", "intraday", "all")?.n ?? 0;
+  const eOutside = find("earnings", "all", "overnight", "all")?.n ?? 0;
+  // Share of the day-1 move already there at a checkpoint, good and bad news averaged.
+  const shareBy = (k: string) => {
+    if (!eUp || !eDown) return null;
+    const one = (g: DiffusionGroup) => (g.path[idx(k)] ?? 0) / (g.path[idx("d1")] || 1);
+    return Math.round(((one(eUp) + one(eDown)) / 2) * 100);
+  };
+
   return (
     <>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -78,6 +90,32 @@ export default function Diffusion() {
         <StatCard card size="lg" label="Earnings releases" value={(data.categories.find((c) => c.key === "earnings")?.events ?? 0).toLocaleString()} hint={<span className="text-zinc-500">item 2.02</span>} />
         <StatCard card size="lg" label="Timed to" value="the minute" hint={<span className="text-zinc-500">then daily for 60 days</span>} />
       </div>
+
+      <Callout label="what we found" className="mt-4">
+        <p>
+          <strong className="text-foreground">The question:</strong> when a company announces news, how fast does its stock price react?
+          If prices react slowly, a quick investor could profit after the headline. If they react instantly, there&apos;s nothing left to catch.
+        </p>
+        <ul className="mt-2 list-disc space-y-1 pl-4">
+          <li>
+            <strong className="text-foreground">Most earnings come out while the market is closed:</strong>{" "}
+            {eOutside.toLocaleString()} of {(eOutside + eDuring).toLocaleString()} here, usually before the open or after the close.
+          </li>
+          <li>
+            <strong className="text-foreground">The price jumps the moment trading opens:</strong> about {shareBy("1m")}% of the first
+            day&apos;s move happens in the first minute of trading, and about {shareBy("1h")}% within an hour.
+          </li>
+          <li>
+            <strong className="text-foreground">After the first day, there&apos;s almost nothing left:</strong> over the next 60 days the
+            average stock moved only another {pct(eUp?.drift60?.mean, 1)} after good news and {pct(eDown?.drift60?.mean, 1)} after bad news,
+            small enough to be luck.
+          </li>
+        </ul>
+        <p className="mt-2">
+          <strong className="text-foreground">Bottom line:</strong> for big US companies, earnings news is priced in almost instantly.
+          By the time most people read the headline, it&apos;s already in the price.
+        </p>
+      </Callout>
 
       <Card as="section" className="mt-4">
         <SectionHeader
@@ -107,6 +145,11 @@ export default function Diffusion() {
         </div>
         <p className="mt-2 text-[11px] text-zinc-500">{cat.what}.</p>
 
+        <p className="mt-3 rounded-[var(--radius-sm)] border border-border p-2 text-[11px] leading-5 text-zinc-500">
+          <strong className="text-foreground">How to read this chart:</strong> green is stocks that rose on the news, red is stocks that
+          fell. Time runs left to right, from minutes after the news to weeks after. A line that jumps right after &quot;News&quot; and then
+          goes flat means the news was priced in fast. A line that keeps climbing to the right would mean the market was slow.
+        </p>
         <div className="mt-3">
           {lines.length ? <DiffusionChart checkpoints={data.checkpoints} lines={lines} /> : <p className="py-16 text-center text-xs text-zinc-500">Too few events in this combination to show.</p>}
         </div>
@@ -199,6 +242,13 @@ export default function Diffusion() {
       </Card>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <Callout label="the terms, in a few words" className="md:col-span-2">
+          <strong className="text-foreground">Abnormal return:</strong> the stock&apos;s move minus the market&apos;s, so a rally everywhere
+          doesn&apos;t count as a reaction. <strong className="text-foreground">Half-life:</strong> how long until half of the final move had
+          happened. <strong className="text-foreground">Drift:</strong> extra movement after the first day.{" "}
+          <strong className="text-foreground">t-stat:</strong> how sure we are it isn&apos;t luck; under about 2 means we can&apos;t be sure.{" "}
+          <strong className="text-foreground">8-K:</strong> the form US companies must file when something important happens.
+        </Callout>
         <Callout label="how it's measured">
           Every 8-K filed by the ~210 companies on the research list since {data.period.from}, timed to the second SEC accepted it. News
           filed during market hours is measured from that minute&apos;s price; news filed before the open or after the close, from the

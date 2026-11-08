@@ -9,7 +9,7 @@ import { Callout, Card, ChartLoading, Chip, SectionHeader, StatCard } from "@/co
 import type { GrowthRow } from "@/lib/growthScreen";
 
 type Screen = {
-  rules: { profitGrowth: number; netMargin: number; roe: number; salesGrowth: number; nearHigh: number };
+  rules: { profitGrowth: number; netMargin: number; roe: number; salesGrowth: number; nearHigh: number; marketScore: number; sectorScore: number };
   priceDay: string;
   fundamentals: { companies: number; oldest: string | null; newest: string | null };
   rows: GrowthRow[];
@@ -23,6 +23,7 @@ export default function GrowthScreen({ onResearch }: { onResearch: (symbol: stri
   const [min, setMin] = useState(6);
   const [sector, setSector] = useState("All");
   const [open, setOpen] = useState<string | null>(null);
+  const [strongOnly, setStrongOnly] = useState(false); // Relative Price Score 80+
 
   useEffect(() => {
     fetch("/api/research/growth")
@@ -43,7 +44,7 @@ export default function GrowthScreen({ onResearch }: { onResearch: (symbol: stri
       { key: "margin", label: "Margins", rule: `Keeps ${p(r?.netMargin)}+ of sales as profit` },
       { key: "roe", label: "Return on equity", rule: `Earns ${p(r?.roe)}+ a year on shareholders' money (net income ÷ equity)` },
       { key: "sales", label: "Sales speeding up", rule: `Sales up ${p(r?.salesGrowth)}+ and growing faster than a year ago: the footprint a hit new product leaves` },
-      { key: "leader", label: "Industry leader", rule: "12-month return in the top fifth of the S&P 500 and the top quarter of its own sector" },
+      { key: "leader", label: "Industry leader", rule: `Relative Price Score ${r?.marketScore ?? 80}+ against the S&P 500 and ${r?.sectorScore ?? 75}+ within its own sector` },
       { key: "chart", label: "Healthy chart", rule: `Above its 50- and 200-day averages and within ${p(r?.nearHigh)} of its 52-week high` },
     ];
   }, [data]);
@@ -52,7 +53,7 @@ export default function GrowthScreen({ onResearch }: { onResearch: (symbol: stri
   if (!data) return <ChartLoading className="mt-4 h-96" />;
 
   const sectors = ["All", ...[...new Set(data.rows.map((r) => r.sector))].sort()];
-  const rows = data.rows.filter((r) => r.passed >= min && (sector === "All" || r.sector === sector));
+  const rows = data.rows.filter((r) => r.passed >= min && (sector === "All" || r.sector === sector) && (!strongOnly || (r.score ?? 0) >= 80));
   const count = (n: number) => data.rows.filter((r) => r.passed === n).length;
   const total = CHECKS.length;
 
@@ -74,11 +75,15 @@ export default function GrowthScreen({ onResearch }: { onResearch: (symbol: stri
       <Card as="section" className="mt-4">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] text-zinc-500">Show:</span>
-          {[total, total - 1, total - 2].map((n) => (
+          {[total, total - 1, total - 2, 0].map((n) => (
             <Chip key={n} active={min === n} onClick={() => setMin(n)}>
-              {n === total ? `All ${total} checks` : `${n}+ of ${total}`}
+              {n === 0 ? "Every company" : n === total ? `All ${total} checks` : `${n}+ of ${total}`}
             </Chip>
           ))}
+          <span className="ml-2" />
+          <Chip active={strongOnly} onClick={() => setStrongOnly((v) => !v)} title="Relative Price Score of 80 or more: price beat 80%+ of the S&P 500 over the past year, recent months weighted most">
+            Price score 80+
+          </Chip>
         </div>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {sectors.map((s) => (
@@ -100,6 +105,13 @@ export default function GrowthScreen({ onResearch }: { onResearch: (symbol: stri
                   </button>
                   <span className="min-w-0 flex-1 truncate text-xs text-foreground">
                     {r.name} <span className="text-zinc-500">· {r.sector}</span>
+                  </span>
+                  <span
+                    className="w-16 text-right text-[11px] tabular-nums"
+                    title={`Relative Price Score: ${r.score ?? "N/A"} vs the S&P 500, ${r.sectorScore ?? "N/A"} within ${r.sector}. 80+ is strong.`}
+                    style={{ color: r.score == null ? undefined : r.score >= 80 ? "var(--status-good)" : r.score >= 50 ? "var(--status-average)" : "var(--status-bad)" }}
+                  >
+                    Score {r.score ?? "–"}
                   </span>
                   <span className="flex gap-1" aria-label={`${r.passed} of ${total} checks passed`}>
                     {CHECKS.map((c) => {
@@ -144,7 +156,9 @@ export default function GrowthScreen({ onResearch }: { onResearch: (symbol: stri
           </ul>
         )}
         <p className="mt-2 text-[11px] text-zinc-500">
-          Dots, in order: {CHECKS.map((c) => c.label).join(" · ")}. Green = passes, red = fails, grey = no data. Hover a dot for the number.
+          &quot;Score&quot; is the Relative Price Score (1–99): how the stock&apos;s price did over the past year against the rest of the
+          S&amp;P 500, with the latest 3 months counting double; 80+ (green) is strong. Dots, in order: {CHECKS.map((c) => c.label).join(" · ")}.
+          Green = passes, red = fails, grey = no data. Hover a dot for the number.
         </p>
       </Card>
 

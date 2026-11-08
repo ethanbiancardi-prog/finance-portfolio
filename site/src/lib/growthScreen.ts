@@ -27,12 +27,36 @@ export const GROWTH_RULES = {
   roe: 0.17,
   salesGrowth: 0.2, // and faster than a year ago
   nearHigh: 0.15, // within 15% of the 52-week high
-  marketTop: 0.8, // 12-month return in the top fifth of the S&P 500...
-  sectorTop: 0.75, // ...and the top quarter of its own sector
+  // Industry leader: Relative Price Score (below) of 80+ against the whole
+  // S&P 500 and 75+ against its own sector.
+  marketScore: 80,
+  sectorScore: 75,
 } as const;
 
+// Relative Price Score, 1-99: how a stock's price performance over the past
+// year ranks against the other S&P 500 stocks (or just its own sector). The
+// year is weighted towards recent months, 40% the latest quarter and 20% each
+// of the three before, so a stock that's strong NOW scores higher than one
+// whose run was a year ago. The growth-investing books treat 80+ as strong.
+// It's our own transparent version of the idea, not IBD's proprietary rating.
+export function weightedReturn(closes: number[]): number | null {
+  const Q = 63; // trading days in a quarter
+  if (closes.length < 4 * Q + 1) return null;
+  const at = (k: number) => closes[closes.length - 1 - k * Q];
+  const q = (n: number) => at(n - 1) / at(n) - 1; // quarter n back (1 = latest)
+  return 0.4 * q(1) + 0.2 * q(2) + 0.2 * q(3) + 0.2 * q(4);
+}
+// 1-99 percentile ranks for a set of values (higher value = higher score).
+export function rankScores(values: Map<string, number>): Map<string, number> {
+  const sorted = [...values].sort((a, b) => a[1] - b[1]);
+  const out = new Map<string, number>();
+  const n = sorted.length;
+  sorted.forEach(([sym], i) => out.set(sym, n < 2 ? 50 : 1 + Math.round((i / (n - 1)) * 98)));
+  return out;
+}
+
 const FUND_KEY = "growth:fund:v1";
-const TECH_KEY = "growth:tech:v1";
+const TECH_KEY = "growth:tech:v2"; // v2: adds the weighted return for the Relative Price Score
 const SLICES = 5;
 
 const STOCKS = (sp500 as { stocks: { symbol: string; cik: number; sector: string }[] }).stocks;
@@ -49,7 +73,7 @@ export type FundRecord = {
   salesGrowthYearAgo: number | null; // the same, a year ago
 };
 
-type Tech = { close: number; sma50: number | null; sma200: number | null; high52: number; ret12m: number | null };
+type Tech = { close: number; sma50: number | null; sma200: number | null; high52: number; ret12m: number | null; wret: number | null };
 
 export type Check = { pass: boolean | null; value: string }; // null = no data
 export type GrowthRow = {
@@ -59,6 +83,8 @@ export type GrowthRow = {
   passed: number;
   checked: number;
   checks: Record<"profitable" | "profitGrowth" | "margin" | "roe" | "sales" | "leader" | "chart", Check>;
+  score: number | null; // Relative Price Score vs the whole S&P 500, 1-99
+  sectorScore: number | null; // the same, vs its own sector only
   growth3y: number | null; // for sorting
 };
 
@@ -150,6 +176,7 @@ async function technicals(): Promise<{ day: string; tech: Record<string, Tech>; 
       sma200: avg(200),
       high52: Math.max(...year),
       ret12m: c.length > 252 ? c[c.length - 1] / c[c.length - 253] - 1 : null,
+      wret: weightedReturn(c),
     };
   }
   const out = { day, tech, names };
@@ -168,17 +195,14 @@ export async function getGrowthScreen() {
   ]);
   const funds = fund ?? {};
 
-  // Leadership cut-offs: the market's top fifth, and each sector's top quarter, by 12-month return.
-  const sorted = (xs: number[]) => xs.sort((a, b) => a - b);
-  const at = (xs: number[], p: number) => xs[Math.floor(p * (xs.length - 1))];
-  const all = sorted(STOCKS.map((s) => tech[s.symbol]?.ret12m).filter((x): x is number => x != null));
-  const marketCut = at(all, GROWTH_RULES.marketTop);
-  const bySector = new Map<string, number[]>();
-  for (const s of STOCKS) {
-    const r = tech[s.symbol]?.ret12m;
-    if (r != null) bySector.set(s.sector, [...(bySector.get(s.sector) ?? []), r]);
+  // Relative Price Scores: against the whole S&P 500, and within each sector.
+  const wrets = new Map(STOCKS.flatMap((s) => (tech[s.symbol]?.wret != null ? [[s.symbol, tech[s.symbol].wret!] as const] : [])));
+  const marketScores = rankScores(wrets);
+  const sectorScores = new Map<string, number>();
+  for (const sector of new Set(STOCKS.map((s) => s.sector))) {
+    const inSector = new Map([...wrets].filter(([sym]) => STOCKS.find((s) => s.symbol === sym)?.sector === sector));
+    for (const [sym, sc] of rankScores(inSector)) sectorScores.set(sym, sc);
   }
-  const sectorCut = new Map([...bySector].map(([k, xs]) => [k, at(sorted(xs), GROWTH_RULES.sectorTop)]));
 
   const R = GROWTH_RULES;
   const rows: GrowthRow[] = STOCKS.map((s) => {
@@ -199,9 +223,12 @@ export async function getGrowthScreen() {
             pass: f.salesGrowth >= R.salesGrowth && f.salesGrowthYearAgo != null && f.salesGrowth > f.salesGrowthYearAgo,
             value: `${pct(f.salesGrowth)}${f.salesGrowthYearAgo != null ? ` (a year ago ${pct(f.salesGrowthYearAgo)})` : ""}`,
           },
-      leader: t?.ret12m == null
+      leader: !marketScores.has(s.symbol)
         ? { pass: null, value: "no data" }
-        : { pass: t.ret12m >= marketCut && t.ret12m >= (sectorCut.get(s.sector) ?? Infinity), value: `${pct(t.ret12m)} over 12 months` },
+        : {
+            pass: marketScores.get(s.symbol)! >= R.marketScore && (sectorScores.get(s.symbol) ?? 0) >= R.sectorScore,
+            value: `Relative Price Score ${marketScores.get(s.symbol)} (${sectorScores.get(s.symbol)} in its sector)`,
+          },
       chart: !t || t.sma200 == null || t.sma50 == null
         ? { pass: null, value: "no data" }
         : {
@@ -218,6 +245,8 @@ export async function getGrowthScreen() {
       checked: vals.filter((c) => c.pass !== null).length,
       checks,
       growth3y: f?.growth3y ?? null,
+      score: marketScores.get(s.symbol) ?? null,
+      sectorScore: sectorScores.get(s.symbol) ?? null,
     };
   }).sort((a, b) => b.passed - a.passed || (b.growth3y ?? -9) - (a.growth3y ?? -9));
 
