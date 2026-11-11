@@ -244,7 +244,7 @@ export async function refreshFinancialSignals(now = new Date()): Promise<SignalB
     stats: { companiesScreened: universe.length, withStory: candidates.length, quiet, staleFilings: stale, failed, kept: items.length },
   };
   const all: StoryByTicker = Object.fromEntries(
-    candidates.map(({ signal }) => [signal.ticker, { title: signal.title, periodEnd: signal.eventDate }]),
+    candidates.map(({ signal }) => [signal.ticker, { title: signal.title ?? "", periodEnd: signal.eventDate }]),
   );
   await Promise.all([getRedis().set(KEY, batch), getRedis().set(ALL_KEY, all)]);
   return batch;
