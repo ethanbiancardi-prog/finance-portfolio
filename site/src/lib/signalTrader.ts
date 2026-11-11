@@ -33,7 +33,7 @@ import { getDailyBars, getLatestPrices, type DailyBar } from "./marketdata";
 import { nyDate, replay, type PaperTradeRow } from "./portfolio";
 import { RESEARCH_SECTOR_KEYS, RESEARCH_SECTORS, RESEARCH_UNIVERSE } from "./researchUniverse";
 import { getChartScores } from "./signals/chart";
-import { getFinancialSignals } from "./signals/financial";
+import { getAllFinancialStories, getFinancialSignals } from "./signals/financial";
 import { RULES, type SignalOrder } from "./signalTraderRules";
 import { createAdminClient } from "./supabase/admin";
 
@@ -64,7 +64,8 @@ export function traderUniverse(): string[] {
 //                                 (+2) or second fifth (+1)
 export async function scoreSignals(holdings: string[] = []): Promise<Map<string, Candidate>> {
   const universe = traderUniverse();
-  const [financial, chart] = await Promise.all([
+  const [allStories, financial, chart] = await Promise.all([
+    getAllFinancialStories(),
     getFinancialSignals(),
     getChartScores(universe, holdings.filter((h) => !universe.includes(h))),
   ]);
@@ -77,9 +78,14 @@ export async function scoreSignals(holdings: string[] = []): Promise<Map<string,
     out.set(s, c);
   };
 
-  // Latest 10-K: a good story +2, a bad one −2.
-  for (const s of financial?.items ?? []) {
-    const bad = BEARISH_STORIES.test(s.title ?? "");
+  // Latest 10-K: a good story +2, a bad one −2. Every stock with a story
+  // counts (since Nov 11 2026); the top-12 panel list is only the fallback
+  // until the first nightly refresh has saved the full list.
+  const stories = allStories
+    ? Object.entries(allStories).map(([ticker, s]) => ({ ticker, title: s.title }))
+    : (financial?.items ?? []).map((s) => ({ ticker: s.ticker, title: s.title ?? "" }));
+  for (const s of stories) {
+    const bad = BEARISH_STORIES.test(s.title);
     add(s.ticker, { source: "filing", points: bad ? -2 : 2, text: `10-K: ${s.title}` });
   }
   // The chart: trend and momentum, for every stock with enough history.

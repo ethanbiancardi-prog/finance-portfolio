@@ -14,7 +14,11 @@ import { SECTORS } from "@/lib/sectors";
 import type { Signal, SignalBatch } from "./types";
 
 const KEY = "signals:financial";
-const MAX_ITEMS = 12;
+// Every company's lead story, not just the top 12: the Signal Trader scores
+// all of them (since Nov 11 2026; before, only the 12 shown here counted).
+const ALL_KEY = "signals:financial:all";
+const MAX_ITEMS = 12; // shown in the Research Signals panel
+export type StoryByTicker = Record<string, { title: string; periodEnd: string }>;
 // A 10-K older than this is stale — the company is about to file a new one.
 const MAX_FILING_AGE_DAYS = 400;
 // SEC asks for no more than 10 requests/second; a few in flight is plenty.
@@ -239,10 +243,19 @@ export async function refreshFinancialSignals(now = new Date()): Promise<SignalB
     items,
     stats: { companiesScreened: universe.length, withStory: candidates.length, quiet, staleFilings: stale, failed, kept: items.length },
   };
-  await getRedis().set(KEY, batch);
+  const all: StoryByTicker = Object.fromEntries(
+    candidates.map(({ signal }) => [signal.ticker, { title: signal.title, periodEnd: signal.eventDate }]),
+  );
+  await Promise.all([getRedis().set(KEY, batch), getRedis().set(ALL_KEY, all)]);
   return batch;
 }
 
 export async function getFinancialSignals(): Promise<SignalBatch | null> {
   return (await getRedis().get<SignalBatch>(KEY)) ?? null;
+}
+
+// Every company with a 10-K story (good or bad), for the Signal Trader.
+// Null until the first refresh after Nov 11 2026.
+export async function getAllFinancialStories(): Promise<StoryByTicker | null> {
+  return (await getRedis().get<StoryByTicker>(ALL_KEY)) ?? null;
 }

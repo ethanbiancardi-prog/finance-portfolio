@@ -50,6 +50,13 @@ Oct to Nov 2026. I dropped it from the strategy in Nov 2026.
 In practice, a stock that qualifies to buy already has +2 from its trend, so
 it needs 2 more from somewhere: a good 10-K or top-fifth momentum.
 
+**Every stock's 10-K counts (Nov 11 2026).** Until then only the 12 strongest
+10-K stories (the ones shown in the Research Signals panel) scored; every other
+stock got 0 from its filing however it read. Now every company with a story
+scores: on Nov 11 that was 76 of 208 (55 good, 21 bad), and stocks scoring 4+
+went from 15 to 35. No holding dropped under the sell line of 2. If a company
+triggers several stories, the strongest still decides (one +2 or −2).
+
 ## Rule changes, Nov 2026
 
 Tested on daily prices 2017–2026 (price-only score, today's stock lists):
