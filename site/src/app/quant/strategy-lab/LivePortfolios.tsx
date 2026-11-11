@@ -47,8 +47,9 @@ const when = (iso: string) =>
   new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 // The live algo portfolios (lib/algoPortfolios.ts): three strategies on the
-// backtest's rules, trading real prices from the day they opened, against a
-// control portfolio that simply holds the S&P 500 (SPY).
+// backtest's rules plus the growth checklist (lib/growthBot.ts), trading real
+// prices from the day they opened, against a control portfolio that simply
+// holds the S&P 500 (SPY).
 export default function LivePortfolios() {
   const [data, setData] = useState<AlgoView | null>(null);
   const [error, setError] = useState("");
@@ -117,7 +118,7 @@ export default function LivePortfolios() {
       <Card as="section" className="mt-4">
         <SectionHeader
           label="live since"
-          description={`Each portfolio opened with $100,000 on ${new Date(opened).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} and is checked ${data.startsAt} against the Backtest tab's rules, at real prices. Momentum rebalances on the first trading day of each month; the S&P 500 control never trades. Values update every minute while this page is open.${data.lastRun ? ` Last trading run: ${when(data.lastRun.ranAt)}.` : ""}`}
+          description={`Each portfolio opened with $100,000 (the first on ${new Date(opened).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}) and is checked ${data.startsAt} against the Backtest tab's rules, at real prices. Momentum rebalances on the first trading day of each month; the S&P 500 control never trades. The growth checklist (opened Nov 11 2026) buys stocks passing 6+ of the 9 checks on Research → Growth Stocks, 10 at most, and sells on an 8% loss, a close under the 200-day average, or the company losing money. Values update every minute while this page is open.${data.lastRun ? ` Last trading run: ${when(data.lastRun.ranAt)}.` : ""}`}
         />
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
           {visible.map((k) => (

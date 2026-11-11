@@ -33,10 +33,13 @@ import { buildPortfolio, nyDate, replay, type PaperAccountRow, type PaperTradeRo
 import { STRATEGIES, buildTable, type PriceTable, type StrategyKey } from "./strategyLab";
 import { labUniverse } from "./strategyLabData";
 import { createAdminClient } from "./supabase/admin";
+import { GROWTH_BOT_NAME, growthBotOrders } from "./growthBot";
 
 // "buyhold" is the control. Listed first so the page draws it first.
-export const ALGO_KEYS = ["buyhold", "momentum", "breakout", "meanrev"] as const satisfies readonly StrategyKey[];
+// "growth" (added Nov 11 2026) trades the Growth Stocks checklist, lib/growthBot.ts.
+export const ALGO_KEYS = ["buyhold", "momentum", "breakout", "meanrev", "growth"] as const satisfies readonly StrategyKey[];
 export type AlgoKey = (typeof ALGO_KEYS)[number];
+const algoName = (key: AlgoKey) => (key === "growth" ? GROWTH_BOT_NAME : STRATEGIES.find((s) => s.key === key)!.name);
 
 const ACCOUNTS_KEY = "algo:accounts:v1"; // Redis hash: strategy key -> robot user id
 const REPORT_KEY = "algo:last-run:v1";
@@ -153,7 +156,7 @@ async function runOnce(base: Omit<AlgoRunReport, "note">, live: boolean, marketO
   const price = (s: string) => table.close.get(s)?.[t] ?? NaN;
 
   for (const key of ALGO_KEYS) {
-    const strategy = STRATEGIES.find((s) => s.key === key)!;
+    const strategy = { name: algoName(key) };
     const userId = accounts.get(key);
     const bot = { key, note: "", orders: [] as Order[], failed: [] as string[] };
     base.bots.push(bot);
@@ -169,36 +172,45 @@ async function runOnce(base: Omit<AlgoRunReport, "note">, live: boolean, marketO
         trades = (data ?? []) as PaperTradeRow[];
       }
       const { cash, holdings } = replay(trades, 100_000);
-      const held = new Set(holdings.keys());
-      let decision = strategy.decide(t, held, { ...ctx, first: trades.length === 0 });
-      // Momentum's rule fires all day on the first trading day of a month;
-      // rebalance on the first check that day only, not every 15 minutes.
-      if (decision && key === "momentum" && trades.length > 0 && live && kvConfigured()) {
-        const first = await getRedis().set(`algo:momentum-rebalanced:${today}`, base.ranAt, { nx: true, ex: 60 * 60 * 20 });
-        if (!first) decision = null;
-      }
-      if (!decision) {
-        bot.note = key === "momentum" ? "Holds until the first trading day of next month." : "No change.";
-        continue;
-      }
 
-      // Sells first, then buys sized on today's account value.
-      let equity = cash;
-      for (const [s, h] of holdings) equity += h.qty * (Number.isFinite(price(s)) ? price(s) : h.cost / h.qty);
-      let spendable = cash;
-      for (const [s, h] of holdings) {
-        if (decision.hold.has(s) || !Number.isFinite(price(s))) continue;
-        bot.orders.push({ symbol: s, side: "sell", qty: h.qty, price: price(s), reason: `${strategy.name}: exit rule met` });
-        spendable += h.qty * price(s);
+      if (key === "growth") {
+        // Its own rules and prices (the ~1,700-stock screen, not the lab's ~94).
+        const g = await growthBotOrders(trades, cash, holdings);
+        bot.orders = g.orders;
+        bot.note = g.note;
+      } else {
+        const held = new Set(holdings.keys());
+        const lab = STRATEGIES.find((s) => s.key === key)!;
+        let decision = lab.decide(t, held, { ...ctx, first: trades.length === 0 });
+        // Momentum's rule fires all day on the first trading day of a month;
+        // rebalance on the first check that day only, not every 15 minutes.
+        if (decision && key === "momentum" && trades.length > 0 && live && kvConfigured()) {
+          const first = await getRedis().set(`algo:momentum-rebalanced:${today}`, base.ranAt, { nx: true, ex: 60 * 60 * 20 });
+          if (!first) decision = null;
+        }
+        if (!decision) {
+          bot.note = key === "momentum" ? "Holds until the first trading day of next month." : "No change.";
+          continue;
+        }
+
+        // Sells first, then buys sized on today's account value.
+        let equity = cash;
+        for (const [s, h] of holdings) equity += h.qty * (Number.isFinite(price(s)) ? price(s) : h.cost / h.qty);
+        let spendable = cash;
+        for (const [s, h] of holdings) {
+          if (decision.hold.has(s) || !Number.isFinite(price(s))) continue;
+          bot.orders.push({ symbol: s, side: "sell", qty: h.qty, price: price(s), reason: `${strategy.name}: exit rule met` });
+          spendable += h.qty * price(s);
+        }
+        for (const s of decision.hold) {
+          if (held.has(s) || !Number.isFinite(price(s))) continue;
+          const qty = Math.floor(Math.min(equity * decision.entryWeight, spendable) / price(s));
+          if (qty < 1) continue;
+          bot.orders.push({ symbol: s, side: "buy", qty, price: price(s), reason: `${strategy.name}: entry rule met` });
+          spendable -= qty * price(s);
+        }
+        bot.note = bot.orders.length ? `${bot.orders.length} order${bot.orders.length === 1 ? "" : "s"}.` : "On target, nothing to trade.";
       }
-      for (const s of decision.hold) {
-        if (held.has(s) || !Number.isFinite(price(s))) continue;
-        const qty = Math.floor(Math.min(equity * decision.entryWeight, spendable) / price(s));
-        if (qty < 1) continue;
-        bot.orders.push({ symbol: s, side: "buy", qty, price: price(s), reason: `${strategy.name}: entry rule met` });
-        spendable -= qty * price(s);
-      }
-      bot.note = bot.orders.length ? `${bot.orders.length} order${bot.orders.length === 1 ? "" : "s"}.` : "On target, nothing to trade.";
 
       if (!live || !userId || bot.orders.length === 0) continue;
       const filled: Order[] = [];
@@ -261,7 +273,7 @@ export async function getAlgoPortfolios(): Promise<AlgoView> {
     ]);
     if (!account) continue;
     const summary = await buildPortfolio(account as PaperAccountRow, (trades ?? []) as PaperTradeRow[]);
-    portfolios.push({ ...summary, key, name: STRATEGIES.find((s) => s.key === key)!.name });
+    portfolios.push({ ...summary, key, name: algoName(key) });
   }
   const lastRun = kvConfigured() ? await getRedis().get<AlgoRunReport>(REPORT_KEY).catch(() => null) : null;
   const view: AlgoView = { portfolios, lastRun, startsAt: "every 15 minutes while the market is open" };

@@ -133,6 +133,7 @@ export type GrowthRow = {
   score: number | null; // Relative Price Score vs the whole list (~1,700 stocks), 1-99
   sectorScore: number | null; // the same, vs its own sector only
   growth3y: number | null; // for sorting
+  belowSma200: boolean | null; // last close under the 200-day average (the growth robot's sell rule)
 };
 
 // --- Fundamentals --------------------------------------------------------------
@@ -328,6 +329,7 @@ export async function getGrowthScreen() {
       checked: vals.filter((c) => c.pass !== null).length,
       checks,
       growth3y: f?.growth3y ?? null,
+      belowSma200: t?.sma200 == null ? null : t.close < t.sma200,
       score: marketScores.get(s.symbol) ?? null,
       sectorScore: sectorScores.get(s.symbol) ?? null,
     };

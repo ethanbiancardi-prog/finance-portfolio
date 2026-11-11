@@ -37,7 +37,8 @@ type Strategy = {
   decide: (t: number, held: Set<string>, ctx: Ctx) => Decision;
 };
 
-export type StrategyKey = "buyhold" | "trend" | "momentum" | "meanrev" | "breakout";
+// "growth" is live-only (lib/growthBot.ts): it isn't one of the backtested STRATEGIES below.
+export type StrategyKey = "buyhold" | "trend" | "momentum" | "meanrev" | "breakout" | "growth";
 
 // --- Indicators (each reads only data up to and including day t) ------------
 

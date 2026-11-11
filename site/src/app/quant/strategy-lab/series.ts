@@ -9,4 +9,6 @@ export const SERIES: Record<StrategyKey, { color: string; dashed?: boolean }> = 
   momentum: { color: "var(--series-2)" },
   meanrev: { color: "var(--series-3)" },
   breakout: { color: "var(--series-4)" },
+  // Live tab only, where trend (series-1) never appears.
+  growth: { color: "var(--series-1)" },
 };
