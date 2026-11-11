@@ -2,12 +2,12 @@
 
 // The Relative Price Score card in the Search tab: how this stock's price
 // performance over the past year (weighted towards recent months) ranks
-// against the S&P 500 and against its own sector, 1-99. 80+ is strong.
+// against ~1,700 US stocks and against its own sector, 1-99. 80+ is strong.
 // Data: /api/research/relative (lib/growthScreen.ts).
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui";
 
-type Score = { inSp500: boolean; score?: number | null; sectorScore?: number | null; sector?: string; priceDay: string };
+type Score = { inList: boolean; score?: number | null; sectorScore?: number | null; sector?: string; priceDay: string };
 
 const color = (s: number | null | undefined) =>
   s == null ? undefined : s >= 80 ? "var(--status-good)" : s >= 50 ? "var(--status-average)" : "var(--status-bad)";
@@ -46,11 +46,11 @@ export function RelativeScore({ ticker }: { ticker: string }) {
   }, [ticker]);
 
   if (!data) return null;
-  if (!data.inSp500)
+  if (!data.inList)
     return (
       <Card className="mt-4" padding="sm">
         <p className="text-[11px] text-zinc-500">
-          <span className="text-foreground">Relative Price Score:</span> only calculated for S&amp;P 500 companies, and {ticker} isn&apos;t one.
+          <span className="text-foreground">Relative Price Score:</span> calculated for US stocks worth about $2B or more, and {ticker} isn&apos;t on that list.
         </p>
       </Card>
     );
@@ -62,12 +62,12 @@ export function RelativeScore({ ticker }: { ticker: string }) {
     <Card as="section" className="mt-4" padding="sm">
       <p className="text-[11px] caps text-zinc-500">Relative Price Score</p>
       <div className="mt-2 grid gap-4 sm:grid-cols-2">
-        <Gauge label="vs the S&P 500" value={data.score} />
+        <Gauge label="vs the market" value={data.score} />
         <Gauge label={`vs ${data.sector ?? "its sector"}`} value={data.sectorScore} />
       </div>
       <p className="mt-2 text-[11px] leading-5 text-zinc-500">
         <span className="text-foreground">{verdict}</span> A score of {s ?? "N"} means its price did better than about {s ?? "N"}% of
-        the group over the past year, with the latest 3 months counting double. Growth-investing books treat 80+ (the line on
+        the ~1,700 biggest US stocks over the past year, with the latest 3 months counting double. Growth-investing books treat 80+ (the line on
         each bar) as a sign of a market leader. A measure of past price strength, not a forecast. Prices as of {data.priceDay}.
       </p>
     </Card>

@@ -1,6 +1,6 @@
 import { alpacaData } from "@/lib/alpaca";
 
-export type DailyBar = { t: string; c: number };
+export type DailyBar = { t: string; c: number; v?: number }; // v = shares traded that day
 
 const MAX_SYMBOLS_PER_REQUEST = 50; // keeps the query string small; batches if the universe ever grows past this
 
@@ -52,7 +52,7 @@ export async function getDailyBars(
         const existing = bars.get(symbol) ?? [];
         bars.set(
           symbol,
-          existing.concat((symbolBars as { t: string; c: number }[]).map((b) => ({ t: b.t, c: b.c }))),
+          existing.concat((symbolBars as { t: string; c: number; v: number }[]).map((b) => ({ t: b.t, c: b.c, v: b.v }))),
         );
       }
 
