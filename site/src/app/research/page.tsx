@@ -15,6 +15,7 @@ import { SignalsPanel } from "./SignalsPanel";
 import MarketNews from "./MarketNews";
 import GrowthScreen from "./GrowthScreen";
 import { RelativeScore } from "./RelativeScore";
+import { SupportLevels } from "./SupportLevels";
 import { Overview } from "./Overview";
 import { SimpleProvider } from "./SimpleMode";
 import { SectionForce } from "@/components/ui/Section";
@@ -162,6 +163,7 @@ function ResearchPage() {
                 onCollapseAll={() => setForce({ open: false, seq: (force?.seq ?? 0) + 1 })}
               />
               <RelativeScore key={`rps-${company.ticker}`} ticker={company.ticker} />
+              <SupportLevels key={`support-${company.ticker}`} ticker={company.ticker} />
               <SectionForce.Provider value={force}>
                 {/* AI switched off (lib/aiFeatures.ts): skip every panel that calls Claude. */}
                 {!AI_ENABLED && (
